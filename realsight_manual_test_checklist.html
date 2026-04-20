@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RealSight Manual Test Checklist</title>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: #ffffff;
+            --surface-2: #f8fbff;
+            --border: #e4eaf4;
+            --text: #152033;
+            --muted: #60708a;
+            --primary: #2563eb;
+            --primary-soft: #eff6ff;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --shadow: 0 12px 32px rgba(21, 32, 51, 0.08);
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 28px 18px 56px;
+        }
+
+        .hero,
+        .panel,
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            margin: 12px 0 0;
+            max-width: 780px;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 22px;
+        }
+
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .stat .value {
+            font-size: 30px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat .label {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .panel {
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .helper {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            font: inherit;
+            color: var(--text);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            background: #fff;
+        }
+
+        textarea {
+            min-height: 96px;
+            resize: vertical;
+        }
+
+        .add-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.7fr 160px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            border-radius: 14px;
+            padding: 12px 16px;
+            transition: transform 0.15s ease, opacity 0.15s ease, background 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: var(--primary);
+        }
+
+        .btn-secondary {
+            color: var(--muted);
+            background: #fff;
+            border: 1px solid var(--border);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            background: #fff;
+            border: 1px solid #f1c0c0;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sections {
+            display: grid;
+            gap: 16px;
+        }
+
+        .section {
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .section-head {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            color: #10203a;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .section-body {
+            padding: 14px;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        .task {
+            border: 1px solid var(--border);
+            border-left-width: 8px;
+            border-radius: 16px;
+            background: #fff;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .task.done {
+            box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.12);
+        }
+
+        .task-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .task-main {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            margin-top: 2px;
+            accent-color: var(--success);
+            flex-shrink: 0;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin: 0 0 4px;
+        }
+
+        .task.done .task-title {
+            text-decoration: line-through;
+            color: #51715b;
+        }
+
+        .task-desc {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        .pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            font-size: 12px;
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .comment-box {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .dropzone {
+            margin-top: 10px;
+            border: 2px dashed #c9d7ee;
+            border-radius: 14px;
+            background: #f8fbff;
+            padding: 14px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .dropzone.dragover {
+            border-color: var(--primary);
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .dropzone input {
+            display: none;
+        }
+
+        .preview-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .preview-card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .preview-card img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            display: block;
+            background: #edf2fa;
+        }
+
+        .preview-meta {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-name {
+            font-size: 12px;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .task-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .note {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 860px) {
+
+            .stats,
+            .add-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .task-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <section class="hero">
+            <div class="eyebrow">RealSight QA Tracker</div>
+            <h1>Manual Test Checklist</h1>
+            <p>Mark items as done, add comments, drop screenshots, and export the report so Anti-Gravity can read the
+                results from the project files.</p>
+            <div class="stats">
+                <div class="stat">
+                    <div class="value" id="totalCount">0</div>
+                    <div class="label">Total tasks</div>
+                </div>
+                <div class="stat">
+                    <div class="value" id="doneCount">0</div>
+                    <div class="label">Completed</div>
+                </div>
+                <div class="stat">
+                    <div class="value" id="openCount">0</div>
+                    <div class="label">Open</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Overall notes for AG</h2>
+                <div class="helper">You can type notes and drop screenshots here.</div>
+            </div>
+            <label for="projectNotes">Project-level notes</label>
+            <textarea id="projectNotes"
+                placeholder="Example: verification email is fixed, but subdomain still does not resolve on mobile Safari."></textarea>
+            <div class="dropzone" id="projectDropzone">
+                Drop screenshots here or <button class="btn-secondary" type="button" id="projectBrowseBtn">browse
+                    files</button>
+                <input type="file" id="projectFileInput" accept="image/*" multiple />
+            </div>
+            <div class="preview-grid" id="projectImages"></div>
+            <div class="note">Important: screenshots and comments are saved in your browser. To let Anti-Gravity read
+                them, use <b>Export report</b> and save the JSON file inside the RealSight project folder.</div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Add new task or issue</h2>
+                <div class="helper">Use this when you find a new bug or improvement during testing.</div>
+            </div>
+            <div class="add-grid">
+                <div>
+                    <label for="newTaskTitle">Task title</label>
+                    <input id="newTaskTitle" type="text"
+                        placeholder="Example: Dismissed help card appears again after refresh" />
+                </div>
+                <div>
+                    <label for="newTaskSection">Section</label>
+                    <select id="newTaskSection">
+                        <option>Manual Test - New Findings</option>
+                        <option>Signup & Email Verification</option>
+                        <option>Adviser Setup Wizard</option>
+                        <option>Admin Dashboard</option>
+                        <option>Theme / Branding</option>
+                        <option>Subdomain</option>
+                        <option>Others</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-primary" id="addTaskBtn">Add task</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Report actions</h2>
+                <div class="helper">Export the report JSON into your RealSight project folder so Anti-Gravity can open
+                    and analyze it later.</div>
+            </div>
+            <div class="actions-row">
+                <button class="btn-primary" id="exportBtn">Export report</button>
+                <button class="btn-secondary" id="importBtn">Import report</button>
+                <button class="btn-danger" id="resetBtn">Reset all</button>
+                <input type="file" id="importFileInput" accept="application/json" style="display:none" />
+            </div>
+            <div class="note">Suggested filename: <b>realsight-qa-report.json</b>. Save that file inside the RealSight
+                project root so AG can read it directly.</div>
+        </section>
+
+        <div class="sections" id="sections"></div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'realsight_manual_test_checklist_v3';
+
+        const sectionThemes = {
+            'Signup & Email Verification': { bg: '#eef4ff', pill: '#dbeafe', border: '#2563eb' },
+            'Adviser Setup Wizard': { bg: '#f5efff', pill: '#ede9fe', border: '#7c3aed' },
+            'Subdomain': { bg: '#ecfdf5', pill: '#d1fae5', border: '#059669' },
+            'Admin Dashboard': { bg: '#fff7ed', pill: '#fed7aa', border: '#ea580c' },
+            'Theme / Branding': { bg: '#fdf2f8', pill: '#fbcfe8', border: '#db2777' },
+            'Manual Test - New Findings': { bg: '#f4f4f5', pill: '#e4e4e7', border: '#52525b' },
+            'Others': { bg: '#f4f4f5', pill: '#e4e4e7', border: '#52525b' }
+        };
+
+        const defaultData = {
+            notes: '',
+            projectImages: [],
+            sections: [
+                {
+                    title: 'Signup & Email Verification',
+                    tasks: [
+                        { title: 'Create a new adviser account successfully', description: 'Use a fresh email and confirm signup completes without errors.', done: false, comment: '', images: [] },
+                        { title: 'Verification email arrives from no-reply@realsight.app', description: 'Confirm the sender is correct and not the default Supabase sender.', done: false, comment: '', images: [] },
+                        { title: 'Verify link redirects correctly', description: 'Click the email verification link and confirm it does not go to the homepage incorrectly.', done: false, comment: '', images: [] }
+                    ]
+                },
+                {
+                    title: 'Adviser Setup Wizard',
+                    tasks: [
+                        { title: 'First adviser login redirects to /admin/setup', description: 'Confirm a new adviser is sent into the setup wizard and not dropped into raw dashboard/settings.', done: false, comment: '', images: [] },
+                        { title: 'Wizard steps progress correctly', description: 'Check next/back navigation, progress indicator, and general flow across all steps.', done: false, comment: '', images: [] },
+                        { title: '3 preset theme colors are shown only', description: 'Confirm there is no free color picker and only the agreed preset options appear.', done: false, comment: '', images: [] },
+                        { title: 'Selected theme color actually applies', description: 'Choose a preset and verify it visually affects the workspace/theme.', done: false, comment: '', images: [] },
+                        { title: 'Wizard resumes if interrupted', description: 'Refresh or leave mid-setup and confirm progress/data are preserved.', done: false, comment: '', images: [] },
+                        { title: 'Wizard completion sends adviser into dashboard', description: 'Finish the wizard and confirm setup completes cleanly.', done: false, comment: '', images: [] }
+                    ]
+                },
+                {
+                    title: 'Subdomain',
+                    tasks: [
+                        { title: 'Subdomain validation works', description: 'Check allowed format, uniqueness handling, and invalid input behavior.', done: false, comment: '', images: [] },
+                        { title: 'Saved subdomain resolves correctly', description: 'Verify the chosen subdomain works and maps to the right adviser workspace.', done: false, comment: '', images: [] }
+                    ]
+                },
+                {
+                    title: 'Admin Dashboard',
+                    tasks: [
+                        { title: 'Completed adviser is not redirected back into setup', description: 'Log in again after setup and confirm normal dashboard access.', done: false, comment: '', images: [] },
+                        { title: 'Help cards appear on first visit only', description: 'Check intro cards on key sections and confirm they do not keep returning once dismissed.', done: false, comment: '', images: [] },
+                        { title: 'Sidebar labels and pages are consistent', description: 'Check naming such as DLD Analytics and other admin items.', done: false, comment: '', images: [] }
+                    ]
+                },
+                {
+                    title: 'Theme / Branding',
+                    tasks: [
+                        { title: 'Logo upload works', description: 'Confirm logo upload succeeds and displays correctly after save.', done: false, comment: '', images: [] },
+                        { title: 'Brand name / adviser name saves correctly', description: 'Verify saved brand details appear correctly across the workspace.', done: false, comment: '', images: [] }
+                    ]
+                },
+                {
+                    title: 'Manual Test - New Findings',
+                    tasks: []
+                },
+                {
+                    title: 'Others',
+                    tasks: []
+                }
+            ]
+        };
+
+        function clone(obj) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : clone(defaultData);
+            } catch {
+                return clone(defaultData);
+            }
+        }
+
+        let data = loadData();
+
+        const sectionsEl = document.getElementById('sections');
+        const projectNotesEl = document.getElementById('projectNotes');
+        const totalCountEl = document.getElementById('totalCount');
+        const doneCountEl = document.getElementById('doneCount');
+        const openCountEl = document.getElementById('openCount');
+        const projectImagesEl = document.getElementById('projectImages');
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            renderSummary();
+        }
+
+        function renderSummary() {
+            const tasks = data.sections.flatMap(section => section.tasks);
+            const total = tasks.length;
+            const done = tasks.filter(task => task.done).length;
+            totalCountEl.textContent = total;
+            doneCountEl.textContent = done;
+            openCountEl.textContent = total - done;
+        }
+
+        function getTheme(sectionTitle) {
+            return sectionThemes[sectionTitle] || sectionThemes['Others'];
+        }
+
+        async function fileToCompressedDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const maxW = 1400;
+                        const scale = Math.min(1, maxW / img.width);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.round(img.width * scale);
+                        canvas.height = Math.round(img.height * scale);
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.82));
+                    };
+                    img.onerror = reject;
+                    img.src = reader.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function addImages(files, targetArray) {
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                const dataUrl = await fileToCompressedDataURL(file);
+                targetArray.push({ name: file.name, dataUrl });
+            }
+            saveData();
+            render();
+        }
+
+        function renderImageGrid(container, images, onDelete) {
+            container.innerHTML = '';
+            images.forEach((img, index) => {
+                const card = document.createElement('div');
+                card.className = 'preview-card';
+                card.innerHTML = `
+          <img src="${img.dataUrl}" alt="Screenshot preview" />
+          <div class="preview-meta">
+            <div class="preview-name" title="${img.name}">${img.name}</div>
+            <button type="button" class="btn-danger">Remove</button>
+          </div>
+        `;
+                card.querySelector('button').addEventListener('click', () => onDelete(index));
+                container.appendChild(card);
+            });
+        }
+
+        function setupDropzone(dropzoneEl, inputEl, onFiles) {
+            const browseBtn = dropzoneEl.querySelector('button');
+            if (browseBtn) browseBtn.addEventListener('click', () => inputEl.click());
+            inputEl.addEventListener('change', event => onFiles(Array.from(event.target.files || [])));
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropzoneEl.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzoneEl.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                dropzoneEl.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzoneEl.classList.remove('dragover');
+                });
+            });
+            dropzoneEl.addEventListener('drop', e => onFiles(Array.from(e.dataTransfer.files || [])));
+        }
+
+        function render() {
+            sectionsEl.innerHTML = '';
+            projectNotesEl.value = data.notes || '';
+            renderImageGrid(projectImagesEl, data.projectImages || [], index => {
+                data.projectImages.splice(index, 1);
+                saveData();
+                render();
+            });
+
+            data.sections.forEach((section, sectionIndex) => {
+                const theme = getTheme(section.title);
+                const sectionEl = document.createElement('section');
+                sectionEl.className = 'section';
+                sectionEl.innerHTML = `
+          <div class="section-head" style="background:${theme.bg}">
+            <h2>${section.title}</h2>
+          </div>
+          <div class="section-body"></div>
+        `;
+
+                const body = sectionEl.querySelector('.section-body');
+                if (!section.tasks.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.textContent = 'No tasks in this section yet.';
+                    body.appendChild(empty);
+                }
+
+                section.tasks.forEach((task, taskIndex) => {
+                    const taskEl = document.createElement('article');
+                    taskEl.className = `task${task.done ? ' done' : ''}`;
+                    taskEl.style.borderLeftColor = theme.border;
+                    taskEl.style.background = task.done ? '#f7fff8' : theme.bg;
+                    taskEl.innerHTML = `
+            <div class="task-row">
+              <div class="task-main">
+                <input type="checkbox" ${task.done ? 'checked' : ''} />
+                <div>
+                  <div class="task-title"></div>
+                  <p class="task-desc"></p>
+                </div>
+              </div>
+              <div class="pill" style="background:${theme.pill}">${section.title}</div>
+            </div>
+            <div class="comment-box">
+              <label>Comment / finding</label>
+              <textarea placeholder="Write bug details, test result, or notes for AG."></textarea>
+              <div class="dropzone">
+                Drop screenshots here or <button class="btn-secondary" type="button">browse files</button>
+                <input type="file" accept="image/*" multiple />
+              </div>
+              <div class="preview-grid"></div>
+            </div>
+            <div class="task-actions">
+              <button type="button" class="btn-danger">Delete task</button>
+            </div>
+          `;
+
+                    taskEl.querySelector('.task-title').textContent = task.title;
+                    taskEl.querySelector('.task-desc').textContent = task.description || '';
+
+                    const checkbox = taskEl.querySelector('input[type="checkbox"]');
+                    checkbox.addEventListener('change', event => {
+                        data.sections[sectionIndex].tasks[taskIndex].done = event.target.checked;
+                        saveData();
+                        render();
+                    });
+
+                    const textarea = taskEl.querySelector('textarea');
+                    textarea.value = task.comment || '';
+                    textarea.addEventListener('input', event => {
+                        data.sections[sectionIndex].tasks[taskIndex].comment = event.target.value;
+                        saveData();
+                    });
+
+                    const dropzone = taskEl.querySelector('.dropzone');
+                    const input = taskEl.querySelector('.dropzone input');
+                    const previewGrid = taskEl.querySelector('.preview-grid');
+                    if (!task.images) task.images = [];
+                    renderImageGrid(previewGrid, task.images, index => {
+                        data.sections[sectionIndex].tasks[taskIndex].images.splice(index, 1);
+                        saveData();
+                        render();
+                    });
+                    setupDropzone(dropzone, input, files => addImages(files, data.sections[sectionIndex].tasks[taskIndex].images));
+
+                    const deleteBtn = taskEl.querySelector('.task-actions button');
+                    deleteBtn.addEventListener('click', () => {
+                        data.sections[sectionIndex].tasks.splice(taskIndex, 1);
+                        saveData();
+                        render();
+                    });
+
+                    body.appendChild(taskEl);
+                });
+
+                sectionsEl.appendChild(sectionEl);
+            });
+
+            renderSummary();
+        }
+
+        projectNotesEl.addEventListener('input', event => {
+            data.notes = event.target.value;
+            saveData();
+        });
+
+        setupDropzone(
+            document.getElementById('projectDropzone'),
+            document.getElementById('projectFileInput'),
+            files => addImages(files, data.projectImages)
+        );
+
+        document.getElementById('addTaskBtn').addEventListener('click', () => {
+            const titleEl = document.getElementById('newTaskTitle');
+            const sectionEl = document.getElementById('newTaskSection');
+            const title = titleEl.value.trim();
+            const sectionTitle = sectionEl.value;
+            if (!title) return;
+            const section = data.sections.find(item => item.title === sectionTitle);
+            if (!section) return;
+            section.tasks.push({
+                title,
+                description: 'Added during manual testing.',
+                done: false,
+                comment: '',
+                images: []
+            });
+            titleEl.value = '';
+            saveData();
+            render();
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'realsight-qa-report.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('importBtn').addEventListener('click', () => {
+            document.getElementById('importFileInput').click();
+        });
+
+        document.getElementById('importFileInput').addEventListener('change', async event => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const text = await file.text();
+            data = JSON.parse(text);
+            saveData();
+            render();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            const yes = confirm('Reset the entire checklist and remove all comments/screenshots?');
+            if (!yes) return;
+            data = clone(defaultData);
+            saveData();
+            render();
+        });
+
+        render();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "about": "À propos de Realsight",
+    "projects": "Projets",
+    "investorLounge": "Salon des Investisseurs",
+    "contact": "Contact",
+    "enterLounge": "Entrer dans le Salon",
+    "concierge": "Concierge"
+  },
+  "publicHome": {
+    "title": "Salon des Investisseurs",
+    "lounge": "Realsight",
+    "subtitle": "Demandez à l'Assistant IA de Realsight à propos de l'immobilier à Dubaï.",
+    "placeholder": "Posez une question sur l'immobilier à Dubaï..."
+  },
+  "concierge": {
+    "title": "Concierge IA de Realsight",
+    "online": "En ligne • Prêt à vous aider",
+    "placeholder": "Message pour Realsight IA...",
+    "newChat": "Nouvelle Conversation",
+    "noConversations": "Pas encore de conversations",
+    "welcome": "Bonjour ! Je suis votre concierge IA personnel. Comment puis-je vous aider avec vos investissements aujourd'hui ?",
+    "typing": "En train d'écrire...",
+    "portfolio": "Portefeuille",
+    "payments": "Paiements",
+    "documents": "Documents",
+    "compare": "Comparer",
+    "updates": "Mises à jour",
+    "helperText": "Tapez @ pour les projets, / pour les commandes"
+  },
+  "contact": {
+    "title": "Contactez",
+    "titleHighlight": "nous",
+    "subtitle": "Vous avez des questions sur les opportunités d'investissement ? Planifiez une consultation avec notre équipe. Nous sommes là pour vous aider à prendre des décisions éclairées.",
+    "phone": "Téléphone",
+    "email": "Email",
+    "office": "Bureau",
+    "workingHours": "Heures d'ouverture",
+    "formTitle": "Demander une Consultation",
+    "fullName": "Nom Complet",
+    "yourName": "Votre nom",
+    "emailLabel": "Email",
+    "emailPlaceholder": "votre@email.com",
+    "phonePlaceholder": "+971 XX XXX XXXX",
+    "subject": "Sujet",
+    "subjectPlaceholder": "Demande d'investissement",
+    "message": "Message",
+    "messagePlaceholder": "Parlez-nous de vos intérêts d'investissement...",
+    "sendMessage": "Envoyer le Message",
+    "success": "Merci pour votre message. Nous vous contacterons bientôt."
+  },
+  "about": {
+    "title": "Realsight",
+    "subtitle": "Un nom de confiance dans l'immobilier de Dubaï depuis plus de deux décennies",
+    "ctaTitle": "Vous souhaitez une consultation privée ?",
+    "ctaSubtitle": "Contactez-moi, ou en savoir plus sur le salon des investisseurs.",
+    "chatWhatsApp": "Discuter sur WhatsApp",
+    "investorLounge": "Salon des Investisseurs"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer"
+  }
+}

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RealSight — Colour Palette</title>
+<style>
+  :root {
+    --bg:        #050716;
+    --bg-2:      #0a0f2e;
+    --bg-3:      #0A0F1A;
+    --muted:     #171c3d;
+    --border:    #242b57;
+    --fg:        #f4f5fb;
+    --fg-soft:   #a8afc4;
+    --mint:      #18d6a4;
+    --mint-lt:   #2effc0;
+    --mint-dk:   #059669;
+    --cobalt:    #2d5cff;
+    --violet:    #7a5cff;
+    --coral:     #ff5a7a;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background:
+      radial-gradient(ellipse at top left,  rgba(24,214,164,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at top right, rgba(168,85,247,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 110%,  rgba(45,92,255,0.14) 0%, transparent 60%),
+      var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  header.hero {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  header.hero .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(24,214,164,0.12);
+    border: 1px solid rgba(24,214,164,0.35);
+    color: var(--mint);
+    font-weight: 800; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 7px 14px; border-radius: 999px; margin-bottom: 18px;
+  }
+  header.hero h1 {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 900; margin: 0 0 10px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, #a8afc4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header.hero p {
+    color: var(--fg-soft);
+    max-width: 620px; margin: 0 auto;
+    font-size: 15px;
+  }
+
+  section { margin-bottom: 64px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--fg-soft); font-weight: 800;
+    margin: 0 0 6px;
+  }
+  h2 .num {
+    display: inline-block;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    text-align: center; line-height: 22px;
+    font-size: 11px; color: var(--fg); margin-right: 10px;
+  }
+  .section-sub { color: var(--fg-soft); font-size: 14px; margin: 0 0 22px; }
+
+  /* Swatch grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .swatch {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+    cursor: pointer;
+  }
+  .swatch:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.18); }
+  .swatch .chip {
+    height: 110px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 12px 14px;
+    position: relative; overflow: hidden;
+  }
+  .swatch .meta {
+    padding: 12px 14px 14px;
+    background: rgba(10,15,46,0.55);
+  }
+  .swatch .name {
+    font-size: 13px; font-weight: 700; color: var(--fg);
+    margin: 0 0 3px;
+  }
+  .swatch .hex {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 12px; color: var(--fg-soft);
+    letter-spacing: 0.02em;
+  }
+  .swatch .role {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase; letter-spacing: 0.14em; font-weight: 700;
+  }
+  .swatch .copy {
+    font-size: 10px; color: rgba(255,255,255,0.55);
+    margin-top: 8px; display: block;
+  }
+
+  /* Gradient hero cards */
+  .gradients {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .gradient-card {
+    position: relative;
+    border-radius: 22px;
+    padding: 22px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #fff;
+    box-shadow: 0 20px 40px -18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+    overflow: hidden;
+  }
+  .gradient-card .tag {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 5px 10px; border-radius: 999px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.14);
+    align-self: flex-start;
+  }
+  .gradient-card h3 {
+    font-size: 26px; font-weight: 900; margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .gradient-card .code {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11px; color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+    word-break: break-all;
+  }
+  .gradient-card .code span {
+    display: block;
+  }
+
+  /* Plan tier cards */
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .plan-card {
+    border-radius: 20px;
+    padding: 22px;
+    color: #fff;
+    position: relative; overflow: hidden;
+    min-height: 180px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+
+  /* Semantic strip */
+  .semantic {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  /* Usage rules */
+  .rules {
+    border-radius: 20px;
+    padding: 26px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .rules ul { margin: 0; padding: 0; list-style: none; }
+  .rules li {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px;
+    color: var(--fg-soft);
+  }
+  .rules li:last-child { border-bottom: 0; }
+  .rules li strong { color: var(--fg); font-weight: 700; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 3px;
+    margin-top: 6px;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    margin-top: 60px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 24px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: rgba(24,214,164,0.95);
+    color: #0a0f2e;
+    font-weight: 800; font-size: 13px;
+    padding: 10px 18px; border-radius: 999px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 10px 30px rgba(24,214,164,0.35);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+
+  @media (max-width: 640px) {
+    body { padding: 28px 16px 60px; }
+    .gradient-card { min-height: 170px; padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="chip">● RealSight Design System</span>
+    <h1>Colour Palette</h1>
+    <p>The complete colour language behind RealSight — surfaces, brand, plan tiers, gradients and semantic states. Click any swatch to copy its hex code.</p>
+  </header>
+
+  <!-- 1. BRAND PRIMARY -->
+  <section>
+    <h2><span class="num">1</span>Brand Primary — Mint</h2>
+    <p class="section-sub">The RealSight signature. Used for CTAs, active states, the FAB orb, growth indicators and the brand accent across the app.</p>
+    <div class="grid">
+      <div class="swatch" data-copy="#18D6A4">
+        <div class="chip" style="background:#18D6A4"><span class="role" style="color:#0a0f2e">Brand</span></div>
+        <div class="meta"><p class="name">Mint · Primary</p><p class="hex">#18D6A4</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#2EFFC0">
+        <div class="chip" style="background:#2EFFC0"><span class="role" style="color:#0a0f2e">Accent</span></div>
+        <div class="meta"><p class="name">Mint Light</p><p class="hex">#2EFFC0</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#059669">
+        <div class="chip" style="background:#059669"><span class="role">Deep</span></div>
+        <div class="meta"><p class="name">Mint Dark</p><p class="hex">#059669</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#064E3B">
+        <div class="chip" style="background:#064E3B"><span class="role">Backdrop</span></div>
+        <div class="meta"><p class="name">Mint Forest</p><p class="hex">#064E3B</p><span class="copy">Click to copy</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SURFACES -->
+  <section>
+    <h2><span class="num">2</span>Surfaces — Cinematic Navy Stack</h2>
+    <p class="section-sub">Depth is built by stacking increasingly lifted navy layers. Backgrounds are deep, cards are slightly brighter, popovers are brighter still.</p>
+    <div class="grid">
+      <div class="swatch" data-copy="#050716">
+        <div class="chip" style="background:#050716"><span class="role">Canvas</span></div>
+        <div class="meta"><p class="name">Background</p><p class="hex">#050716</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#0A0F2E">
+        <div class="chip" style="background:#0A0F2E"><span class="role">Lift 1</span></div>
+        <div class="meta"><p class="name">Card</p><p class="hex">#0A0F2E</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#0A0F1A">
+        <div class="chip" style="background:#0A0F1A"><span class="role">Lift 2</span></div>
+        <div class="meta"><p class="name">Popover</p><p class="hex">#0A0F1A</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#171C3D">
+        <div class="chip" style="background:#171C3D"><span class="role">Muted</span></div>
+        <div class="meta"><p class="name">Muted Surface</p><p class="hex">#171C3D</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#242B57">
+        <div class="chip" style="background:#242B57"><span class="role">Line</span></div>
+        <div class="meta"><p class="name">Border</p><p class="hex">#242B57</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="rgba(255,255,255,0.04)">
+        <div class="chip" style="background:rgba(255,255,255,0.04); backdrop-filter:blur(12px);"><span class="role">Glass</span></div>
+        <div class="meta"><p class="name">Glass Fill</p><p class="hex">rgba(255,255,255,0.04)</p><span class="copy">Click to copy</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. TEXT -->
+  <section>
+    <h2><span class="num">3</span>Text</h2>
+    <p class="section-sub">Three tiers of hierarchy. Headlines use the hero token, body uses foreground, helpers use muted-foreground.</p>
+    <div class="grid">
+      <div class="swatch" data-copy="#F4F5FB">
+        <div class="chip" style="background:#F4F5FB"><span class="role" style="color:#0a0f2e">Hero</span></div>
+        <div class="meta"><p class="name">Foreground</p><p class="hex">#F4F5FB</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="#A8AFC4">
+        <div class="chip" style="background:#A8AFC4"><span class="role" style="color:#0a0f2e">Body</span></div>
+        <div class="meta"><p class="name">Muted Foreground</p><p class="hex">#A8AFC4</p><span class="copy">Click to copy</span></div>
+      </div>
+      <div class="swatch" data-copy="rgba(255,255,255,0.45)">
+        <div class="chip" style="background:rgba(255,255,255,0.08)"><span class="role">Helper</span></div>
+        <div class="meta"><p class="name">Inactive / Hint</p><p class="hex">rgba(255,255,255,0.45)</p><span class="copy">Click to copy</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. PLAN TIERS -->
+  <section>
+    <h2><span class="num">4</span>Plan Tier Accents</h2>
+    <p class="section-sub">Each subscription plan has its own signature hue. Used on upsell panels, lock badges, the Feature Gate, and plan-specific gradients.</p>
+    <div class="plans">
+      <div class="plan-card" style="background: linear-gradient(135deg, rgba(24,214,164,0.12) 0%, rgba(10,14,32,0.65) 70%); border:1px solid rgba(24,214,164,0.4); box-shadow: 0 14px 32px -14px rgba(24,214,164,0.4);">
+        <span class="tag" style="background:rgba(24,214,164,0.2); color:#2effc0; border-color: rgba(24,214,164,0.5);">Portfolio Pro</span>
+        <div>
+          <h3 style="color:#2effc0">Mint</h3>
+          <p class="code"><span>#18D6A4</span><span>Accent shades: #2EFFC0 · #064E3B</span></p>
+        </div>
+      </div>
+      <div class="plan-card" style="background: linear-gradient(135deg, rgba(59,130,246,0.14) 0%, rgba(10,14,32,0.65) 70%); border:1px solid rgba(59,130,246,0.4); box-shadow: 0 14px 32px -14px rgba(59,130,246,0.4);">
+        <span class="tag" style="background:rgba(59,130,246,0.2); color:#93c5fd; border-color: rgba(59,130,246,0.5);">Adviser</span>
+        <div>
+          <h3 style="color:#93c5fd">Cobalt Blue</h3>
+          <p class="code"><span>#3B82F6</span><span>Accent shades: #1E3A8A · #8B5CF6</span></p>
+        </div>
+      </div>
+      <div class="plan-card" style="background: linear-gradient(135deg, rgba(168,85,247,0.14) 0%, rgba(10,14,32,0.65) 70%); border:1px solid rgba(168,85,247,0.4); box-shadow: 0 14px 32px -14px rgba(168,85,247,0.4);">
+        <span class="tag" style="background:rgba(168,85,247,0.2); color:#d8b4fe; border-color: rgba(168,85,247,0.5);">Adviser Pro</span>
+        <div>
+          <h3 style="color:#d8b4fe">Violet</h3>
+          <p class="code"><span>#A855F7</span><span>Accent shades: #4C1D95 · #EC4899</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. SEMANTIC -->
+  <section>
+    <h2><span class="num">5</span>Semantic States</h2>
+    <p class="section-sub">Reserved for functional meaning — growth, caution, decline, info. Never use these for decoration or branding.</p>
+    <div class="semantic">
+      <div class="swatch" data-copy="#22C55E">
+        <div class="chip" style="background:#22C55E"><span class="role" style="color:#0a0f2e">Success</span></div>
+        <div class="meta"><p class="name">Success · Growth</p><p class="hex">#22C55E</p><span class="copy">Positive YoY · Buy signals</span></div>
+      </div>
+      <div class="swatch" data-copy="#F59E0B">
+        <div class="chip" style="background:#F59E0B"><span class="role" style="color:#1a1200">Caution</span></div>
+        <div class="meta"><p class="name">Warning · Amber</p><p class="hex">#F59E0B</p><span class="copy">Neutral / proceed with care</span></div>
+      </div>
+      <div class="swatch" data-copy="#FF5A7A">
+        <div class="chip" style="background:#FF5A7A"><span class="role">Danger</span></div>
+        <div class="meta"><p class="name">Destructive · Coral</p><p class="hex">#FF5A7A</p><span class="copy">Negative YoY · errors</span></div>
+      </div>
+      <div class="swatch" data-copy="#3B82F6">
+        <div class="chip" style="background:#3B82F6"><span class="role">Info</span></div>
+        <div class="meta"><p class="name">Info · Cobalt</p><p class="hex">#3B82F6</p><span class="copy">Neutral info · adviser</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. GRADIENTS -->
+  <section>
+    <h2><span class="num">6</span>Hero Card Gradients</h2>
+    <p class="section-sub">The eight variants applied on HeroMetricCard across the app so no two pages feel the same. Each one has a bright accent for verdicts and progress fills.</p>
+    <div class="gradients">
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 55%, #8B5CF6 100%);">
+        <span class="tag">● blue</span>
+        <div>
+          <h3>Cobalt Rise</h3>
+          <p class="code"><span>#1E3A8A → #3B82F6 → #8B5CF6</span><span>accent · #2EFFC0</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #064E3B 0%, #10B981 55%, #34D399 100%);">
+        <span class="tag">● mint</span>
+        <div>
+          <h3>Forest Mint</h3>
+          <p class="code"><span>#064E3B → #10B981 → #34D399</span><span>accent · #FFFFFF</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #4C1D95 0%, #A855F7 55%, #EC4899 100%);">
+        <span class="tag">● purple</span>
+        <div>
+          <h3>Royal Flare</h3>
+          <p class="code"><span>#4C1D95 → #A855F7 → #EC4899</span><span>accent · #2EFFC0</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #78350F 0%, #F59E0B 55%, #FCD34D 100%); color:#1a1200;">
+        <span class="tag" style="background:rgba(0,0,0,0.18); border-color:rgba(0,0,0,0.12); color:#1a1200;">● amber</span>
+        <div>
+          <h3>Golden Hour</h3>
+          <p class="code" style="color:rgba(26,18,0,0.85);"><span>#78350F → #F59E0B → #FCD34D</span><span>accent · #1A1200</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #881337 0%, #F43F5E 55%, #FDA4AF 100%);">
+        <span class="tag">● rose</span>
+        <div>
+          <h3>Coral Bloom</h3>
+          <p class="code"><span>#881337 → #F43F5E → #FDA4AF</span><span>accent · #FFFFFF</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #164E63 0%, #06B6D4 55%, #67E8F9 100%);">
+        <span class="tag">● cyan</span>
+        <div>
+          <h3>Lagoon</h3>
+          <p class="code"><span>#164E63 → #06B6D4 → #67E8F9</span><span>accent · #0A2E33</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #7C2D12 0%, #F97316 55%, #FDBA74 100%);">
+        <span class="tag">● sunset</span>
+        <div>
+          <h3>Sunset Tower</h3>
+          <p class="code"><span>#7C2D12 → #F97316 → #FDBA74</span><span>accent · #FFFFFF</span></p>
+        </div>
+      </div>
+
+      <div class="gradient-card" style="background: linear-gradient(135deg, #0A0F2E 0%, #1E293B 55%, #475569 100%);">
+        <span class="tag">● night</span>
+        <div>
+          <h3>Midnight</h3>
+          <p class="code"><span>#0A0F2E → #1E293B → #475569</span><span>accent · #2EFFC0</span></p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 7. SUPPORTING ACCENTS -->
+  <section>
+    <h2><span class="num">7</span>Supporting Accents</h2>
+    <p class="section-sub">Used on area pills, chart lines, category badges and micro-decorations. Rotate these so neighbouring elements never share a hue.</p>
+    <div class="grid">
+      <div class="swatch" data-copy="#EC4899"><div class="chip" style="background:#EC4899"><span class="role">Pink</span></div><div class="meta"><p class="name">Pink</p><p class="hex">#EC4899</p></div></div>
+      <div class="swatch" data-copy="#F472B6"><div class="chip" style="background:#F472B6"><span class="role" style="color:#0a0f2e">Pink LT</span></div><div class="meta"><p class="name">Pink Light</p><p class="hex">#F472B6</p></div></div>
+      <div class="swatch" data-copy="#06B6D4"><div class="chip" style="background:#06B6D4"><span class="role">Cyan</span></div><div class="meta"><p class="name">Cyan</p><p class="hex">#06B6D4</p></div></div>
+      <div class="swatch" data-copy="#84CC16"><div class="chip" style="background:#84CC16"><span class="role">Lime</span></div><div class="meta"><p class="name">Lime</p><p class="hex">#84CC16</p></div></div>
+      <div class="swatch" data-copy="#F43F5E"><div class="chip" style="background:#F43F5E"><span class="role">Rose</span></div><div class="meta"><p class="name">Rose</p><p class="hex">#F43F5E</p></div></div>
+      <div class="swatch" data-copy="#A855F7"><div class="chip" style="background:#A855F7"><span class="role">Violet</span></div><div class="meta"><p class="name">Violet</p><p class="hex">#A855F7</p></div></div>
+      <div class="swatch" data-copy="#2D5CFF"><div class="chip" style="background:#2D5CFF"><span class="role">Cobalt</span></div><div class="meta"><p class="name">Cobalt</p><p class="hex">#2D5CFF</p></div></div>
+      <div class="swatch" data-copy="#7A5CFF"><div class="chip" style="background:#7A5CFF"><span class="role">Indigo</span></div><div class="meta"><p class="name">Indigo</p><p class="hex">#7A5CFF</p></div></div>
+    </div>
+  </section>
+
+  <!-- 8. USAGE RULES -->
+  <section>
+    <h2><span class="num">8</span>Usage Rules</h2>
+    <p class="section-sub">The quick guide to keeping RealSight consistent.</p>
+    <div class="rules">
+      <ul>
+        <li><span class="dot" style="background:#18D6A4"></span><span><strong>Mint is the hero.</strong> Reserve it for the primary CTA, the FAB, active nav states, and the brand lockup. If everything is mint, nothing is.</span></li>
+        <li><span class="dot" style="background:#3B82F6"></span><span><strong>Plan colours stay paired to plan tiers.</strong> Mint = Portfolio Pro. Blue = Adviser. Violet = Adviser Pro. Don't swap them in upsell copy or badges.</span></li>
+        <li><span class="dot" style="background:#22C55E"></span><span><strong>Green is functional, not decorative.</strong> Emerald (#22C55E) is only for positive YoY, growth, or confirmation — never as a background or decoration.</span></li>
+        <li><span class="dot" style="background:#FF5A7A"></span><span><strong>Destructive means destructive.</strong> Coral-rose (#FF5A7A) is only for delete, errors, or negative metrics. Don't use it for emphasis.</span></li>
+        <li><span class="dot" style="background:#A855F7"></span><span><strong>Gradients add variety, not noise.</strong> Each page picks ONE hero gradient variant — pages should feel layered, not loud. Keep body cards glass-neutral.</span></li>
+        <li><span class="dot" style="background:#0A0F2E"></span><span><strong>Surface hierarchy is sacred.</strong> Background → Card → Popover must always go from darkest to lightest. Don't mix up the stack.</span></li>
+        <li><span class="dot" style="background:#F4F5FB"></span><span><strong>Text tiers are capped at three.</strong> Foreground · muted-foreground · helper. Don't invent greys between them.</span></li>
+        <li><span class="dot" style="background:#F59E0B"></span><span><strong>Amber = caution, not alert.</strong> Reserve amber (#F59E0B) for neutral-to-mixed signals and "proceed with care" states. It is not an error colour.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    RealSight Colour Palette · Tap any swatch to copy the hex
+  </footer>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+  const toast = document.getElementById('toast');
+  document.querySelectorAll('.swatch').forEach(el => {
+    el.addEventListener('click', () => {
+      const val = el.getAttribute('data-copy');
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => {
+        toast.textContent = 'Copied · ' + val;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1200);
+      });
+    });
+  });
+</script>
+</body>
+</html>

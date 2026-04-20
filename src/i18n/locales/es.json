@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "about": "Sobre Realsight",
+    "projects": "Proyectos",
+    "investorLounge": "Sala de Inversores",
+    "contact": "Contacto",
+    "enterLounge": "Entrar a la Sala",
+    "concierge": "Concierge"
+  },
+  "publicHome": {
+    "title": "Sala de Inversores",
+    "lounge": "Realsight",
+    "subtitle": "Pregunta al Asistente IA de Realsight sobre bienes raíces en Dubái.",
+    "placeholder": "Pregunta sobre bienes raíces en Dubái..."
+  },
+  "concierge": {
+    "title": "Concierge IA de Realsight",
+    "online": "En línea • Listo para asistir",
+    "placeholder": "Mensaje para Realsight IA...",
+    "newChat": "Nueva Conversación",
+    "noConversations": "Sin conversaciones aún",
+    "welcome": "¡Hola! Soy tu concierge personal de IA. ¿Cómo puedo ayudarte con tus inversiones hoy?",
+    "typing": "Escribiendo...",
+    "portfolio": "Portafolio",
+    "payments": "Pagos",
+    "documents": "Documentos",
+    "compare": "Comparar",
+    "updates": "Actualizaciones",
+    "helperText": "Escribe @ para proyectos, / para comandos"
+  },
+  "contact": {
+    "title": "Ponte en",
+    "titleHighlight": "Contacto",
+    "subtitle": "¿Tienes preguntas sobre oportunidades de inversión? Agenda una consulta con nuestro equipo. Estamos aquí para ayudarte a tomar decisiones informadas.",
+    "phone": "Teléfono",
+    "email": "Correo",
+    "office": "Oficina",
+    "workingHours": "Horario de Atención",
+    "formTitle": "Solicitar una Consulta",
+    "fullName": "Nombre Completo",
+    "yourName": "Tu nombre",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "tu@email.com",
+    "phonePlaceholder": "+971 XX XXX XXXX",
+    "subject": "Asunto",
+    "subjectPlaceholder": "Consulta de inversión",
+    "message": "Mensaje",
+    "messagePlaceholder": "Cuéntanos sobre tus intereses de inversión...",
+    "sendMessage": "Enviar Mensaje",
+    "success": "Gracias por tu mensaje. Nos pondremos en contacto pronto."
+  },
+  "about": {
+    "title": "Realsight",
+    "subtitle": "Un nombre de confianza en bienes raíces de Dubái por más de dos décadas",
+    "ctaTitle": "¿Quieres una consulta de inversión privada?",
+    "ctaSubtitle": "Contáctame, o aprende más sobre la sala de inversores.",
+    "chatWhatsApp": "Chatea en WhatsApp",
+    "investorLounge": "Sala de Inversores"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar"
+  }
+}

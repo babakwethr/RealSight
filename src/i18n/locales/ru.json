@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "home": "Главная",
+    "about": "О Realsight",
+    "projects": "Проекты",
+    "investorLounge": "Лаунж Инвесторов",
+    "contact": "Контакты",
+    "enterLounge": "Войти в Лаунж",
+    "concierge": "Консьерж"
+  },
+  "publicHome": {
+    "title": "Лаунж Инвесторов",
+    "lounge": "Realsight",
+    "subtitle": "Спросите AI-ассистента Realsight о недвижимости в Дубае.",
+    "placeholder": "Спросите о недвижимости в Дубае..."
+  },
+  "concierge": {
+    "title": "AI Консьерж Realsight",
+    "online": "Онлайн • Готов помочь",
+    "placeholder": "Сообщение для Realsight AI...",
+    "newChat": "Новый Чат",
+    "noConversations": "Пока нет разговоров",
+    "welcome": "Привет! Я ваш персональный AI-консьерж. Как я могу помочь вам с инвестициями сегодня?",
+    "typing": "Печатает...",
+    "portfolio": "Портфель",
+    "payments": "Платежи",
+    "documents": "Документы",
+    "compare": "Сравнить",
+    "updates": "Обновления",
+    "helperText": "Введите @ для проектов, / для команд"
+  },
+  "contact": {
+    "title": "Свяжитесь",
+    "titleHighlight": "с нами",
+    "subtitle": "Есть вопросы об инвестиционных возможностях? Запланируйте консультацию с нашей командой. Мы здесь, чтобы помочь вам принять обоснованные решения.",
+    "phone": "Телефон",
+    "email": "Email",
+    "office": "Офис",
+    "workingHours": "Часы работы",
+    "formTitle": "Запросить Консультацию",
+    "fullName": "Полное Имя",
+    "yourName": "Ваше имя",
+    "emailLabel": "Email",
+    "emailPlaceholder": "ваш@email.com",
+    "phonePlaceholder": "+971 XX XXX XXXX",
+    "subject": "Тема",
+    "subjectPlaceholder": "Инвестиционный запрос",
+    "message": "Сообщение",
+    "messagePlaceholder": "Расскажите о ваших инвестиционных интересах...",
+    "sendMessage": "Отправить Сообщение",
+    "success": "Спасибо за ваше сообщение. Мы свяжемся с вами в ближайшее время."
+  },
+  "about": {
+    "title": "Realsight",
+    "subtitle": "Надёжное имя в недвижимости Дубая более двух десятилетий",
+    "ctaTitle": "Хотите частную инвестиционную консультацию?",
+    "ctaSubtitle": "Свяжитесь со мной или узнайте больше о лаунже инвесторов.",
+    "chatWhatsApp": "Чат в WhatsApp",
+    "investorLounge": "Лаунж Инвесторов"
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "error": "Произошла ошибка",
+    "retry": "Повторить"
+  }
+}

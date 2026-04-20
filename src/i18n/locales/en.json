@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About Realsight",
+    "projects": "Projects",
+    "investorLounge": "Investor Lounge",
+    "contact": "Contact",
+    "enterLounge": "Enter Investor Lounge",
+    "concierge": "Concierge"
+  },
+  "publicHome": {
+    "title": "Realsight Investor",
+    "lounge": "Lounge",
+    "subtitle": "Ask Realsight AI Assistant about Dubai real estate.",
+    "placeholder": "Ask about Dubai real estate..."
+  },
+  "concierge": {
+    "title": "Realsight AI Concierge",
+    "online": "Online • Ready to assist",
+    "placeholder": "Message Realsight AI...",
+    "newChat": "New Chat",
+    "noConversations": "No conversations yet",
+    "welcome": "Hello! I'm your personal AI concierge. How can I assist you with your investments today?",
+    "typing": "Typing...",
+    "portfolio": "Portfolio",
+    "payments": "Payments",
+    "documents": "Documents",
+    "compare": "Compare",
+    "updates": "Updates",
+    "helperText": "Type @ for projects, / for commands"
+  },
+  "contact": {
+    "title": "Get in",
+    "titleHighlight": "Touch",
+    "subtitle": "Have questions about investment opportunities? Schedule a consultation with Realsight directly. I'm here to help you make informed decisions.",
+    "phone": "Phone",
+    "email": "Email",
+    "office": "Office",
+    "workingHours": "Working Hours",
+    "formTitle": "Request a Consultation",
+    "fullName": "Full Name",
+    "yourName": "Your name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "phonePlaceholder": "+971 XX XXX XXXX",
+    "subject": "Subject",
+    "subjectPlaceholder": "Investment inquiry",
+    "message": "Message",
+    "messagePlaceholder": "Tell us about your investment interests...",
+    "sendMessage": "Send Message",
+    "success": "Thank you for your message. We will be in touch shortly."
+  },
+  "about": {
+    "title": "Realsight",
+    "subtitle": "A trusted name in Dubai real estate for over two decades",
+    "ctaTitle": "Want a private investment consultation?",
+    "ctaSubtitle": "Contact Me, or learn more about the investor lounge.",
+    "chatWhatsApp": "Chat on WhatsApp",
+    "investorLounge": "Investor Lounge"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry"
+  }
+}

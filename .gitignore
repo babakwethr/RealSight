@@ -1,0 +1,46 @@
+.vercel
+.env*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Vite internals
+vite.config.ts.timestamp-*.mjs
+vite.config.js.timestamp-*.mjs
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs + coverage
+*.log
+coverage/
+
+# Capacitor build artifacts (keep source configs, ignore builds)
+ios/App/build/
+ios/App/Pods/
+android/app/build/
+android/.gradle/
+android/build/
+
+# Stray assets
+verify_logout.webp
+
+# Supabase CLI local state
+supabase/.temp/
