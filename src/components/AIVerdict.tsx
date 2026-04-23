@@ -21,32 +21,41 @@ interface ToneStyle {
   label: string;         // default headline if none provided
 }
 
+/**
+ * Design Package v4 tones:
+ * - positive → emerald #10E3B0 (primary signal · buy)
+ * - caution  → amber   #F5B433 (warning)
+ * - negative → red     #FF5577 (danger · sell)
+ * - neutral  → violet  #7B5CFF (AI · intelligence)
+ * Violet for neutral (instead of plain blue) signals "AI analysis" on
+ * no-verdict calls, matching the package's AI/violet association.
+ */
 const TONE_STYLES: Record<VerdictTone, ToneStyle> = {
   positive: {
-    accent: '#18D6A4',
-    glow: 'rgba(24,214,164,0.35)',
-    soft: 'rgba(24,214,164,0.10)',
+    accent: '#10E3B0',
+    glow: 'rgba(16,227,176,0.35)',
+    soft: 'rgba(16,227,176,0.10)',
     Icon: CheckCircle2,
     label: 'Strong Buy',
   },
   caution: {
-    accent: '#F59E0B',
-    glow: 'rgba(245,158,11,0.35)',
-    soft: 'rgba(245,158,11,0.10)',
+    accent: '#F5B433',
+    glow: 'rgba(245,180,51,0.35)',
+    soft: 'rgba(245,180,51,0.10)',
     Icon: AlertTriangle,
     label: 'Proceed with Caution',
   },
   negative: {
-    accent: '#F43F5E',
-    glow: 'rgba(244,63,94,0.35)',
-    soft: 'rgba(244,63,94,0.10)',
+    accent: '#FF5577',
+    glow: 'rgba(255,85,119,0.35)',
+    soft: 'rgba(255,85,119,0.10)',
     Icon: XCircle,
     label: 'Avoid',
   },
   neutral: {
-    accent: '#3B82F6',
-    glow: 'rgba(59,130,246,0.32)',
-    soft: 'rgba(59,130,246,0.10)',
+    accent: '#7B5CFF',
+    glow: 'rgba(123,92,255,0.32)',
+    soft: 'rgba(123,92,255,0.10)',
     Icon: Info,
     label: 'Neutral',
   },
@@ -85,7 +94,8 @@ export function AIVerdict({
     <div
       className={`relative overflow-hidden rounded-2xl ${compact ? 'p-4' : 'p-5'} ${className}`}
       style={{
-        background: `linear-gradient(135deg, ${t.soft} 0%, rgba(10,14,32,0.55) 70%)`,
+        // Tone tint → violet-tinted near-black panel (design package --panel #0C0820).
+        background: `linear-gradient(135deg, ${t.soft} 0%, rgba(12,8,32,0.62) 70%)`,
         border: `1px solid ${t.accent}55`,
         boxShadow: `0 14px 32px -14px ${t.glow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
         backdropFilter: 'blur(14px)',

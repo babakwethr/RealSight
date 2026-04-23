@@ -16,7 +16,10 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         heading: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'system-ui', 'sans-serif'],
+        // Design package: Space Grotesk for display numbers / hero values (tabular).
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        // Preserved: Berkeley Mono for inline numbers, tables, code.
+        mono: ['Berkeley Mono', 'SF Mono', 'ui-monospace', 'Menlo', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,6 +76,24 @@ export default {
         },
         "accent-blue": "hsl(var(--accent-blue))",
         "accent-purple": "hsl(var(--accent-purple))",
+        // Design-package surface ladder (dark canvas strata)
+        panel:      "var(--panel)",
+        surface:    "var(--surface)",
+        "surface-hi": "var(--surface-hi)",
+        hero:       "var(--hero)",
+        // Design-package brand accents (raw hex, no HSL conversion lossiness)
+        emerald: {
+          DEFAULT: "var(--emerald)",      // #10E3B0 primary signal / buy
+          deep:    "var(--emerald-2)",    // #0AC291 hover
+        },
+        "violet-brand": {
+          DEFAULT: "var(--violet)",       // #7B5CFF AI · intelligence
+          2:       "var(--violet-2)",     // #A88BFF on-dark variant
+        },
+        "gold-brand":   "var(--gold)",    // #C9A84C premium · Adviser Pro
+        "blue-brand":   "var(--blue)",    // #4AA8FF info · yield · data viz
+        "amber-brand":  "var(--amber)",   // #F5B433 warning · caution
+        "red-brand":    "var(--red)",     // #FF5577 danger · sell
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -97,6 +118,22 @@ export default {
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" },
         },
+        "gradient-flow": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        "pulse-ring": {
+          "0%":   { transform: "scale(0.9)", opacity: "0.7" },
+          "100%": { transform: "scale(1.3)", opacity: "0" },
+        },
+        "ticker-scroll": {
+          "0%":   { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to:   { opacity: "1", transform: "translateY(0)" },
+        },
         "ambient-drift": {
           "0%": { transform: "scale(1) translate(0, 0)" },
           "33%": { transform: "scale(1.02) translate(1%, -1%)" },
@@ -117,7 +154,11 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 2s linear infinite",
         "gradient-shift": "gradient-shift 8s ease infinite",
-        "ambient-drift": "ambient-drift 20s ease-in-out infinite alternate",
+        "gradient-flow":  "gradient-flow 6s ease infinite",
+        "pulse-ring":     "pulse-ring 2s ease-out infinite",
+        "ticker-scroll":  "ticker-scroll 40s linear infinite",
+        "fade-up":        "fade-up 420ms cubic-bezier(0.22, 0.61, 0.36, 1.00)",
+        "ambient-drift":  "ambient-drift 20s ease-in-out infinite alternate",
         marquee: "marquee var(--duration) linear infinite",
         "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
       },

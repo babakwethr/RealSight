@@ -6,6 +6,10 @@
  *
  * Variants map to a gradient + accent colour. Pick a different variant per
  * page so the app feels layered, not monotonous.
+ *
+ * Palette: Design Package v4 — variants now map to the named gradient
+ * library in `src/index.css` (.grad-hero-*). Props unchanged; call sites
+ * across the app keep working with the new palette automatically.
  */
 import { ReactNode } from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
@@ -16,57 +20,75 @@ export type HeroVariant =
 interface VariantStyle {
   gradient: string;
   accent: string;       // bright accent (verdict text, progress fill)
-  softAccent: string;   // soft version for decorations
+  softAccent: string;   // soft version for decorations (ring borders)
   textOnGradient: string;
 }
 
+/**
+ * Design Package v4 mapping.
+ * - `blue`   → grad-hero-aurora (blue → violet + violet glow). Default for MarketHome.
+ * - `mint`   → grad-hero-emerald. Default for MarketIntelligence (Dubai-wide).
+ * - `purple` → grad-hero-violet. Default for Portfolio.
+ * - `amber`  → grad-hero-gold. Premium / Adviser Pro surfaces.
+ * - `rose`   → design sunset (rose → violet → blue).
+ * - `cyan`   → grad-hero-blue (deep blue, info tone). Default for MarketIntelligence (area).
+ * - `sunset` → warm orange (kept distinct from rose for legacy call sites).
+ * - `night`  → aurora-soft (near-black with violet + emerald glow).
+ */
 const VARIANTS: Record<HeroVariant, VariantStyle> = {
   blue: {
-    gradient: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 55%, #8B5CF6 100%)',
-    accent: '#2effc0',
+    gradient:
+      'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(123,92,255,0.45), transparent 60%), linear-gradient(105deg, #2A4BAE 0%, #3B6CE8 42%, #6F6AF6 100%)',
+    accent: '#10E3B0',
     softAccent: 'rgba(255,255,255,0.18)',
     textOnGradient: '#FFFFFF',
   },
   mint: {
-    gradient: 'linear-gradient(135deg, #064E3B 0%, #10B981 55%, #34D399 100%)',
+    gradient:
+      'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(16,227,176,0.45), transparent 60%), linear-gradient(115deg, #063F35 0%, #0AC291 48%, #10E3B0 100%)',
     accent: '#FFFFFF',
-    softAccent: 'rgba(255,255,255,0.20)',
+    softAccent: 'rgba(255,255,255,0.22)',
     textOnGradient: '#FFFFFF',
   },
   purple: {
-    gradient: 'linear-gradient(135deg, #4C1D95 0%, #A855F7 55%, #EC4899 100%)',
-    accent: '#2effc0',
+    gradient:
+      'radial-gradient(ellipse 60% 80% at 20% 30%, rgba(74,168,255,0.38), transparent 55%), linear-gradient(135deg, #1A1640 0%, #3D2A8A 45%, #7B5CFF 100%)',
+    accent: '#10E3B0',
     softAccent: 'rgba(255,255,255,0.18)',
     textOnGradient: '#FFFFFF',
   },
   amber: {
-    gradient: 'linear-gradient(135deg, #78350F 0%, #F59E0B 55%, #FCD34D 100%)',
-    accent: '#1a1200',
-    softAccent: 'rgba(0,0,0,0.10)',
-    textOnGradient: '#1a1200',
+    gradient:
+      'radial-gradient(ellipse 70% 80% at 70% 30%, rgba(245,180,51,0.35), transparent 60%), linear-gradient(120deg, #2A1E0D 0%, #8C6B1F 50%, #C9A84C 100%)',
+    accent: '#FFFFFF',
+    softAccent: 'rgba(255,255,255,0.22)',
+    textOnGradient: '#FFFFFF',
   },
   rose: {
-    gradient: 'linear-gradient(135deg, #881337 0%, #F43F5E 55%, #FDA4AF 100%)',
+    gradient: 'linear-gradient(115deg, #FF5577 0%, #7B5CFF 55%, #4AA8FF 100%)',
     accent: '#FFFFFF',
     softAccent: 'rgba(255,255,255,0.22)',
     textOnGradient: '#FFFFFF',
   },
   cyan: {
-    gradient: 'linear-gradient(135deg, #164E63 0%, #06B6D4 55%, #67E8F9 100%)',
-    accent: '#0a2e33',
+    gradient: 'linear-gradient(120deg, #08213D 0%, #1F5BA6 45%, #4AA8FF 100%)',
+    accent: '#10E3B0',
     softAccent: 'rgba(255,255,255,0.20)',
     textOnGradient: '#FFFFFF',
   },
   sunset: {
-    gradient: 'linear-gradient(135deg, #7C2D12 0%, #F97316 55%, #FDBA74 100%)',
+    // Warm orange/amber — kept distinct from `rose` for legacy variety.
+    gradient:
+      'radial-gradient(ellipse 70% 80% at 70% 30%, rgba(245,180,51,0.30), transparent 60%), linear-gradient(135deg, #7C2D12 0%, #F97316 55%, #FDBA74 100%)',
     accent: '#FFFFFF',
-    softAccent: 'rgba(255,255,255,0.20)',
+    softAccent: 'rgba(255,255,255,0.22)',
     textOnGradient: '#FFFFFF',
   },
   night: {
-    gradient: 'linear-gradient(135deg, #0A0F2E 0%, #1E293B 55%, #475569 100%)',
-    accent: '#2effc0',
-    softAccent: 'rgba(46,255,192,0.20)',
+    gradient:
+      'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(123,92,255,0.35), transparent 60%), radial-gradient(ellipse 50% 60% at 20% 60%, rgba(16,227,176,0.18), transparent 60%), linear-gradient(135deg, #1A1640 0%, #0F1D33 100%)',
+    accent: '#10E3B0',
+    softAccent: 'rgba(16,227,176,0.22)',
     textOnGradient: '#FFFFFF',
   },
 };
