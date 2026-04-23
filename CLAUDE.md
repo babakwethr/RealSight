@@ -193,3 +193,40 @@ supabase/functions/         # Edge functions
 - Shrunk mobile area pills and added a compact filter row
   (Sales/Rental + Beds/Status/Type) on `MarketHome`.
 - Generated `RealSight-Color-Palette.html` as the design-system reference.
+
+---
+
+## 10. Coding behaviour guidelines (Karpathy principles)
+
+### Think Before Coding
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### Simplicity First
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+> **RealSight exception:** V3 visual complexity — glassmorphism, gradient masks,
+> aurora halos, Framer Motion animations — is intentional design, not
+> overengineering. Don't simplify it away.
+
+### Goal-Driven Execution
+**State a plan. Verify before calling it done.**
+
+For multi-step tasks, state a brief plan upfront:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+```
+Verification for RealSight is: `npm run dev` boots clean, visual check on
+the affected page, `npm run lint` shows no new errors.
