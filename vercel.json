@@ -2,7 +2,7 @@
   "routes": [
     { "handle": "filesystem" },
     {
-      "src": "^/(|login|reset-password|auth/callback|request-access|onboarding|dashboard|portfolio|picks|top-picks|projects|projects/[^/?#]+|payments|documents|compare|updates|concierge|market-pulse|market-index|market-intelligence|heatmap|radar|opportunity-signals|deal-analyzer|watchlist|account|admin/investors|admin/investors/[^/?#]+|admin/users|admin/monthly-picks|admin/settings|admin/dld-analytics|admin/market-pulse|admin/market-index|admin/inventory|admin/projects)$",
+      "src": "^/(|login|login-page|reset-password|auth/callback|request-access|terms|privacy|security|about|for-advisers|for-advisors|onboarding|dashboard|portfolio|picks|top-picks|projects|projects/[^/?#]+|payments|billing|documents|compare|updates|concierge|market-pulse|market-index|market-intelligence|heatmap|radar|opportunity-signals|deal-analyzer|watchlist|account|preview/v3|preview/v3/[^/?#]+|admin/setup|admin/investors|admin/investors/[^/?#]+|admin/users|admin/monthly-picks|admin/settings|admin/dld-analytics|admin/market-pulse|admin/market-index|admin/inventory|admin/projects)$",
       "dest": "/index.html",
       "headers": {
         "Cache-Control": "no-cache, no-store, must-revalidate",
