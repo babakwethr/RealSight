@@ -50,33 +50,31 @@ const ADVISER_SECTIONS = [
   },
 ];
 
-// Investor sections (free or Investor Pro)
+// Investor sections (free or Investor Pro). "My Investments" wraps every
+// page tied to the investor's personal portfolio — that's their dashboard.
+// "Markets" is the research / discovery half (Home, Markets, Heatmap,
+// Deal Analyzer, New Launches, Watchlist, Compare).
 const INVESTOR_SECTIONS = [
   {
-    label: 'Workspace',
+    label: 'My Investments',
     items: [
-      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
       { to: '/portfolio',           icon: PieChart,        label: 'Portfolio' },
-      { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
-      { to: '/projects',            icon: Building2,       label: 'New Launches' },
+      { to: '/payments',            icon: CreditCard,      label: 'Payments' },
+      { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
+      { to: '/updates',             icon: Bell,            label: 'Updates' },
       { to: '/concierge',           icon: Bot,             label: 'AI Concierge' },
     ],
   },
   {
     label: 'Markets',
     items: [
+      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
       { to: '/market-intelligence', icon: BarChart3,       label: 'Markets' },
       { to: '/heatmap',             icon: Map,             label: 'Dubai Heatmap' },
+      { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
+      { to: '/projects',            icon: Building2,       label: 'New Launches' },
       { to: '/watchlist',           icon: Bookmark,        label: 'Watchlist' },
       { to: '/compare',             icon: Columns,         label: 'Compare' },
-    ],
-  },
-  {
-    label: 'Records',
-    items: [
-      { to: '/payments',            icon: CreditCard,      label: 'Payments' },
-      { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
-      { to: '/updates',             icon: Bell,            label: 'Updates' },
     ],
   },
 ];

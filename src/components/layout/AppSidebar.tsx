@@ -14,33 +14,36 @@ import { toast } from 'sonner';
 /**
  * AppSidebar — primary navigation rail. ROLE + PLAN aware.
  *
- * 28 Apr 2026 redesign — second pass after founder feedback that I had
- * conflated investor and adviser navigation. Per LAUNCH_PLAN.md §3-5 and
- * REALSIGHT_MASTER_SPEC.md §4:
+ * 28 Apr 2026 redesign — third pass after founder clarification:
  *
- *   • INVESTORS see their personal ledger inline: Home, Portfolio, Deal
- *     Analyzer, New Launches, AI Concierge, plus Markets tools and a
- *     "Records" section (Payments, Documents, Updates).
+ *   The investor's mental model is "my investments are one thing, market
+ *   research is another thing." So we group accordingly:
  *
- *   • ADVISERS see the same Markets tools but their personal ledger is
- *     replaced by an Admin entry. They access their CLIENTS' ledgers from
- *     /admin/investors → click a client → see that client's Portfolio /
- *     Payments / Documents / Updates / AI Concierge as that client.
+ *   INVESTOR VIEW (free or Investor Pro):
+ *     ── MY INVESTMENTS ── (everything tied to THEIR portfolio)
+ *       Portfolio · Payments · Documents · Updates · AI Concierge
+ *     ── MARKETS ── (research / discovery tools that aren't personal)
+ *       Home · Markets · Dubai Heatmap · Deal Analyzer · New Launches
+ *       · Watchlist · Compare
  *
- *   • DEFERRED features (Global Radar, the duplicate user-facing /top-picks,
- *     standalone Opportunity Signals) are NOT in the rail at launch. They
- *     remain reachable by URL for anyone holding bookmarks, but we don't
- *     promote them. See LAUNCH_PLAN.md §2-5.
+ *   ADVISER VIEW (Adviser Pro / trial / admin):
+ *     ── WORKSPACE ── Home · Deal Analyzer · New Launches
+ *     ── MARKETS ──   Markets · Dubai Heatmap · Watchlist · Compare
+ *     ── ADMIN ──     Workspace  (-> /admin shell with secondary tabs)
  *
- *   • FREE PLAN items in the rail are free per the launch plan — no per-item
- *     lock badges in the sidebar itself. Plan-gating happens INSIDE
- *     individual features (e.g. live unit availability inside New Launches
- *     detail uses <UpsellBanner feature="unit-availability" />).
+ *   The adviser doesn't get "My Investments" inline — they access a
+ *   client's portfolio + payments + documents + updates + AI concierge
+ *   from /admin/investors → click client → drill in.
  *
- *   • Free investors get a permanent "Upgrade to Investor Pro" card pinned
- *     to the bottom of the rail. Investor Pro users get a "Become an
- *     adviser" tile (cross-tier upsell) only if they later choose. Adviser
- *     Pro / trial users see the Account + Sign Out without an upsell.
+ *   DEFERRED at launch (still reachable by URL): Global Radar, the
+ *   duplicate user-facing /top-picks, standalone Opportunity Signals
+ *   (per LAUNCH_PLAN.md §2-5).
+ *
+ *   PLAN GATING: every nav item in the rail is FREE per the launch plan;
+ *   gating happens INSIDE specific features (live unit availability,
+ *   white-label, etc.) via <UpsellBanner>. Bottom-of-rail upsell card:
+ *   Free → "Upgrade to Investor Pro $4/mo"; Investor Pro → "Are you an
+ *   adviser? $99/mo white-label"; Adviser Pro / trial → no upsell card.
  */
 
 // ─── Nav item ─────────────────────────────────────────────────────────────────
@@ -113,12 +116,12 @@ function NavItem({
 }
 
 // ─── Section label ───────────────────────────────────────────────────────────
-type SectionAccent = 'workspace' | 'markets' | 'records' | 'admin';
+type SectionAccent = 'investments' | 'workspace' | 'markets' | 'admin';
 const ACCENTS: Record<SectionAccent, { text: string; dot: string }> = {
-  workspace: { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald — daily-use
-  markets:   { text: 'text-[#7eb8ff]/85', dot: 'bg-[#4AA8FF]' }, // blue    — analytics
-  records:   { text: 'text-[#cbd5e1]/85', dot: 'bg-[#94A3B8]' }, // slate   — your records
-  admin:     { text: 'text-[#b6a4ff]/85', dot: 'bg-[#7B5CFF]' }, // violet  — back-office
+  investments: { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald — investor's personal world
+  workspace:   { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald — adviser's daily-use
+  markets:     { text: 'text-[#7eb8ff]/85', dot: 'bg-[#4AA8FF]' }, // blue    — research
+  admin:       { text: 'text-[#b6a4ff]/85', dot: 'bg-[#7B5CFF]' }, // violet  — back-office
 };
 
 function SectionLabel({ label, accent }: { label: string; accent: SectionAccent }) {
@@ -207,31 +210,32 @@ export function AppSidebar() {
           </>
         ) : (
           /* ─────────────── INVESTOR VIEW (free or Investor Pro) ───────────────
-             Personal ledger lives in the rail: Portfolio + AI Concierge in
-             Workspace, plus Records (Payments / Documents / Updates). */
+             "My Investments" is one umbrella — Portfolio + Payments +
+             Documents + Updates + AI Concierge are all things tied to the
+             investor's personal portfolio. They're grouped together so the
+             investor reads them as ONE world (their dashboard).
+             "Markets" is the research / discovery half — generic to all
+             users, not personal. Home (the DXBinteract-style market data
+             landing) lives here too because it's market research. */
           <>
-            <SectionLabel label="Workspace" accent="workspace" />
+            <SectionLabel label="My Investments" accent="investments" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
-              <NavItem to="/portfolio"     icon={PieChart}        label="Portfolio" />
-              <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
-              <NavItem to="/projects"      icon={Building2}       label="New Launches" />
-              <NavItem to="/concierge"     icon={Bot}             label="AI Concierge" />
+              <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio" />
+              <NavItem to="/payments"   icon={CreditCard}  label="Payments" />
+              <NavItem to="/documents"  icon={FolderOpen}  label="Documents" />
+              <NavItem to="/updates"    icon={Bell}        label="Updates" />
+              <NavItem to="/concierge"  icon={Bot}         label="AI Concierge" />
             </div>
 
             <SectionLabel label="Markets" accent="markets" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
-              <NavItem to="/heatmap"             icon={Map}       label="Dubai Heatmap" />
-              <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
-              <NavItem to="/compare"             icon={Scale}     label="Compare" />
-            </div>
-
-            <SectionLabel label="Records" accent="records" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/payments"  icon={CreditCard} label="Payments" />
-              <NavItem to="/documents" icon={FolderOpen} label="Documents" />
-              <NavItem to="/updates"   icon={Bell}       label="Updates" />
+              <NavItem to="/dashboard"           icon={LayoutDashboard} label="Home" />
+              <NavItem to="/market-intelligence" icon={BarChart3}       label="Markets" />
+              <NavItem to="/heatmap"             icon={Map}             label="Dubai Heatmap" />
+              <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
+              <NavItem to="/projects"            icon={Building2}       label="New Launches" />
+              <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
+              <NavItem to="/compare"             icon={Scale}           label="Compare" />
             </div>
           </>
         )}
