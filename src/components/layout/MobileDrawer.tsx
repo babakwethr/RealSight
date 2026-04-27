@@ -59,6 +59,7 @@ const INVESTOR_SECTIONS = [
     label: 'My Investments',
     items: [
       { to: '/portfolio',           icon: PieChart,        label: 'Portfolio' },
+      { to: '/compare',             icon: Columns,         label: 'Compare Holdings' },
       { to: '/payments',            icon: CreditCard,      label: 'Payments' },
       { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
       { to: '/updates',             icon: Bell,            label: 'Updates' },
@@ -74,7 +75,6 @@ const INVESTOR_SECTIONS = [
       { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
       { to: '/projects',            icon: Building2,       label: 'New Launches' },
       { to: '/watchlist',           icon: Bookmark,        label: 'Watchlist' },
-      { to: '/compare',             icon: Columns,         label: 'Compare' },
     ],
   },
 ];

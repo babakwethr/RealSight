@@ -225,6 +225,7 @@ export function AppSidebar() {
             <SectionLabel label="My Investments" accent="investments" />
             <div className="space-y-0.5 px-1.5">
               <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio" />
+              <NavItem to="/compare"    icon={Scale}       label="Compare Holdings" />
               <NavItem to="/payments"   icon={CreditCard}  label="Payments" />
               <NavItem to="/documents"  icon={FolderOpen}  label="Documents" />
               <NavItem to="/updates"    icon={Bell}        label="Updates" />
@@ -239,7 +240,6 @@ export function AppSidebar() {
               <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
               <NavItem to="/projects"            icon={Building2}       label="New Launches" />
               <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
-              <NavItem to="/compare"             icon={Scale}           label="Compare" />
             </div>
           </>
         )}
