@@ -13,7 +13,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, Variants } from 'framer-motion';
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { DealAnalyzer } from "@/components/ui/DealAnalyzer";
-import { AnimatedTestimonials } from "@/components/ui/animated-testimonials";
+// `AnimatedTestimonials` import retired alongside the testimonials data —
+// see the explanatory comment further down. Re-add when real quotes exist.
+// import { AnimatedTestimonials } from "@/components/ui/animated-testimonials";
 import TrustSection from "@/components/sections/TrustSection";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { CoverageMap } from "@/components/CoverageMap";
@@ -116,43 +118,17 @@ const stats = [
   { value: '98%', label: 'Data Accuracy' },
 ];
 
-const testimonials = [
-  {
-    quote:
-      "The AI market forecasts changed how I invest in Dubai. I spotted JVC's growth 6 months before it happened.",
-    name: "Sarah Chen",
-    designation: "Portfolio Investor",
-    src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=3540&auto=format&fit=crop",
-  },
-  {
-    quote:
-      "As an advisor, the white-label platform gives my clients a premium experience I couldn't build myself.",
-    name: "Marcus Rodriguez",
-    designation: "Principal Advisor at Prime Realty",
-    src: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=3540&auto=format&fit=crop",
-  },
-  {
-    quote:
-      "The Deal Analyzer is my go-to tool. I just paste a link and get an AI verdict in seconds. No more spreadsheets.",
-    name: "James Whisman",
-    designation: "Growth Lead at RealEstate.tech",
-    src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=3540&auto=format&fit=crop",
-  },
-  {
-    quote:
-      "RealSight's data accuracy is unmatched. It's the only platform I trust for transaction-level intelligence.",
-    name: "Elena Petrov",
-    designation: "Real Estate Analyst",
-    src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=3387&auto=format&fit=crop",
-  },
-  {
-    quote:
-      "The global radar helps me diversify across markets I don't even live in. It's like having a local expert everywhere.",
-    name: "David Kim",
-    designation: "International Investor",
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=3456&auto=format&fit=crop",
-  },
-];
+// NOTE: Testimonials section removed 27 Apr 2026 (founder QA pass).
+// The previous five entries were fictional names ("Sarah Chen", "Marcus
+// Rodriguez", etc.) paired with stock Unsplash photos. They violated the
+// locked competitive-moat principle in `docs/FUTURE_IDEAS.md` ("Marketing
+// surface — substantiable claims only") and Chrome's Opaque Response
+// Blocking refused to render the avatars anyway. Bring this back once we
+// have real customer quotes with consent + headshots.
+//
+// `testimonials` and `<AnimatedTestimonials />` are intentionally retired
+// from the page render below. The `AnimatedTestimonials` component is left
+// in the codebase so it can be re-introduced once real quotes arrive.
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -638,23 +614,14 @@ export default function PublicHome() {
           </div>
         </section>
 
-        {/* ──── SOCIAL PROOF ──── */}
-        <section className="py-20 px-4">
-          <div className="max-w-4xl mx-auto">
-
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium bg-primary/10 text-primary border border-primary/20 mb-4">
-                <Users className="h-3.5 w-3.5" />
-                Trusted by Investors
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                What Our <span className="text-accent-gradient">Users Say</span>
-              </h2>
-            </div>
-            
-            <AnimatedTestimonials testimonials={testimonials} autoplay={true} />
-          </div>
-        </section>
+        {/* ──── SOCIAL PROOF (intentionally removed pre-launch) ────
+            The previous "What Our Users Say" testimonial carousel was retired
+            27 Apr 2026: the five quotes were fictional names with stock
+            Unsplash avatars, which violates `docs/FUTURE_IDEAS.md`'s locked
+            "substantiable claims only" rule. Bring back when real customer
+            quotes (with consent + headshots) are available. The
+            <TrustSection /> rendered separately on the page already carries
+            the qualitative trust pillars. */}
 
         {/* ──── TRUST ──── */}
         <section className="py-16 px-4">
