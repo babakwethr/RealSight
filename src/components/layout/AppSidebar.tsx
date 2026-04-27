@@ -3,7 +3,7 @@ import {
   LayoutDashboard, PieChart, CreditCard, FolderOpen,
   BarChart3, Map, Building2, Search, Bot, Bell,
   User, LogOut, Shield, Users, Settings, Database,
-  Sparkles, ArrowRight,
+  Sparkles, ArrowRight, Star, Package, Activity, Layers,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -103,12 +103,30 @@ function NavItem({
 }
 
 // ─── Section label ───────────────────────────────────────────────────────────
-function SectionLabel({ label, isExpanded }: { label: string; isExpanded: boolean }) {
+// Each section gets its own accent color so the sidebar is scannable at a glance.
+// Pulls from the brand palette in `src/index.css` design system header.
+type SectionAccent = 'platform' | 'intelligence' | 'admin' | 'neutral';
+const ACCENTS: Record<SectionAccent, { text: string; dot: string }> = {
+  platform:     { text: 'text-[#2effc0]/85',  dot: 'bg-[#18d6a4]' },        // emerald — your stuff
+  intelligence: { text: 'text-[#7eb8ff]/85',  dot: 'bg-[#4AA8FF]' },        // blue — analytics
+  admin:        { text: 'text-[#b6a4ff]/85',  dot: 'bg-[#7B5CFF]' },        // violet — adviser context
+  neutral:      { text: 'text-white/55',      dot: 'bg-white/30'  },
+};
+
+function SectionLabel({
+  label, isExpanded, accent = 'neutral',
+}: {
+  label: string; isExpanded: boolean; accent?: SectionAccent;
+}) {
   if (!isExpanded) return <div className="my-1.5 mx-4 h-px bg-white/[0.06]" />;
+  const c = ACCENTS[accent];
   return (
-    <p className="px-3 pt-2 pb-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-white/35 select-none">
-      {label}
-    </p>
+    <div className="px-3 pt-3 pb-1 flex items-center gap-1.5 select-none">
+      <span className={cn('inline-block h-1 w-1 rounded-full', c.dot)} />
+      <p className={cn('text-[9px] font-black uppercase tracking-[0.2em]', c.text)}>
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -207,7 +225,7 @@ export function AppSidebar() {
           <NavItem to="/concierge"           icon={Bot}             label="AI Concierge"  isExpanded={isExpanded} />
         </div>
 
-        <SectionLabel label="My Platform" isExpanded={isExpanded} />
+        <SectionLabel label="My Platform" isExpanded={isExpanded} accent="platform" />
 
         <div className="space-y-0.5 px-1.5">
           <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio"  isExpanded={isExpanded} />
@@ -215,23 +233,30 @@ export function AppSidebar() {
           <NavItem to="/documents"  icon={FolderOpen}  label="Documents"  isExpanded={isExpanded} />
         </div>
 
-        <SectionLabel label="Intelligence" isExpanded={isExpanded} />
+        <SectionLabel label="Intelligence" isExpanded={isExpanded} accent="intelligence" />
 
         <div className="space-y-0.5 px-1.5">
           <NavItem to="/heatmap" icon={Map}  label="Dubai Heatmap" isExpanded={isExpanded} />
           <NavItem to="/updates" icon={Bell} label="Updates"       isExpanded={isExpanded} />
         </div>
 
-        {/* Admin section — only visible to admins */}
+        {/* Admin section — only visible to admins. Unified into the main sidebar
+            (was previously a separate AdminSidebar that swapped the entire rail
+            on /admin/* routes — disorienting per founder QA 27 Apr 2026). All
+            9 items from the old AdminSidebar live here now. */}
         {isAdmin && (
           <>
-            <SectionLabel label="Admin" isExpanded={isExpanded} />
+            <SectionLabel label="Admin" isExpanded={isExpanded} accent="admin" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/admin/investors"     icon={Users}    label="Investors"     isExpanded={isExpanded} />
-              <NavItem to="/admin/users"         icon={Shield}   label="Users"         isExpanded={isExpanded} />
-              <NavItem to="/admin/projects"      icon={Building2} label="Projects"     isExpanded={isExpanded} />
-              <NavItem to="/admin/dld-analytics" icon={Database} label="DLD Analytics" isExpanded={isExpanded} />
-              <NavItem to="/admin/settings"      icon={Settings} label="Settings"      isExpanded={isExpanded} />
+              <NavItem to="/admin/investors"     icon={Users}     label="Investors"        isExpanded={isExpanded} />
+              <NavItem to="/admin/users"         icon={Shield}    label="User Roles"       isExpanded={isExpanded} />
+              <NavItem to="/admin/monthly-picks" icon={Star}      label="Top Picks"        isExpanded={isExpanded} />
+              <NavItem to="/admin/inventory"     icon={Package}   label="Portal Inventory" isExpanded={isExpanded} />
+              <NavItem to="/admin/projects"      icon={Building2} label="Manual Inventory" isExpanded={isExpanded} />
+              <NavItem to="/admin/dld-analytics" icon={Database}  label="DLD Analytics"    isExpanded={isExpanded} />
+              <NavItem to="/admin/market-pulse"  icon={Activity}  label="Market Pulse"     isExpanded={isExpanded} />
+              <NavItem to="/admin/market-index"  icon={Layers}    label="Market Index"     isExpanded={isExpanded} />
+              <NavItem to="/admin/settings"      icon={Settings}  label="Workspace Settings" isExpanded={isExpanded} />
             </div>
           </>
         )}
