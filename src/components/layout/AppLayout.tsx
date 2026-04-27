@@ -80,14 +80,33 @@ export function AppLayout() {
                 {/* Mobile: slim one-liner */}
                 <p className="sm:hidden text-[11px] text-white/80 truncate">
                   <span className="font-semibold text-white">{planName}</span>
-                  <span className="text-white/55"> · </span>
-                  <span className="font-semibold" style={{ color: accent }}>30 days free</span>
+                  {upsell.promoActive && (
+                    <>
+                      <span className="text-white/55"> · </span>
+                      <span className="font-black" style={{ color: accent }}>{upsell.discountPct}% OFF</span>
+                    </>
+                  )}
                 </p>
-                {/* Desktop: rich banner */}
+                {/* Desktop: rich banner with strikethrough regular price */}
                 <p className="hidden sm:block text-xs text-white/85 truncate">
                   <span className="font-bold text-white">{planName}</span>
                   <span className="text-white/60">{' '}— {featureLine} ·{' '}</span>
-                  <span className="font-bold" style={{ color: accent }}>30 days free trial</span>
+                  {upsell.promoActive && (
+                    <>
+                      <span
+                        className="font-black px-1.5 py-0.5 rounded text-[10px] mr-1.5"
+                        style={{
+                          background: `${accent}25`,
+                          color: accent,
+                          border: `1px solid ${accent}55`,
+                        }}
+                      >
+                        {upsell.discountPct}% OFF
+                      </span>
+                      <span className="text-white/45 line-through mr-1">{upsell.regularPrice}</span>
+                    </>
+                  )}
+                  <span className="font-bold" style={{ color: accent }}>{upsell.price}</span>
                 </p>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2 sm:ml-3">

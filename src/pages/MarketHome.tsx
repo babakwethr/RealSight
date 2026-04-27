@@ -1089,7 +1089,8 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                     border: `1px solid ${upsell.accent}55`,
                   }}
                 >
-                  {upsell.headline.replace('Upgrade to ', '')} · {upsell.price}
+                  {upsell.headline.replace('Upgrade to ', '')}
+                  {upsell.promoActive && <> · SAVE {upsell.discountPct}%</>}
                 </div>
                 <p className="text-base sm:text-lg font-black text-foreground leading-tight">
                   {upsell.targetPlan === 'adviser_pro'
@@ -1098,6 +1099,17 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                 </p>
                 <p className="text-xs sm:text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
                   {upsell.blurb}
+                </p>
+                <p className="text-xs sm:text-sm mt-2.5 leading-tight">
+                  {upsell.promoActive && (
+                    <span className="text-muted-foreground/60 line-through mr-2 text-sm">
+                      {upsell.regularPrice}
+                    </span>
+                  )}
+                  <span className="font-black text-foreground text-base sm:text-lg" style={{ color: upsell.accent }}>
+                    {upsell.price}
+                  </span>
+                  <span className="text-muted-foreground ml-1 text-xs"> · 30-day free trial</span>
                 </p>
               </div>
               <button

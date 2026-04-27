@@ -8,32 +8,37 @@ const corsHeaders = {
 }
 
 // Plan definitions — amounts in USD cents.
-// Per LAUNCH_PLAN.md §2: launch pricing is $4 / $99. Once we cross the founder cap
-// (1,000 signups) prices step to $9 / $199; founders keep their locked-in price.
-// At launch every signup gets the launch price; founder lock-in protects them when
-// we raise prices later.
 //
-// LEGACY KEYS (`portfolio_pro`, `adviser_starter`) still resolve here so any old
-// links / autoresponders mid-flight don't 400; they map to the closest new plan.
+// 28 Apr 2026 pricing pivot — anchor pricing + 50% OFF launch promo:
+//   Investor Pro: $999/mo regular, $499/mo launch (until 31 May 2026)
+//   Adviser Pro:  $199/mo regular, $99/mo  launch (until 31 May 2026)
+//
+// Stripe charges the LAUNCH amount today. After 31 May 2026 the founder
+// must redeploy this function with the regular amounts (49900→99900,
+// 9900→19900). Deliberately NOT date-flipped server-side — billing changes
+// need to be human-confirmed.
+//
+// LEGACY KEYS (`portfolio_pro`, `adviser_starter`) still resolve here so any
+// old links / autoresponders mid-flight don't 400; they map to the closest
+// new plan at the current launch price.
 const PLANS = {
-  // ── Launch (current) ────────────────────────────────────────────────────────
   investor_pro: {
     name:        'Investor Pro',
-    description: 'Live unit availability for every off-plan project — direct from developer feeds.',
-    amount:      400,    // $4/mo launch promo
+    description: 'Live unit availability for every off-plan project — direct from developer feeds. Launch promo: 50% OFF (regular $999/mo).',
+    amount:      49900,   // $499/mo launch — was $4 pre-pivot
     interval:    'month' as const,
   },
   adviser_pro: {
     name:        'Adviser Pro',
-    description: 'White-label platform: subdomain, branding, invite clients, branded reports, opportunity signals, bulk Deal Analyzer.',
-    amount:      9900,   // $99/mo launch promo (6 months, then $199)
+    description: 'White-label platform: subdomain, branding, invite clients, branded reports, opportunity signals, bulk Deal Analyzer. Launch promo: 50% OFF (regular $199/mo).',
+    amount:      9900,    // $99/mo launch (unchanged this round — already at the promo price)
     interval:    'month' as const,
   },
-  // ── Legacy (still accepted; routed to nearest launch tier) ─────────────────
+  // ── Legacy keys (still accepted; routed to nearest launch tier) ──────────
   portfolio_pro: {
     name:        'Investor Pro',
     description: 'Live unit availability — formerly Portfolio Pro.',
-    amount:      400,
+    amount:      49900,
     interval:    'month' as const,
   },
   adviser_starter: {

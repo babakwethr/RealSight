@@ -17,11 +17,24 @@
 
 ## 2. The 3 plans
 
+> **Pricing pivot · 28 Apr 2026** — anchor pricing + 50% OFF launch promo (ends 31 May 2026).
+> The high anchor positions RealSight as institutional-grade software and turns the
+> Adviser Pro pitch into "you're gifting your client $499/mo of software" — a 5–12× ROI
+> argument depending on client count. Phase 2 (post-launch) ships Adviser Workspace
+> tools (AI Presentation Creator, Video Creator, Social Posts) that justify the anchor.
+
 | | **Free Investor** | **Investor Pro** | **Adviser Pro** (white-label) |
 |---|---|---|---|
-| **Price** | $0 forever | $9 / mo *(launch $4)* | $199 / mo *(launch $99 for first 6 months)* |
-| **For who** | All investors | Investors who want unit-level off-plan data | Brokers / advisers with clients |
-| **Goal** | Mass signup, build trust | Light upsell | Recurring high-margin revenue |
+| **Regular** | $0 forever | $999 / mo | $199 / mo |
+| **Launch (50% OFF · ends 31 May 2026)** | — | **$499 / mo** | **$99 / mo** |
+| **For who** | All investors | Serious individual investors who want unit-level off-plan data | Brokers / advisers with clients |
+| **Goal** | Mass signup, build trust | Premium positioning + capture rare self-serve high-LTV investor | Recurring high-margin revenue (the money product) |
+
+Pricing is centralised in `src/lib/pricing.ts` (`PRICING.investor_pro`, `PRICING.adviser_pro`,
+`LAUNCH_PROMO_END`, `isLaunchPromoActive()`). Stripe edge function `create-checkout-session`
+(v10, ACTIVE) charges the launch amount; **after 31 May 2026 the founder must redeploy
+with the regular amount** — deliberately not date-flipped server-side, since billing
+changes need to be human-confirmed.
 
 ---
 

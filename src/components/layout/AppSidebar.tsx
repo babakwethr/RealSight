@@ -273,10 +273,29 @@ export function AppSidebar() {
                 : <Sparkles className="h-3.5 w-3.5" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-black text-white leading-none">
-                {upsell.headline.replace('Upgrade to ', '')}
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-black text-white leading-none">
+                  {upsell.headline.replace('Upgrade to ', '')}
+                </p>
+                {upsell.promoActive && (
+                  <span
+                    className="text-[8px] font-black px-1 py-0.5 rounded leading-none uppercase tracking-wider"
+                    style={{
+                      background: `${upsell.accent}30`,
+                      color: upsell.accent,
+                      border: `1px solid ${upsell.accent}60`,
+                    }}
+                  >
+                    -{upsell.discountPct}%
+                  </span>
+                )}
+              </div>
+              <p className="text-[9px] text-white/65 mt-0.5">
+                {upsell.promoActive && (
+                  <span className="text-white/40 line-through mr-1">{upsell.regularPrice}</span>
+                )}
+                {upsell.price}
               </p>
-              <p className="text-[9px] text-white/65 mt-0.5">{upsell.price} · 30-day trial</p>
             </div>
             <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </Link>

@@ -45,7 +45,7 @@ export default function Terms() {
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">4. Subscription Plans and Billing</h2>
             <ul className="list-disc pl-5 space-y-1.5">
-              <li>Paid plans (Investor Pro $9/mo, Adviser Pro $199/mo — see <a href="/billing" className="underline">launch promo pricing</a>) include a 30-day free trial, one per account. Trial eligibility is determined solely by RealSight.</li>
+              <li>Paid plans (Investor Pro $999/mo · Adviser Pro $199/mo — currently 50% OFF as a launch promotion until 31 May 2026; see <a href="/billing" className="underline">current pricing</a>) include a 30-day free trial, one per account. Trial eligibility is determined solely by RealSight.</li>
               <li>Payment is processed by Stripe. You authorise recurring monthly charges to your provided payment method at the end of your trial period and each subsequent billing cycle.</li>
               <li>You may cancel at any time from your account. Cancellation stops future charges; no refund is issued for the current billing period unless required by law.</li>
               <li>Prices are shown in USD and exclude applicable taxes.</li>

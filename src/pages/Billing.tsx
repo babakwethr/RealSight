@@ -30,6 +30,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import {
+  PRICING,
+  isLaunchPromoActive,
+  promoDaysRemaining,
+  formatPromoEndDate,
+  fmtUsd,
+} from '@/lib/pricing';
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
 
@@ -96,11 +103,13 @@ const PLANS: PlanDef[] = [
     key: 'investor_pro',
     icon: Sparkles,
     name: 'Investor Pro',
-    tagline: 'Free shows you the project. Pro shows you which units you can still buy.',
-    price: '$9',
-    priceLaunch: '$4',
-    priceSuffix: '/ mo',
-    promo: 'Launch price · first month free',
+    tagline: 'Free shows you the project. Pro shows you which units you can still buy — institutional-grade intelligence for serious investors.',
+    // Prices come from src/lib/pricing.ts. Anchor $999, launch $499 (50% OFF).
+    price:        fmtUsd(PRICING.investor_pro.regularUsd),
+    priceLaunch:  fmtUsd(PRICING.investor_pro.launchUsd),
+    priceSuffix:  '/ mo',
+    promo:        `Launch promo · 50% OFF · ends ${formatPromoEndDate()}`,
+    trial:        '30-day free trial · cancel anytime',
     highlight: 'investor',
     accent: '#18D6A4',
     accentSoft: 'rgba(24,214,164,0.10)',
@@ -116,18 +125,19 @@ const PLANS: PlanDef[] = [
       },
     ],
     ctaIfFree: 'Try free for 30 days',
-    ctaIfPaid: 'Upgrade — $4 / mo',
+    ctaIfPaid: `Upgrade — ${fmtUsd(PRICING.investor_pro.launchUsd)} / mo`,
   },
   {
     key: 'adviser_pro',
     icon: Building2,
     name: 'Adviser Pro',
-    tagline: 'Your white-label investor platform. Your brand. Your clients.',
-    price: '$199',
-    priceLaunch: '$99',
-    priceSuffix: '/ mo',
-    promo: 'Launch price · first 6 months',
-    trial: '30-day free trial · cancel anytime',
+    tagline: 'Your white-label investor platform. Your brand. Your clients. Gift each client $499/mo of software — included in your seat.',
+    // Prices from src/lib/pricing.ts. Anchor $199, launch $99 (50% OFF).
+    price:        fmtUsd(PRICING.adviser_pro.regularUsd),
+    priceLaunch:  fmtUsd(PRICING.adviser_pro.launchUsd),
+    priceSuffix:  '/ mo',
+    promo:        `Launch promo · 50% OFF · ends ${formatPromoEndDate()}`,
+    trial:        '30-day free trial · cancel anytime',
     highlight: 'adviser',
     ribbon: 'The money product',
     accent: '#7B5CFF',
@@ -154,7 +164,7 @@ const PLANS: PlanDef[] = [
       },
     ],
     ctaIfFree: 'Start 30-day free trial',
-    ctaIfPaid: 'Upgrade — $99 / mo',
+    ctaIfPaid: `Upgrade — ${fmtUsd(PRICING.adviser_pro.launchUsd)} / mo`,
   },
 ];
 
@@ -284,68 +294,73 @@ export default function Billing() {
         )}
       </section>
 
-      {/* ───── LAUNCH PROMO BANNER ────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto mb-12 px-1">
-        <div
-          className="relative rounded-2xl px-5 sm:px-6 py-4 sm:py-5 overflow-hidden"
-          style={{
-            background:
-              'linear-gradient(90deg, rgba(24,214,164,0.14) 0%, rgba(75,168,255,0.10) 50%, rgba(123,92,255,0.14) 100%)',
-            border: '1px solid rgba(24,214,164,0.28)',
-            boxShadow: '0 8px 40px -12px rgba(24,214,164,0.30)',
-          }}
-        >
-          <div className="absolute inset-y-0 left-0 w-1.5"
-            style={{ background: 'linear-gradient(180deg, #FFD25E, #FF8B25)' }} />
+      {/* ───── LAUNCH PROMO BANNER ──────────────────────────────────────
+          Anchor pricing + 50% OFF · ends 31 May 2026. The countdown drives
+          decision urgency; the side-by-side strikethrough shows what they
+          save. Banner self-removes after the promo end-date. */}
+      {isLaunchPromoActive() && (() => {
+        const daysLeft = promoDaysRemaining();
+        return (
+          <section className="max-w-6xl mx-auto mb-12 px-1">
+            <div
+              className="relative rounded-2xl px-5 sm:px-6 py-4 sm:py-5 overflow-hidden"
+              style={{
+                background:
+                  'linear-gradient(90deg, rgba(255,143,30,0.16) 0%, rgba(24,214,164,0.12) 50%, rgba(123,92,255,0.16) 100%)',
+                border: '1px solid rgba(255,143,30,0.35)',
+                boxShadow: '0 8px 40px -12px rgba(255,143,30,0.35)',
+              }}
+            >
+              <div className="absolute inset-y-0 left-0 w-1.5"
+                style={{ background: 'linear-gradient(180deg, #FFD25E, #FF8B25)' }} />
 
-          <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-[#FFD25E]/15 border border-[#FFD25E]/35 flex items-center justify-center">
-                <Crown className="h-4 w-4 text-[#FFD25E]" />
-              </div>
-              <div className="leading-tight">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground">
-                  Launch promo
-                </p>
-                <p className="text-[10px] text-muted-foreground">First 90 days</p>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#FFD25E]/15 border border-[#FFD25E]/40 flex items-center justify-center">
+                    <Crown className="h-4 w-4 text-[#FFD25E]" />
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-sm font-black uppercase tracking-[0.18em] text-foreground">
+                      Launch promo · 50% OFF
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/85">
+                      Ends {formatPromoEndDate()} · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-2 flex-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#2effc0] shrink-0" />
+                    <div>
+                      <span className="text-foreground/90">Investor Pro · </span>
+                      <span className="text-muted-foreground/55 line-through mr-1">{fmtUsd(PRICING.investor_pro.regularUsd)}</span>
+                      <strong className="text-[#2effc0]">{fmtUsd(PRICING.investor_pro.launchUsd)}/mo</strong>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-[#b6a4ff] shrink-0" />
+                    <div>
+                      <span className="text-foreground/90">Adviser Pro · </span>
+                      <span className="text-muted-foreground/55 line-through mr-1">{fmtUsd(PRICING.adviser_pro.regularUsd)}</span>
+                      <strong className="text-[#b6a4ff]">{fmtUsd(PRICING.adviser_pro.launchUsd)}/mo</strong>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-3.5 w-3.5 text-[#FFD25E] shrink-0" />
+                    <div>
+                      <span className="text-foreground/90">Refer-a-friend · </span>
+                      <strong className="text-[#FFD25E]">1 free month, both sides</strong>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-2 flex-1 text-xs">
-              <div className="flex items-center gap-2">
-                <Star className="h-3.5 w-3.5 text-[#FFD25E] shrink-0" />
-                <div>
-                  <span className="text-foreground/90">First 1,000 signups · </span>
-                  <strong className="text-[#FFD25E]">Founder status</strong>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-[#2effc0] shrink-0" />
-                <div>
-                  <span className="text-foreground/90">Investor Pro · </span>
-                  <strong className="text-[#2effc0]">$4/mo + 1st free</strong>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-3.5 w-3.5 text-[#b6a4ff] shrink-0" />
-                <div>
-                  <span className="text-foreground/90">Adviser Pro · </span>
-                  <strong className="text-[#b6a4ff]">$99/mo · 6 months</strong>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Gift className="h-3.5 w-3.5 text-[#FFD25E] shrink-0" />
-                <div>
-                  <span className="text-foreground/90">Refer-a-friend · </span>
-                  <strong className="text-[#FFD25E]">1 free month, both sides</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* ───── PLAN CARDS ────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-1 mb-16">
@@ -408,7 +423,7 @@ export default function Billing() {
                   'flex flex-col flex-1 p-7 sm:p-8',
                   plan.ribbon ? 'pt-9' : '',
                 )}>
-                  {/* Icon + 'your plan' badge */}
+                  {/* Icon + 'your plan' / '50% OFF' badge */}
                   <div className="flex items-start justify-between mb-5">
                     <div
                       className="w-11 h-11 rounded-2xl flex items-center justify-center"
@@ -421,11 +436,23 @@ export default function Billing() {
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    {isCurrent && (
+                    {isCurrent ? (
                       <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-[0.15em] bg-white/[0.07] text-white/70 border border-white/15">
                         Your plan
                       </span>
-                    )}
+                    ) : (plan.priceLaunch && isLaunchPromoActive()) ? (
+                      <span
+                        className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-[0.15em]"
+                        style={{
+                          background: `${plan.accent}25`,
+                          color: plan.accent,
+                          border: `1px solid ${plan.accent}60`,
+                          boxShadow: `0 4px 14px -4px ${plan.accent}80`,
+                        }}
+                      >
+                        50% OFF
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Name + tagline */}

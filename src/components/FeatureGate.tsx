@@ -4,6 +4,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { Lock, Sparkles, ArrowRight, BarChart3, Map, Search, Bookmark,
          Columns, Star, Target, Radar, Bot, Building2, FileText, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PRICING as PRICING_CONST, isLaunchPromoActive } from '@/lib/pricing';
 
 interface FeatureGateProps {
   feature: string;
@@ -33,10 +34,19 @@ const PLAN_ALSO_INCLUDED: Record<string, { icon: React.ElementType; label: strin
   ],
 };
 
-const PLAN_PRICE: Record<string, string> = {
-  // Launch promo prices — first 90 days. After: $9 / $199.
-  'Investor Pro': '$4/mo · launch',
-  'Adviser Pro':  '$99/mo · 6 months launch',
+// Reads from src/lib/pricing.ts so the launch promo (50% OFF until 31 May
+// 2026) flows automatically and self-removes once it expires.
+const PLAN_PRICE: Record<string, { active: string; regular: string; discountPct: number }> = {
+  'Investor Pro': {
+    active:      `$${PRICING_CONST.investor_pro.launchUsd}/mo`,
+    regular:     `$${PRICING_CONST.investor_pro.regularUsd}/mo`,
+    discountPct: PRICING_CONST.investor_pro.discountPct,
+  },
+  'Adviser Pro': {
+    active:      `$${PRICING_CONST.adviser_pro.launchUsd}/mo`,
+    regular:     `$${PRICING_CONST.adviser_pro.regularUsd}/mo`,
+    discountPct: PRICING_CONST.adviser_pro.discountPct,
+  },
 };
 
 // Accent colour per plan tier — matches UpsellBanner / MarketHome treatment
@@ -60,7 +70,8 @@ export function FeatureGate({ feature, children }: FeatureGateProps) {
   }
 
   const requiredPlan = FEATURE_PLAN_LABEL[feature] || 'Investor Pro';
-  const price = PLAN_PRICE[requiredPlan] || '';
+  const priceInfo = PLAN_PRICE[requiredPlan];
+  const promoActive = isLaunchPromoActive();
   const alsoIncluded = PLAN_ALSO_INCLUDED[requiredPlan] || [];
   const accent = PLAN_ACCENT[requiredPlan] || '#18D6A4';
 
@@ -81,13 +92,28 @@ export function FeatureGate({ feature, children }: FeatureGateProps) {
         <div aria-hidden="true" className="absolute -bottom-24 -right-14 w-[16rem] h-[16rem] rounded-full blur-[90px] pointer-events-none" style={{ background: `${accent}20` }} />
 
         <div className="relative">
-          {/* Lock badge */}
+          {/* Lock badge — strikethrough regular + bold launch + 50% OFF */}
           <div
-            className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-full mb-5"
+            className="inline-flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] px-2.5 py-1.5 rounded-full mb-5"
             style={{ background: `${accent}1f`, color: accent, border: `1px solid ${accent}50` }}
           >
             <Lock className="h-3 w-3" />
-            {requiredPlan} · {price}
+            <span>{requiredPlan}</span>
+            {priceInfo && promoActive && (
+              <>
+                <span className="opacity-50 line-through normal-case tracking-normal text-[10px]">{priceInfo.regular}</span>
+                <span className="text-[11px] tracking-normal normal-case">{priceInfo.active}</span>
+                <span
+                  className="text-[9px] font-black px-1 py-0.5 rounded bg-white/10"
+                  style={{ color: accent }}
+                >
+                  -{priceInfo.discountPct}% OFF
+                </span>
+              </>
+            )}
+            {priceInfo && !promoActive && (
+              <span className="text-[11px] tracking-normal normal-case">{priceInfo.regular}</span>
+            )}
           </div>
 
           {/* Orb */}

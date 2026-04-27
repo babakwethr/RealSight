@@ -588,8 +588,20 @@ export default function Account() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
                 <div>
-                  <p className="text-sm font-black">{upsell.headline}</p>
-                  <p className="text-[10px] opacity-80">{upsell.blurb} · {upsell.price}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-black">{upsell.headline}</p>
+                    {upsell.promoActive && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-white/20 leading-none">
+                        -{upsell.discountPct}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] opacity-80">
+                    {upsell.blurb} · {upsell.promoActive && (
+                      <span className="opacity-60 line-through mr-1">{upsell.regularPrice}</span>
+                    )}
+                    <span className="font-bold">{upsell.price}</span>
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-xs font-bold shrink-0">

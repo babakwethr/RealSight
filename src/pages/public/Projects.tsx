@@ -244,12 +244,21 @@ export default function Projects() {
             <svg className="h-5 w-5 text-[#2effc0]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-foreground">See available units, floor plans and exact pricing</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Unit-level inventory, floor numbers, sizes, and live availability are unlocked with <strong className="text-foreground">Investor Pro</strong> — <span className="text-[#2effc0] font-semibold">$4/mo launch · 30-day free trial</span>.</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-bold text-foreground">See available units, floor plans and exact pricing</p>
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#18d6a4]/20 text-[#2effc0] border border-[#18d6a4]/40 uppercase tracking-wider">
+                50% OFF
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Unit-level inventory, floor numbers, sizes, and live availability are unlocked with <strong className="text-foreground">Investor Pro</strong> —{' '}
+              <span className="text-muted-foreground/55 line-through mr-1">$999/mo</span>
+              <span className="text-[#2effc0] font-semibold">$499/mo launch · 30-day free trial</span>.
+            </p>
           </div>
           <a href="/billing"
             className="shrink-0 px-5 py-2.5 bg-[#18d6a4] text-black text-sm font-black rounded-xl hover:bg-[#2effc0] transition-colors whitespace-nowrap">
-            Unlock Units — $4/mo
+            Unlock Units — $499/mo
           </a>
         </div>
       )}

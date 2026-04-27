@@ -203,9 +203,17 @@ function UpgradeInline({ feature }: { feature: string }) {
       <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
         {feature}
       </p>
+      <div className="inline-flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/40 uppercase tracking-wider">
+          50% OFF · launch
+        </span>
+        <span className="text-xs text-muted-foreground/55 line-through">$999/mo</span>
+        <span className="text-sm font-black text-foreground">$499/mo</span>
+      </div>
+      <br />
       <Link to="/billing"
         className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
-        <Sparkles className="h-4 w-4" /> Upgrade — $4/mo launch
+        <Sparkles className="h-4 w-4" /> Start 30-day free trial
       </Link>
     </div>
   );

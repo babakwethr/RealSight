@@ -1,31 +1,31 @@
 /**
  * upsell.ts — single source of truth for "what plan should I sell this user next?"
  *
- * Founder note (28 Apr 2026): copy across the app drifted out of sync.
- *  • Homepage top banner said "Upgrade to Investor Pro · $4/mo"
- *  • Homepage bottom strip said "Upgrade to Portfolio Pro · $29/mo" (legacy)
- *  • Account page CTA said "Upgrade to Portfolio Pro · $29/mo" (legacy)
- *  • Some places never showed an upsell to advisers, others showed Investor Pro
- *    to a user who was clearly an adviser.
- *
  * Every upsell surface (sidebar bottom card, top banner, in-page strips, page
- * upsell modals) should call `getUpsellTarget(plan, role)` and render whatever
- * it returns. If it returns `null`, no upsell — the user is already on the
- * right tier for what they signed up to do.
+ * upsell modals) calls `getUpsellTarget(plan, role)` and renders whatever it
+ * returns. If null, no upsell — the user is already on the right tier.
  *
  * Decision matrix:
  *
  *    plan          | role         | upsell target                | reason
  *    --------------|--------------|------------------------------|--------------------------
- *    free          | investor     | Investor Pro ($4/mo launch)  | natural next step
- *    free          | adviser/admin| Adviser Pro ($99/mo launch)  | they signed up to advise; skip the investor tier
+ *    free          | investor     | Investor Pro ($499/mo launch)| natural next step
+ *    free          | adviser/admin| Adviser Pro ($99/mo launch)  | they signed up to advise
  *    investor_pro  | investor     | null                         | they're at their target tier
- *    investor_pro  | adviser/admin| Adviser Pro ($99/mo launch)  | cross-tier nudge — they may have signed up wrong
+ *    investor_pro  | adviser/admin| Adviser Pro ($99/mo launch)  | cross-tier nudge
  *    adviser_pro   | any          | null                         | top tier
- *    adviser_trial | any          | null                         | already evaluating top tier; the trial conversion happens in /billing
+ *    adviser_trial | any          | null                         | already evaluating top tier
+ *
+ * Prices and badges come from `src/lib/pricing.ts` so the launch promo
+ * (50% OFF until 31 May 2026) flows automatically.
  */
 
 import type { PlanTier } from '@/hooks/useSubscription';
+import {
+  PRICING,
+  fmtUsdMonthly,
+  isLaunchPromoActive,
+} from '@/lib/pricing';
 
 export type UpsellTarget = 'investor_pro' | 'adviser_pro';
 
@@ -34,29 +34,45 @@ export interface UpsellCopy {
   targetPlan: UpsellTarget;
   /** Short headline — used as the primary label on cards/buttons. */
   headline: string;
-  /** Price line shown beneath the headline (launch promo). */
+  /** Active price shown big — already accounts for the promo. */
   price: string;
+  /** Regular (non-promo) price for strikethrough rendering. Same as `price` once promo ends. */
+  regularPrice: string;
+  /** Whether the launch promo is active right now — drives discount badges. */
+  promoActive: boolean;
+  /** Discount percentage to display in the badge ("50% OFF"). 0 when no promo. */
+  discountPct: number;
   /** One-line value blurb to put in tooltips / longer cards. */
   blurb: string;
   /** Visual accent colour to keep the upsell consistent with the plan. */
   accent: string;
 }
 
-const INVESTOR_PRO: UpsellCopy = {
-  targetPlan: 'investor_pro',
-  headline:   'Upgrade to Investor Pro',
-  price:      '$4 / mo · launch',
-  blurb:      'Live unit availability for every off-plan project — floor, view, real-time price.',
-  accent:     '#18D6A4',
-};
+function buildCopy(
+  target: UpsellTarget,
+  headline: string,
+  blurb: string,
+  accent: string,
+): UpsellCopy {
+  const def = PRICING[target];
+  const promoActive = isLaunchPromoActive();
+  return {
+    targetPlan:   target,
+    headline,
+    price:        fmtUsdMonthly(promoActive ? def.launchUsd : def.regularUsd),
+    regularPrice: fmtUsdMonthly(def.regularUsd),
+    promoActive,
+    discountPct:  promoActive ? def.discountPct : 0,
+    blurb,
+    accent,
+  };
+}
 
-const ADVISER_PRO: UpsellCopy = {
-  targetPlan: 'adviser_pro',
-  headline:   'Upgrade to Adviser Pro',
-  price:      '$99 / mo · 6 months launch',
-  blurb:      'Your white-label investor platform. Subdomain · branding · invite clients · branded reports.',
-  accent:     '#7B5CFF',
-};
+const investorBlurb =
+  'Live unit availability for every off-plan project — floor, view, real-time price.';
+
+const adviserBlurb =
+  'Your white-label investor platform. Subdomain · branding · invite clients · branded reports.';
 
 /**
  * Returns the right next-tier upsell for a user, or null if they're already
@@ -64,6 +80,9 @@ const ADVISER_PRO: UpsellCopy = {
  *
  * `isAdviser` should be `true` if the user is on an adviser/admin path —
  * either `useUserRole().isAdmin` or `user_metadata.signup_role === 'advisor'`.
+ *
+ * Build the copy at call time (not at module load) so the promo-active flag
+ * stays accurate after midnight on 31 May 2026 without a redeploy.
  */
 export function getUpsellTarget(
   plan: PlanTier | null | undefined,
@@ -75,10 +94,14 @@ export function getUpsellTarget(
   if (plan === 'adviser_pro' || plan === 'adviser_trial') return null;
 
   // Adviser-path users always upsell to Adviser Pro, regardless of intermediate plan.
-  if (isAdviser) return ADVISER_PRO;
+  if (isAdviser) {
+    return buildCopy('adviser_pro', 'Upgrade to Adviser Pro', adviserBlurb, '#7B5CFF');
+  }
 
   // Investor-path: free → Investor Pro; Investor Pro is their target, no upsell.
-  if (plan === 'free') return INVESTOR_PRO;
+  if (plan === 'free') {
+    return buildCopy('investor_pro', 'Upgrade to Investor Pro', investorBlurb, '#18D6A4');
+  }
   return null;
 }
 
