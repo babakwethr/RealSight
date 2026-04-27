@@ -42,9 +42,21 @@ const TABS: Tab[] = [
 
 export function AdminTabs() {
   return (
-    <div className="-mx-4 sm:-mx-6 mb-5 px-4 sm:px-6">
-      <div className="overflow-x-auto scrollbar-none -mb-px">
-        <nav className="flex items-center gap-1 min-w-max border-b border-white/[0.06] pb-px">
+    <div className="mb-5">
+      {/* Contained pill-tab bar — much more visible than the previous
+          underline-on-bottom-border treatment (founder QA, 28 Apr 2026). */}
+      <div
+        className="rounded-2xl p-1.5 overflow-x-auto scrollbar-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(123,92,255,0.10), rgba(15,18,40,0.55))',
+          border: '1px solid rgba(123,92,255,0.20)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 24px -12px rgba(123,92,255,0.20)',
+        }}
+      >
+        <nav className="flex items-center gap-1 min-w-max">
           {TABS.map((t) => {
             const Icon = t.icon;
             // `end` on Overview makes it match exactly /admin (not /admin/anything).
@@ -56,11 +68,19 @@ export function AdminTabs() {
                 end={isOverview}
                 className={({ isActive }) =>
                   cn(
-                    'inline-flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-semibold whitespace-nowrap transition-all duration-150 border-b-2 -mb-px',
+                    'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold whitespace-nowrap transition-all duration-150',
                     isActive
-                      ? 'text-[#b6a4ff] border-[#7B5CFF]'
-                      : 'text-muted-foreground/85 border-transparent hover:text-foreground hover:border-white/15',
+                      ? 'text-white shadow-[0_4px_14px_-4px_rgba(123,92,255,0.55)]'
+                      : 'text-muted-foreground/90 hover:text-foreground hover:bg-white/[0.04]',
                   )
+                }
+                style={({ isActive }) =>
+                  isActive
+                    ? {
+                        background:
+                          'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)',
+                      }
+                    : {}
                 }
               >
                 <Icon className="h-3.5 w-3.5" />

@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Shield, User, Loader2, UserPlus, Mail, Send, Trash2 } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SectionIntro } from '@/components/SectionIntro';
@@ -351,18 +352,18 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage user roles and permissions
-          </p>
-        </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Create User
-        </Button>
-      </div>
+      <AdminPageHeader
+        icon={Shield}
+        titlePlain="User"
+        titleGradient="Roles"
+        description="Manage user roles and permissions"
+        actions={
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create User
+          </Button>
+        }
+      />
 
       <SectionIntro
         id="users"

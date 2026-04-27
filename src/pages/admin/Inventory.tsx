@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
-import { Building, MapPin, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Building, MapPin, Plus, Trash2, Loader2, AlertCircle, Package } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -124,19 +125,20 @@ export default function AdminInventory() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Portal Inventory</h1>
-                    <p className="text-muted-foreground">Select which projects appear on your public portal.</p>
-                </div>
-
-                {isDemo && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium">
-                        <AlertCircle className="h-3 w-3" />
-                        Showing Demo Data
-                    </div>
-                )}
-            </div>
+            <AdminPageHeader
+                icon={Package}
+                titlePlain="Portal"
+                titleGradient="Inventory"
+                description="Select which projects appear on your public portal."
+                actions={
+                    isDemo ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium">
+                            <AlertCircle className="h-3 w-3" />
+                            Showing Demo Data
+                        </div>
+                    ) : undefined
+                }
+            />
 
             <div className="flex items-center space-x-2">
                 <input

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Plus, Trash2, Loader2, Star, Save, Building2, MapPin } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -188,25 +189,27 @@ export default function AdminMonthlyPicks() {
 
     return (
         <div className="py-8 px-4 sm:px-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <h1 className="text-3xl font-light text-foreground flex items-center gap-3">
-                    <Star className="h-8 w-8 text-primary animate-pulse" />
-                    Top Picks
-                </h1>
-                <div className="flex items-center gap-4 bg-background p-2 rounded-xl border border-white/10">
-                    <label className="text-xs uppercase tracking-widest font-bold text-zinc-500 ml-2">Period</label>
-                    <Input
-                        type="month"
-                        value={currentMonth}
-                        onChange={e => {
-                            setCurrentMonth(e.target.value);
-                            setEditTitle('');
-                            setEditNotes('');
-                        }}
-                        className="w-40 bg-card border-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-primary"
-                    />
-                </div>
-            </div>
+            <AdminPageHeader
+                icon={Star}
+                titlePlain="Top"
+                titleGradient="Picks"
+                description="Curate a custom 10-project list to push to all your investors each month."
+                actions={
+                    <div className="flex items-center gap-3 bg-card/60 px-3 py-1.5 rounded-xl border border-white/10">
+                        <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">Period</label>
+                        <Input
+                            type="month"
+                            value={currentMonth}
+                            onChange={e => {
+                                setCurrentMonth(e.target.value);
+                                setEditTitle('');
+                                setEditNotes('');
+                            }}
+                            className="w-36 bg-transparent border-none h-8 text-sm focus-visible:ring-1 focus-visible:ring-primary"
+                        />
+                    </div>
+                }
+            />
 
             <SectionIntro
                 id="top-picks"

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Loader2, Globe, Palette, Bot, Save } from 'lucide-react';
+import { Loader2, Globe, Palette, Bot, Save, Settings as SettingsIcon } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { z } from 'zod';
 import { SectionIntro } from '@/components/SectionIntro';
 
@@ -149,12 +150,14 @@ export default function AdminSettings() {
     }
 
     return (
-        <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
             <div className="max-w-4xl mx-auto space-y-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">SaaS Settings</h1>
-                    <p className="text-muted-foreground mt-2">Manage your broker lounge branding, domain, and AI configuration.</p>
-                </div>
+                <AdminPageHeader
+                    icon={SettingsIcon}
+                    titlePlain="Workspace"
+                    titleGradient="Settings"
+                    description="Manage your broker lounge branding, domain, and AI configuration."
+                />
 
                 <SectionIntro
                     id="settings"

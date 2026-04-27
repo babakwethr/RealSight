@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Building2, MapPin, Activity, ShieldAlert, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Building2, MapPin, Activity, ShieldAlert, CheckCircle, Clock, Database } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { format } from 'date-fns';
 import { SectionIntro } from '@/components/SectionIntro';
 
@@ -109,27 +110,25 @@ export default function AdminDLDAnalytics() {
 
     return (
         <div className="space-y-8 animate-fade-in pb-10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-                        <Activity className="h-8 w-8 text-primary" />
-                        DLD Analytics
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Deep analytics across Dubai Land Department transaction data.</p>
-                </div>
-
-                <Select value={selectedArea} onValueChange={setSelectedArea}>
-                    <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Filter by Area" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Areas</SelectItem>
-                        {areas.map(area => (
-                            <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            <AdminPageHeader
+                icon={Database}
+                titlePlain="DLD"
+                titleGradient="Analytics"
+                description="Deep analytics across Dubai Land Department transaction data."
+                actions={
+                    <Select value={selectedArea} onValueChange={setSelectedArea}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filter by Area" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Areas</SelectItem>
+                            {areas.map(area => (
+                                <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                }
+            />
 
             <SectionIntro
                 id="dld-analytics"

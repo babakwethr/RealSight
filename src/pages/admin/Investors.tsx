@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SeedDemoButton } from '@/components/admin/SeedDemoButton';
 import { useTenant } from '@/hooks/useTenant';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { SectionIntro } from '@/components/SectionIntro';
 
 interface AccessRequest {
@@ -385,22 +386,23 @@ export default function AdminInvestors() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-foreground flex items-center gap-2" style={{ letterSpacing: '-0.02em' }}>
-            <Users className="h-6 w-6 text-primary" />
-            Investor <span className="gradient-word">Management</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage access requests and investor accounts</p>
-        </div>
-        <div className="flex gap-2">
-          <SeedDemoButton />
-          <Button
-            onClick={() => { resetInvestorForm(); setShowAddInvestor(true); }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
-            <Plus className="h-4 w-4 mr-2" />
-            Invite Investor
-          </Button>
-        </div>
+        <AdminPageHeader
+          icon={Users}
+          titlePlain="Investor"
+          titleGradient="Management"
+          description="Manage access requests and investor accounts."
+          actions={
+            <>
+              <SeedDemoButton />
+              <Button
+                onClick={() => { resetInvestorForm(); setShowAddInvestor(true); }}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
+                <Plus className="h-4 w-4 mr-2" />
+                Invite Investor
+              </Button>
+            </>
+          }
+        />
       </div>
 
       {/* Admin stat cards */}

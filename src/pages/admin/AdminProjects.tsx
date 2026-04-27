@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProjectForm } from '@/components/admin/projects/ProjectForm';
 import { Button } from '@/components/ui/button';
 import { Building2, Plus, Search, Trash2, Edit2, MapPin, Loader2, Home } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -85,18 +86,17 @@ export default function AdminProjects() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-light tracking-tight text-foreground flex items-center gap-3">
-                        <Home className="h-8 w-8 text-primary" />
-                        Manual Inventory
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Manage your curated property projects for Top Picks and Investor access.</p>
-                </div>
-                <Button onClick={() => setIsAdding(true)} className="bg-primary hover:bg-accent-green-light text-black font-semibold accent-glow">
-                    <Plus className="h-4 w-4 mr-2" /> Add Project
-                </Button>
-            </div>
+            <AdminPageHeader
+                icon={Building2}
+                titlePlain="Manual"
+                titleGradient="Inventory"
+                description="Manage your curated property projects for Top Picks and investor access."
+                actions={
+                    <Button onClick={() => setIsAdding(true)} className="bg-primary hover:bg-accent-green-light text-black font-semibold accent-glow">
+                        <Plus className="h-4 w-4 mr-2" /> Add Project
+                    </Button>
+                }
+            />
 
             <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

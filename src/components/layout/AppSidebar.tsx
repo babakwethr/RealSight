@@ -2,6 +2,7 @@ import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot,
   User, LogOut, Sparkles, ArrowRight, Shield,
+  CreditCard, FolderOpen, Bell, Eye, Scale, Star, Target, Globe,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -99,11 +100,13 @@ function NavItem({
 }
 
 // ─── Section label ───────────────────────────────────────────────────────────
-type SectionAccent = 'workspace' | 'markets' | 'admin';
+type SectionAccent = 'workspace' | 'markets' | 'discover' | 'records' | 'admin';
 const ACCENTS: Record<SectionAccent, { text: string; dot: string }> = {
-  workspace: { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald
-  markets:   { text: 'text-[#7eb8ff]/85', dot: 'bg-[#4AA8FF]' }, // blue
-  admin:     { text: 'text-[#b6a4ff]/85', dot: 'bg-[#7B5CFF]' }, // violet
+  workspace: { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald — daily-use
+  markets:   { text: 'text-[#7eb8ff]/85', dot: 'bg-[#4AA8FF]' }, // blue    — analytics
+  discover:  { text: 'text-[#FFD8A8]/85', dot: 'bg-[#F59E0B]' }, // amber   — find new
+  records:   { text: 'text-[#cbd5e1]/85', dot: 'bg-[#94A3B8]' }, // slate   — your records
+  admin:     { text: 'text-[#b6a4ff]/85', dot: 'bg-[#7B5CFF]' }, // violet  — back-office
 };
 
 function SectionLabel({ label, accent }: { label: string; accent: SectionAccent }) {
@@ -126,17 +129,31 @@ export function AppSidebar() {
 
   return (
     <aside
-      className="relative h-screen w-60 flex flex-col border-r border-white/[0.06] overflow-hidden"
+      className="relative h-screen w-60 flex flex-col border-r border-white/[0.08] overflow-hidden"
       style={{
-        // Translucent #07040F-matched gradient — same base as `cinematic-bg`,
-        // so the sidebar visually bleeds into the page. Previous opaque blue
-        // gradient created a visible seam (founder QA, 28 Apr 2026).
+        // Frosted-glass sidebar (founder request, 28 Apr 2026 evening). The
+        // background is intentionally MORE transparent than before so the
+        // page's cinematic-bg gradients show through and tint the rail
+        // subtly. The strong backdrop blur + saturate gives the macOS-style
+        // "real frosted glass" depth.
         background:
-          'linear-gradient(180deg, rgba(7,4,15,0.92) 0%, rgba(8,5,17,0.95) 50%, rgba(5,3,12,0.96) 100%)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+          'linear-gradient(180deg, rgba(7,4,15,0.55) 0%, rgba(8,5,17,0.62) 50%, rgba(5,3,12,0.68) 100%)',
+        backdropFilter: 'blur(28px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        boxShadow:
+          'inset -1px 0 0 rgba(255,255,255,0.04), 1px 0 24px -8px rgba(0,0,0,0.5)',
       }}
     >
+      {/* Subtle inner highlight at the very top — reinforces the glass
+          edge and gives the macOS / iOS feel. */}
+      <div
+        aria-hidden="true"
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0.10) 70%, transparent 100%)',
+        }}
+      />
       {/* Logo */}
       <div
         className="relative flex items-center h-[57px] px-4 border-b border-white/[0.06] shrink-0 overflow-hidden"
@@ -160,11 +177,29 @@ export function AppSidebar() {
           <NavItem to="/concierge"     icon={Bot}             label="AI Concierge" />
         </div>
 
-        {/* MARKETS — area + heatmap */}
+        {/* MARKETS — area + heatmap + watch + compare */}
         <SectionLabel label="Markets" accent="markets" />
         <div className="space-y-0.5 px-1.5">
           <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
           <NavItem to="/heatmap"             icon={Map}       label="Dubai Heatmap" />
+          <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
+          <NavItem to="/compare"             icon={Scale}     label="Compare" />
+        </div>
+
+        {/* DISCOVER — find new opportunities */}
+        <SectionLabel label="Discover" accent="discover" />
+        <div className="space-y-0.5 px-1.5">
+          <NavItem to="/top-picks"            icon={Star}   label="Top Picks" />
+          <NavItem to="/opportunity-signals"  icon={Target} label="Opportunity Signals" />
+          <NavItem to="/radar"                icon={Globe}  label="Global Radar" />
+        </div>
+
+        {/* RECORDS — your own paper trail */}
+        <SectionLabel label="Records" accent="records" />
+        <div className="space-y-0.5 px-1.5">
+          <NavItem to="/payments"  icon={CreditCard} label="Payments" />
+          <NavItem to="/documents" icon={FolderOpen} label="Documents" />
+          <NavItem to="/updates"   icon={Bell}       label="Updates" />
         </div>
 
         {/* ADMIN — single entry, opens /admin overview with its own tab nav */}

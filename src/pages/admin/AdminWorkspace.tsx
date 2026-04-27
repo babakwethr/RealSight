@@ -4,10 +4,12 @@ import {
   Users, Shield, Star, Package, Building2, Database,
   Activity, Layers, Settings, ChevronDown, ChevronUp,
   TrendingUp, CheckCircle2, DollarSign, Bell, ArrowRight,
+  LayoutDashboard,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 /**
  * AdminWorkspace — landing page for /admin.
@@ -168,43 +170,35 @@ export default function AdminWorkspace() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* AdminShell (the parent layout route) renders the "Admin Mode" strip
-          and AdminTabs above this page — no need to render either here. */}
+      {/* AdminShell renders the "Admin Mode" strip + AdminTabs above this. */}
 
-      {/* ── HEADER ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b6a4ff] mb-1">
-            Admin · Overview
-          </p>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            {workspaceName}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            Everything you need to run your white-label investor workspace.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowStats((v) => !v)}
-          className={cn(
-            'self-start sm:self-end inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all',
-            'border border-white/[0.10] bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]',
-          )}
-        >
-          {showStats ? (
-            <>
-              <ChevronUp className="h-3.5 w-3.5" />
-              Hide workspace stats
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-3.5 w-3.5" />
-              Show workspace stats
-            </>
-          )}
-        </button>
-      </div>
+      <AdminPageHeader
+        icon={LayoutDashboard}
+        titlePlain={workspaceName + ' ·'}
+        titleGradient="Workspace"
+        description="Everything you need to run your white-label investor workspace."
+        actions={
+          <button
+            onClick={() => setShowStats((v) => !v)}
+            className={cn(
+              'inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all',
+              'border border-white/[0.10] bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]',
+            )}
+          >
+            {showStats ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                Hide workspace stats
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                Show workspace stats
+              </>
+            )}
+          </button>
+        }
+      />
 
       {/* ── KPI TILES (collapsible) ─────────────────────────────────── */}
       {showStats && (
