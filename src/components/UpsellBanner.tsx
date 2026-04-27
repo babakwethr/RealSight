@@ -43,8 +43,8 @@ const BANNER_CONFIG: Record<string, BannerConfig> = {
     icon: '🎯',
   },
   'white-label': {
-    headline: 'Your brand. Your subdomain.',
-    description: 'Your logo, colours, and contact on every page and every PDF. Public lead-gen page at you.realsight.app. RealSight powers everything invisibly.',
+    headline: 'Your brand. Your workspace URL.',
+    description: 'Your logo, colours, and contact on every page and every PDF. Public lead-gen page at realsight.app/a/you. RealSight powers everything invisibly.',
     plan: 'Adviser Pro',
     price: '$99/mo (launch)',
     planKey: 'adviser_pro',

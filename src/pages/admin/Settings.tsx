@@ -111,18 +111,16 @@ export default function AdminSettings() {
 
             toast.success('Settings updated successfully!');
 
-            // If subdomain changed, we might need to redirect them!
-            if (validated.subdomain !== tenant.subdomain) {
-                toast.info('Subdomain changed. Redirecting to your new portal...');
-                const protocol = window.location.protocol;
-                const host = window.location.host;
-                const baseDomain = host.includes('localhost') ? 'localhost:5173' : host.replace(/^www\./, '').split('.').slice(-2).join('.');
-
-                setTimeout(() => {
-                    window.location.href = `${protocol}//${validated.subdomain}.${baseDomain}/admin/settings`;
-                }, 2000);
-            } else if (validated.color !== (tenant.branding_config as any)?.primary_color) {
-                // just reload to apply new css vars
+            // 28 Apr 2026 — soft white-label pivot: the workspace URL is now
+            // path-based (`realsight.app/a/{slug}`), not subdomain-based, so we
+            // don't need to bounce the admin to a different host when they
+            // change the slug. Just reload to refresh CSS vars + tenant cache.
+            const slugChanged = validated.subdomain !== tenant.subdomain;
+            const colorChanged = validated.color !== (tenant.branding_config as any)?.colors?.primary;
+            if (slugChanged) {
+                toast.info('Workspace URL updated. Reloading...');
+            }
+            if (slugChanged || colorChanged) {
                 setTimeout(() => window.location.reload(), 1000);
             }
 
@@ -191,22 +189,22 @@ export default function AdminSettings() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="subdomain">Lounge Subdomain</Label>
+                                <Label htmlFor="subdomain">Workspace URL slug</Label>
                                 <div className="flex items-center">
+                                    <div className="h-10 px-4 flex items-center bg-muted border border-r-0 border-border rounded-l-md text-sm text-muted-foreground font-mono">
+                                        realsight.app/a/
+                                    </div>
                                     <Input
                                         id="subdomain"
                                         value={formData.subdomain}
                                         onChange={(e) => handleChange('subdomain', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                                        className={`rounded-r-none border-r-0 ${errors.subdomain ? 'border-destructive' : ''}`}
+                                        className={`rounded-l-none border-l-0 ${errors.subdomain ? 'border-destructive' : ''}`}
                                     />
-                                    <div className="h-10 px-4 flex items-center bg-muted border border-l-0 border-border rounded-r-md text-sm text-muted-foreground font-mono">
-                                        .realsight.app
-                                    </div>
                                 </div>
                                 {errors.subdomain ? (
                                     <p className="text-sm text-destructive">{errors.subdomain}</p>
                                 ) : (
-                                    <p className="text-xs text-muted-foreground">Changing this will immediately redirect your live portal.</p>
+                                    <p className="text-xs text-muted-foreground">Your branded workspace URL. Changing this updates the link you share with investors.</p>
                                 )}
                             </div>
                         </div>

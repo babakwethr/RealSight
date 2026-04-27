@@ -65,11 +65,19 @@ changes need to be human-confirmed.
 
 ---
 
-## 5. Adviser Pro — $199 / mo *(launch $99 for first 6 months)*
+## 5. Adviser Pro — $199 / mo regular · $99 / mo launch (50% OFF · ends 31 May 2026)
+
+> **White-label model · soft white-label** (28 Apr 2026 pivot): the launch
+> Adviser Pro tier ships with a path-based branded workspace at
+> `realsight.app/a/{slug}` rather than a per-tenant subdomain. In-app
+> branding (logo, colours, AI persona) + branded PDFs + adviser-named
+> "From" on outgoing emails deliver the white-label experience everywhere
+> the user actually looks. Custom domains (`yourbrand.com`) are deferred to
+> a future premium add-on or higher Adviser Pro tier.
 
 This is the money product. Everything in the investor app, fully white-labeled:
 
-- Custom subdomain (e.g. `babak.realsight.app`)
+- Branded workspace URL at `realsight.app/a/{your-slug}` (custom domain support coming as a future add-on)
 - Their logo, brand colors, name, photo, contact on every page + every PDF + every report
 - **Invite unlimited investor clients**
 - Adviser dashboard — all client portfolios in one view

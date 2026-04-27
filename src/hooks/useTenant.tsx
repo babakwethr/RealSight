@@ -1,162 +1,203 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * useTenant — provides the active workspace branding context to the
+ * authenticated app shell.
+ *
+ * 28 Apr 2026 redesign — soft white-label pivot. The previous version
+ * resolved the tenant from `window.location.hostname` (subdomain detection
+ * like `babak.realsight.app`). With the launch white-label model now being
+ * path-based + in-app rather than subdomain-based:
+ *
+ *   • Public adviser landing pages (`/a/:slug`) fetch their own tenant
+ *     directly via React Query — they don't need this provider.
+ *   • The authenticated app shell (AppLayout, AppSidebar, AdminLayout, etc.)
+ *     reads the tenant from the logged-in user's `profiles.tenant_id`.
+ *
+ * Accordingly, this provider is now an AUTH-driven branding resolver. It
+ * listens to Supabase auth state, fetches the user's profile when they sign
+ * in, and exposes `tenant` + `isMainDomain` for downstream consumers.
+ *
+ * `isMainDomain` semantics: `true` when there's no logged-in tenant context
+ * (logged out, master-tenant admin, or user not linked to a real tenant).
+ * Used by PublicHome / public layouts to render the un-branded marketing
+ * surface.
+ */
+
 // Helper to convert hex to H S% L% format used by our Tailwind/CSS vars
 function hexToHslString(hex: string): string {
-    // Remove # if present
-    hex = hex.replace(/^#/, '');
-
-    // Parse r, g, b
-    let r = parseInt(hex.substring(0, 2), 16) / 255;
-    let g = parseInt(hex.substring(2, 4), 16) / 255;
-    let b = parseInt(hex.substring(4, 6), 16) / 255;
-
-    let max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
-
-    if (max !== min) {
-        let d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
+  hex = hex.replace(/^#/, '');
+  let r = parseInt(hex.substring(0, 2), 16) / 255;
+  let g = parseInt(hex.substring(2, 4), 16) / 255;
+  let b = parseInt(hex.substring(4, 6), 16) / 255;
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
     }
-
-    // Convert to percentages / degrees
-    const hDeg = Math.round(h * 360);
-    const sPct = Math.round(s * 100);
-    const lPct = Math.round(l * 100);
-
-    return `${hDeg} ${sPct}% ${lPct}%`;
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
 export type TenantConfig = {
-    id: string;
-    subdomain: string;
-    custom_domain: string | null;
-    broker_name: string;
-    branding_config: {
-        colors?: {
-            primary?: string;
-        };
-        logo_url?: string;
-    };
+  id: string;
+  subdomain: string;       // re-purposed as "URL slug" — populated /a/{slug} routes
+  custom_domain: string | null;
+  broker_name: string;
+  branding_config: {
+    colors?: { primary?: string };
+    logo_url?: string;
+  };
 };
 
 type TenantContextType = {
-    tenant: TenantConfig | null;
-    isMainDomain: boolean;
-    isLoading: boolean;
-    error: Error | null;
+  tenant: TenantConfig | null;
+  isMainDomain: boolean;
+  isLoading: boolean;
+  error: Error | null;
 };
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-// Define which domains should be considered the "Main SaaS" website rather than a tenant lounge.
-const MAIN_DOMAINS = ['realsight.app', 'www.realsight.app', 'app.realsight.app', 'localhost', '127.0.0.1'];
+// The "master" tenant id stamped on profiles that aren't linked to a real
+// adviser workspace — created by the setup_advisor_platform RPC. Treat it
+// as "no tenant" for branding purposes.
+const MASTER_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 export const TenantProvider = ({ children }: { children: React.ReactNode }) => {
-    const [tenant, setTenant] = useState<TenantConfig | null>(null);
-    const [isMainDomain, setIsMainDomain] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+  const [tenant, setTenant] = useState<TenantConfig | null>(null);
+  const [isMainDomain, setIsMainDomain] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-    useEffect(() => {
-        const fetchTenant = async () => {
-            try {
-                const hostname = window.location.hostname;
+  useEffect(() => {
+    let cancelled = false;
 
-                // 1. Allow forcing a tenant for visual local development via URL: ?tenant=sami
-                const searchParams = new URLSearchParams(window.location.search);
-                const tenantOverride = searchParams.get('tenant');
+    const resolveTenantFromAuth = async () => {
+      try {
+        // Allow `?tenant=slug` to force a tenant during local dev / preview.
+        const tenantOverride = new URLSearchParams(window.location.search).get('tenant');
+        if (tenantOverride) {
+          const { data } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('subdomain', tenantOverride.toLowerCase())
+            .maybeSingle();
+          if (cancelled) return;
+          if (data) {
+            applyBranding(data as TenantConfig);
+            setTenant(data as TenantConfig);
+            setIsMainDomain(false);
+            setIsLoading(false);
+            return;
+          }
+        }
 
-                let subdomain = '';
+        // Logged-in user → look up their tenant via profile.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          if (cancelled) return;
+          setTenant(null);
+          setIsMainDomain(true);
+          setIsLoading(false);
+          return;
+        }
 
-                if (tenantOverride) {
-                    subdomain = tenantOverride.toLowerCase();
-                } else if (!MAIN_DOMAINS.includes(hostname) && !hostname.includes('vercel.app')) {
-                    const parts = hostname.split('.');
-                    if (parts.length >= 3) {
-                        subdomain = parts[0].toLowerCase();
-                    } else if (parts.length === 2 && parts[1] === 'localhost') {
-                        subdomain = parts[0].toLowerCase();
-                    }
-                }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
 
-                // 2. Determine if we belong on the Main SaaS Landing Page
-                //    Vercel preview domains also use the default design system (no tenant branding)
-                if (!subdomain && !tenantOverride && (MAIN_DOMAINS.includes(hostname) || hostname.includes('vercel.app'))) {
-                    setIsMainDomain(true);
-                    setTenant(null);
-                    setIsLoading(false);
-                    return;
-                }
+        const tenantId = profile?.tenant_id;
+        if (!tenantId || tenantId === MASTER_TENANT_ID) {
+          if (cancelled) return;
+          setTenant(null);
+          setIsMainDomain(true);
+          setIsLoading(false);
+          return;
+        }
 
-                // 3. Fallback logic and Database Query
-                setIsMainDomain(false);
-                
-                let query = supabase.from('tenants').select('*');
-                if (subdomain) {
-                    query = query.eq('subdomain', subdomain);
-                } else {
-                    query = query.eq('custom_domain', hostname);
-                }
+        const { data: tenantData, error: tErr } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('id', tenantId)
+          .maybeSingle();
 
-                const { data, error: sbError } = await query.maybeSingle();
+        if (tErr) throw tErr;
+        if (!tenantData) {
+          // Profile pointed at a tenant that no longer exists. Fall back to main.
+          if (cancelled) return;
+          setTenant(null);
+          setIsMainDomain(true);
+          setIsLoading(false);
+          return;
+        }
 
-                if (sbError) throw sbError;
-                if (!data) {
-                    console.error('No tenant matches this domain:', hostname);
-                    throw new Error('Tenant not found');
-                }
+        if (cancelled) return;
+        applyBranding(tenantData as TenantConfig);
+        setTenant(tenantData as TenantConfig);
+        setIsMainDomain(false);
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error('Tenant fetch error:', err);
+        if (cancelled) return;
+        setError(err);
+        setIsLoading(false);
+      }
+    };
 
-                setTenant(data as TenantConfig);
+    resolveTenantFromAuth();
 
-                // 4. Inject strict branding variables safely
-                if (data.branding_config && typeof data.branding_config === 'object') {
-                    const config = data.branding_config as any;
-                    if (config.colors?.primary) {
-                        try {
-                            const hslValue = hexToHslString(config.colors.primary);
-                            const root = document.documentElement;
+    // Re-run when the auth state changes (sign-in, sign-out, refresh).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Reset loading so consumers know branding is being resolved again.
+      setIsLoading(true);
+      resolveTenantFromAuth();
+    });
 
-                            // Map to core theme colors
-                            root.style.setProperty('--primary', hslValue);
-                            root.style.setProperty('--accent', hslValue);
-                            root.style.setProperty('--accent-green', hslValue);
-                            root.style.setProperty('--ring', hslValue);
-                            root.style.setProperty('--sidebar-primary', hslValue);
-                            root.style.setProperty('--sidebar-ring', hslValue);
-                        } catch (e) {
-                            console.error('Failed to parse branding color', e);
-                        }
-                    }
-                }
-            } catch (err: any) {
-                console.error('Tenant fetch error:', err);
-                setError(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
-        fetchTenant();
-    }, []);
-
-    return (
-        <TenantContext.Provider value={{ tenant, isMainDomain, isLoading, error }}>
-            {children}
-        </TenantContext.Provider>
-    );
+  return (
+    <TenantContext.Provider value={{ tenant, isMainDomain, isLoading, error }}>
+      {children}
+    </TenantContext.Provider>
+  );
 };
 
+/** Inject the tenant's primary colour into CSS custom properties. */
+function applyBranding(tenant: TenantConfig) {
+  const primary = tenant.branding_config?.colors?.primary;
+  if (!primary) return;
+  try {
+    const hsl = hexToHslString(primary);
+    const root = document.documentElement;
+    root.style.setProperty('--primary', hsl);
+    root.style.setProperty('--accent', hsl);
+    root.style.setProperty('--accent-green', hsl);
+    root.style.setProperty('--ring', hsl);
+    root.style.setProperty('--sidebar-primary', hsl);
+    root.style.setProperty('--sidebar-ring', hsl);
+  } catch (e) {
+    console.error('Failed to parse branding color', e);
+  }
+}
+
 export const useTenant = () => {
-    const context = useContext(TenantContext);
-    if (context === undefined) {
-        throw new Error('useTenant must be used within a TenantProvider');
-    }
-    return context;
+  const ctx = useContext(TenantContext);
+  if (ctx === undefined) {
+    throw new Error('useTenant must be used within a TenantProvider');
+  }
+  return ctx;
 };

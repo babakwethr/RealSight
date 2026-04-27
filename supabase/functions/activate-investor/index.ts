@@ -76,6 +76,21 @@ Deno.serve(async (req) => {
       throw new Error("Investor must have email and name");
     }
 
+    // Soft white-label (28 Apr 2026): fetch the investor's tenant brand so
+    // the email From-header reads as "Babak Properties via RealSight".
+    let adviserBrand: string | null = null;
+    if (investor.tenant_id && investor.tenant_id !== '00000000-0000-0000-0000-000000000000') {
+      const { data: tenantRow } = await supabaseAdmin
+        .from("tenants")
+        .select("broker_name")
+        .eq("id", investor.tenant_id)
+        .single();
+      adviserBrand = tenantRow?.broker_name || null;
+    }
+    const fromHeader = adviserBrand
+      ? `${adviserBrand} via RealSight <noreply@realsight.app>`
+      : "RealSight <noreply@realsight.app>";
+
     // --- Determine or create the auth user ---
     let userId = investor.user_id;
 
@@ -134,7 +149,7 @@ Deno.serve(async (req) => {
       try {
         const resend = new Resend(resendApiKey);
         await resend.emails.send({
-          from: "Realsight <noreply@realsight.app>",
+          from: fromHeader,
           to: [investor.email],
           subject: "Welcome to Realsight",
           html: `

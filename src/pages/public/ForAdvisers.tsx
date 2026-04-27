@@ -74,7 +74,7 @@ const OUTCOMES = [
     icon: Building,
     title: 'A platform with your name on it',
     body:
-      'Custom subdomain, your logo, your colours. Your investors never see ours. To them, you built it.',
+      'Branded workspace URL, your logo, your colours. Your investors never see ours. To them, you built it.',
   },
   {
     icon: Users,
@@ -381,7 +381,7 @@ export default function ForAdvisers() {
                 },
                 {
                   q: 'What if I want my own domain (not a subdomain)?',
-                  a: 'Custom domains are on the roadmap. Until then, every account gets a free yourbrand.realsight.app subdomain — which works perfectly for the trial and most production use cases.',
+                  a: 'Custom domains (yourbrand.com) are coming as a premium add-on. At launch every adviser gets a branded workspace URL at realsight.app/a/yourbrand — perfect for production use, fully co-branded, and zero DNS work to set up.',
                 },
                 {
                   q: 'Where does the data come from?',

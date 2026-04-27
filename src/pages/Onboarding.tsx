@@ -342,23 +342,23 @@ export default function Onboarding() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subdomain" className="text-foreground/80">Choose Subdomain *</Label>
+                <Label htmlFor="subdomain" className="text-foreground/80">Workspace URL slug *</Label>
                 <div className="flex items-center">
+                  <div className="h-10 px-3 flex items-center bg-card border border-r-0 border-white/10 rounded-l-md text-sm text-zinc-400 font-mono">
+                    realsight.app/a/
+                  </div>
                   <Input
                     id="subdomain"
                     value={brokerData.subdomain}
                     onChange={(e) => setBrokerData(prev => ({ ...prev, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                     placeholder="prestige"
-                    className={`glass-input flex-1 rounded-r-none border-r-0 ${errors.subdomain ? 'border-destructive' : ''}`}
+                    className={`glass-input flex-1 rounded-l-none border-l-0 ${errors.subdomain ? 'border-destructive' : ''}`}
                   />
-                  <div className="h-10 px-3 flex items-center bg-card border border-l-0 border-white/10 rounded-r-md text-sm text-zinc-400 font-mono">
-                    .realsight.app
-                  </div>
                 </div>
                 {errors.subdomain ? (
                   <p className="text-sm text-destructive">{errors.subdomain}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">This is where your clients will log in.</p>
+                  <p className="text-xs text-muted-foreground">Your branded workspace URL — this is the link your clients use.</p>
                 )}
               </div>
 

@@ -146,7 +146,7 @@ const PLANS: PlanDef[] = [
       {
         label: 'Everything in Investor Pro, plus',
         items: [
-          { icon: Globe, text: 'Custom subdomain (you.realsight.app)' },
+          { icon: Globe, text: 'Branded workspace at realsight.app/a/yourname' },
           { icon: Sparkles, text: 'Your logo, brand colours, photo on every report' },
         ],
       },
@@ -193,7 +193,7 @@ const COMPARE_TABLE: CompareSection[] = [
   {
     label: 'White-label',
     rows: [
-      { feature: 'Custom subdomain + branding',                access: [false, false, true] },
+      { feature: 'Branded workspace URL + colours/logo',       access: [false, false, true] },
       { feature: 'Your logo & contact on every PDF',           access: [false, false, true] },
       { feature: 'Public lead-gen page',                       access: [false, false, true] },
     ],

@@ -47,7 +47,7 @@ const investorFeatures = [
 
 const advisorFeatures = [
   { icon: Users, title: 'Investor Management', desc: 'Onboard, manage, and retain investors with a dedicated CRM and portfolio view per client.' },
-  { icon: Building, title: 'White-Label Platform', desc: 'Your brand, your colors, your subdomain. RealSight becomes invisible — your brand takes center stage.' },
+  { icon: Building, title: 'White-Label Platform', desc: 'Your brand, your colors, your workspace URL. RealSight becomes invisible — your brand takes center stage.' },
   { icon: Star, title: 'Advisor Picks', desc: 'Curate and push top investment picks to your investor base with AI-powered market backing.' },
   { icon: Shield, title: 'Client Dashboards', desc: 'Each investor gets their own portfolio dashboard, payment tracker, and document vault — under your brand.' },
   { icon: Globe, title: 'Multi-Market Access', desc: 'Serve investors across Dubai, Spain, US, UK, and Singapore with one unified platform.' },
@@ -98,7 +98,7 @@ const pricingPlans = [
     desc: 'Your white-label investor platform. Your brand. Your clients.',
     features: [
       'Everything in Investor Pro',
-      'Custom subdomain (you.realsight.app)',
+      'Branded workspace at realsight.app/a/yourname',
       'Your brand on every page + every PDF',
       'Unlimited investor clients',
       'Adviser dashboard + Opportunity Signals',
@@ -384,7 +384,7 @@ export default function PublicHome() {
                   <p className="text-muted-foreground max-w-xl mx-auto">
                     {audience === 'investor'
                       ? 'Real-time valuations, AI forecasts, and market-backed insights for every property in your portfolio.'
-                      : 'Custom colors, logo, subdomain. Your investors see your brand — Realsight powers everything behind the scenes.'}
+                      : 'Custom colors, logo, branded workspace URL. Your investors see your brand — RealSight powers everything behind the scenes.'}
                   </p>
                 </div>
 
@@ -510,13 +510,13 @@ export default function PublicHome() {
                     Your Brand. <span className="text-accent-gradient">Your Platform.</span>
                   </h2>
                   <p className="text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-                    Upload your logo, set your brand colors, get your own subdomain. Your investors will see only your brand — RealSight powers everything invisibly behind the scenes.
+                    Upload your logo, set your brand colors, get your own branded workspace URL. Your investors will see only your brand — RealSight powers everything invisibly behind the scenes.
                   </p>
                 </div>
 
                 <div className="grid sm:grid-cols-3 gap-6 mb-8">
                   {[
-                    { icon: Globe, title: 'Custom Subdomain', desc: 'yourcompany.realsight.app' },
+                    { icon: Globe, title: 'Workspace URL', desc: 'realsight.app/a/yourcompany' },
                     { icon: Shield, title: 'Brand Identity', desc: 'Logo, colors, workspace name' },
                     { icon: Users, title: 'Investor Onboarding', desc: 'Invite, approve, manage' },
                   ].map(item => (

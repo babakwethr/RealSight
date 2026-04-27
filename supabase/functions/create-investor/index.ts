@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Get the calling admin's tenant_id from their profile
+        // Get the calling admin's tenant_id from their profile.
         const { data: adminProfile } = await supabaseAdmin
             .from('profiles')
             .select('tenant_id')
@@ -62,6 +62,24 @@ Deno.serve(async (req) => {
             .single();
 
         const tenantId = adminProfile?.tenant_id || '00000000-0000-0000-0000-000000000000';
+
+        // Soft white-label (28 Apr 2026 pivot): fetch the adviser's broker
+        // name so the email's From header reads as "Babak Properties via
+        // RealSight" rather than the generic "Realsight" — adviser brand
+        // reads loudest, RealSight stays quiet but visible. Falls back to
+        // generic when the caller is the master tenant.
+        let adviserBrand: string | null = null;
+        if (tenantId && tenantId !== '00000000-0000-0000-0000-000000000000') {
+            const { data: tenantRow } = await supabaseAdmin
+                .from('tenants')
+                .select('broker_name')
+                .eq('id', tenantId)
+                .single();
+            adviserBrand = tenantRow?.broker_name || null;
+        }
+        const fromHeader = adviserBrand
+            ? `${adviserBrand} via RealSight <noreply@realsight.app>`
+            : 'RealSight <noreply@realsight.app>';
 
         // Get investor data from request body
         const { name, email, phone, country, preferred_language, notes } = await req.json();
@@ -136,9 +154,11 @@ Deno.serve(async (req) => {
             if (resendApiKey) {
                 const resend = new Resend(resendApiKey);
                 await resend.emails.send({
-                    from: 'Realsight <noreply@realsight.app>',
+                    from: fromHeader,
                     to: [email],
-                    subject: 'Welcome to Realsight',
+                    subject: adviserBrand
+                        ? `Welcome to ${adviserBrand}'s investor portal`
+                        : 'Welcome to RealSight',
                     html: `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#0f1115;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#ffffff;">

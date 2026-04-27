@@ -250,23 +250,23 @@ export default function SetupWizard() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Choose Subdomain</Label>
+                  <Label>Choose your URL slug</Label>
                   <div className="flex items-center shadow-sm">
+                    <div className="h-12 px-4 flex items-center bg-muted/50 border border-r-0 border-border rounded-l-md text-sm text-muted-foreground font-mono font-medium">
+                      realsight.app/a/
+                    </div>
                     <Input
                       value={formData.subdomain}
                       onChange={(e) => handleChange('subdomain', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                       placeholder="acme"
-                      className={`glass-input h-12 flex-1 rounded-r-none border-r-0 focus-visible:z-10 ${errors.subdomain ? 'border-destructive' : ''}`}
+                      className={`glass-input h-12 flex-1 rounded-l-none border-l-0 focus-visible:z-10 ${errors.subdomain ? 'border-destructive' : ''}`}
                       autoFocus
                     />
-                    <div className="h-12 px-4 flex items-center bg-muted/50 border border-l-0 border-border rounded-r-md text-sm text-muted-foreground font-mono font-medium">
-                      .realsight.app
-                    </div>
                   </div>
                   {errors.subdomain ? (
                     <p className="text-sm text-destructive">{errors.subdomain}</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">You can share this link directly with investors.</p>
+                    <p className="text-xs text-muted-foreground">This is your branded workspace URL — share it directly with investors. Custom domains coming later.</p>
                   )}
                 </div>
               </div>
@@ -363,7 +363,7 @@ export default function SetupWizard() {
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <span className="text-sm text-muted-foreground">URL</span>
-                    <span className="text-sm font-medium col-span-2 text-right">https://{formData.subdomain}.realsight.app</span>
+                    <span className="text-sm font-medium col-span-2 text-right">realsight.app/a/{formData.subdomain}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <span className="text-sm text-muted-foreground">Theme</span>
