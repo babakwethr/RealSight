@@ -6,6 +6,26 @@ import { MobileDrawer } from './MobileDrawer';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
 
+/**
+ * AppLayout — root chrome for every authenticated page.
+ *
+ * Background composition (28 Apr 2026 redesign):
+ *   1. Page-wide `cinematic-bg` class on the root provides the base layer
+ *      (radial-gradient stack on `#07040F`).
+ *   2. `cinematic-bg::before` and `::after` (in `src/index.css`) add the
+ *      aurora orbs as `position: fixed` pseudo-elements pinned to the
+ *      viewport — they don't get clipped by any inner overflow boundary
+ *      and don't scroll with content.
+ *   3. We do NOT add additional aurora orbs here. The previous build had
+ *      three blurred orbs inside an `overflow-hidden absolute inset-0` div,
+ *      which produced a visible diagonal "cut" at the top-right corner where
+ *      one orb's bounding box met the upgrade-banner border (founder QA, 28
+ *      Apr 2026). Removing the inner aurora div + dropping `overflow-hidden`
+ *      from the root cleared the issue.
+ *
+ * `isolation: isolate` keeps the sidebar's z-stack independent of any
+ * z-indexed content the page renders inside <Outlet />.
+ */
 export function AppLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [stripDismissed, setStripDismissed] = useState(false);
@@ -13,18 +33,11 @@ export function AppLayout() {
   const showUpgradeBanner = !loading && plan === 'free' && !stripDismissed;
 
   return (
-    <div className="relative min-h-screen cinematic-bg flex w-full overflow-hidden">
-      {/* Ambient aurora — layered on top of cinematic-bg for extra depth on both mobile + desktop */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 overflow-hidden pointer-events-none"
-      >
-        <div className="absolute -top-40 -left-24 w-[36rem] h-[36rem] rounded-full bg-[#2d5cff]/18 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-24 w-[36rem] h-[36rem] rounded-full bg-[#18d6a4]/14 blur-[120px]" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[24rem] h-[24rem] rounded-full bg-[#7a5cff]/12 blur-[100px]" />
-      </div>
-
-      {/* Desktop Sidebar */}
+    <div
+      className="relative min-h-screen cinematic-bg flex w-full"
+      style={{ isolation: 'isolate' }}
+    >
+      {/* Desktop sidebar — always-expanded fixed-width rail. Sticky to viewport. */}
       <div className="relative hidden lg:block shrink-0 sticky top-0 h-screen z-20">
         <AppSidebar />
       </div>
@@ -43,16 +56,17 @@ export function AppLayout() {
               <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#2effc0] shrink-0" />
               {/* Mobile: slim one-liner */}
               <p className="sm:hidden text-[11px] text-white/80 truncate">
-                <span className="font-semibold text-white">Portfolio Pro</span>
+                <span className="font-semibold text-white">Investor Pro</span>
                 <span className="text-white/55"> · </span>
                 <span className="text-[#2effc0] font-semibold">30 days free</span>
               </p>
-              {/* Desktop: rich banner */}
+              {/* Desktop: rich banner — copy matches the current 3-tier model
+                  in LAUNCH_PLAN.md §2 (the previous "Portfolio Pro" wording was
+                  legacy from the old 5-tier model). */}
               <p className="hidden sm:block text-xs text-white/85 truncate">
-                <span className="font-bold text-white">Portfolio Pro</span>
+                <span className="font-bold text-white">Investor Pro</span>
                 <span className="text-white/60">
-                  {' '}
-                  — Market Intelligence · Deal Analyzer PDF · Dubai Heatmap ·{' '}
+                  {' '}— Live unit availability · Floor & view · Real-time prices ·{' '}
                 </span>
                 <span className="text-[#2effc0] font-bold">30 days free trial</span>
               </p>

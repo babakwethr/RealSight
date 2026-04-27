@@ -1,29 +1,44 @@
 /**
  * Billing / Pricing page — the canonical 3-plan view per LAUNCH_PLAN.md §2.
  *
- *   Free Investor    $0 forever          Mass signup. The whole investor app.
- *   Investor Pro     $9 / mo (launch $4) Adds live off-plan unit availability.
- *   Adviser Pro      $199 / mo (launch $99 first 6 months)  White-label.
+ *   Free Investor    $0 forever
+ *   Investor Pro     $9 / mo  (launch $4 + 1st month free)
+ *   Adviser Pro      $199 / mo (launch $99 first 6 months · 30-day trial)
  *
- * Launch promos are real ribbons on the cards — first 1,000 users get
- * "Founder" status, refer-a-friend gives 1 free month, etc. (see §6).
+ * Redesigned 28 Apr 2026 to match the rest of the app's design language —
+ * the previous build looked flat compared to the cinematic landing/dashboard
+ * surfaces. Key moves:
  *
- * Stripe wiring is kept as-is; checkout will start working once we configure
- * the price IDs on the edge function (§13.3).
+ *   • Generous 3-column grid with the Adviser Pro card visually elevated
+ *     (taller, brighter halo, pill ribbon).
+ *   • Aurora glow behind the card row so the section feels integrated with
+ *     the cinematic background, not pasted onto it.
+ *   • Feature lists grouped by category (Core / Intelligence / White-label /
+ *     Adviser tools) — easier to scan than a flat 13-item list.
+ *   • Comparison table now has section headers + hover rows.
+ *   • Two callouts at the bottom: "Why Free stays generous" + a
+ *     "Need help choosing?" matrix the user can self-route through.
  */
 import { useState, useEffect } from 'react';
 import {
   CheckCircle, Sparkles, ArrowRight, Lock, Check, Loader2, Building2, User,
-  Crown, Gift, Bot,
+  Crown, Gift, Bot, Zap, Shield, Globe, Users, FileText, Star,
+  TrendingUp, MessageSquare,
 } from 'lucide-react';
 import { useSubscription, type PlanTier } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
 
 type LaunchTier = Extract<PlanTier, 'free' | 'investor_pro' | 'adviser_pro'>;
+
+interface FeatureGroup {
+  label: string;
+  items: { icon: typeof Check; text: string }[];
+}
 
 interface PlanDef {
   key: LaunchTier;
@@ -34,9 +49,12 @@ interface PlanDef {
   priceLaunch?: string;
   priceSuffix: string;
   promo?: string;
+  trial?: string;
   highlight?: 'investor' | 'adviser' | null;
+  ribbon?: string;
   accent: string;
-  features: string[];
+  accentSoft: string;
+  groups: FeatureGroup[];
   ctaIfFree: string;
   ctaIfPaid: string;
 }
@@ -49,16 +67,27 @@ const PLANS: PlanDef[] = [
     tagline: 'Everything you need to track and grow your portfolio.',
     price: '$0',
     priceSuffix: 'forever',
-    accent: '#64748B',
-    features: [
-      'Unlimited properties in your portfolio',
-      'Unlimited Deal Analyzer + branded PDF',
-      'Markets — full DLD coverage',
-      'Dubai Heatmap',
-      'AI Concierge — unlimited',
-      'Documents + Payment tracking',
-      'Off-plan projects browser',
-      'Capital gain & monthly portfolio report',
+    accent: '#9CA3AF',
+    accentSoft: 'rgba(156,163,175,0.10)',
+    groups: [
+      {
+        label: 'Core',
+        items: [
+          { icon: Check, text: 'Unlimited properties in your portfolio' },
+          { icon: FileText, text: 'Documents & payment tracking' },
+          { icon: TrendingUp, text: 'Capital gain & monthly portfolio report' },
+        ],
+      },
+      {
+        label: 'Intelligence',
+        items: [
+          { icon: Globe, text: 'Markets — full DLD coverage' },
+          { icon: Sparkles, text: 'Dubai Heatmap' },
+          { icon: Bot, text: 'AI Concierge — unlimited' },
+          { icon: FileText, text: 'Unlimited Deal Analyzer + branded PDF' },
+          { icon: Building2, text: 'Off-plan projects browser' },
+        ],
+      },
     ],
     ctaIfFree: 'Your plan',
     ctaIfPaid: 'Included above',
@@ -74,15 +103,20 @@ const PLANS: PlanDef[] = [
     promo: 'Launch price · first month free',
     highlight: 'investor',
     accent: '#18D6A4',
-    features: [
-      'Everything in Free Investor',
-      'Live unit availability for every off-plan project',
-      'Floor, view, and real-time price per unit',
-      'Powered by Reelly inventory feed',
-      'New unit alerts',
+    accentSoft: 'rgba(24,214,164,0.10)',
+    groups: [
+      {
+        label: 'Everything in Free, plus',
+        items: [
+          { icon: Zap, text: 'Live unit availability for every off-plan project' },
+          { icon: Building2, text: 'Floor, view, and real-time price per unit' },
+          { icon: Globe, text: 'Powered by Reelly inventory feed' },
+          { icon: MessageSquare, text: 'New unit alerts' },
+        ],
+      },
     ],
     ctaIfFree: 'Try free for 30 days',
-    ctaIfPaid: 'Upgrade — $9 / mo',
+    ctaIfPaid: 'Upgrade — $4 / mo',
   },
   {
     key: 'adviser_pro',
@@ -92,23 +126,78 @@ const PLANS: PlanDef[] = [
     price: '$199',
     priceLaunch: '$99',
     priceSuffix: '/ mo',
-    promo: 'Launch price · first 6 months · 30-day free trial',
+    promo: 'Launch price · first 6 months',
+    trial: '30-day free trial · cancel anytime',
     highlight: 'adviser',
+    ribbon: 'The money product',
     accent: '#7B5CFF',
-    features: [
-      'Everything in Investor Pro',
-      'Custom subdomain (you.realsight.app)',
-      'Your logo, brand colours, photo on every report',
-      'Unlimited investor clients',
-      'Adviser dashboard — all clients in one view',
-      'Branded reports + Area Pricing Report PDF',
-      'Opportunity Signals — AI flags units per client',
-      'Public lead-gen page',
-      'Bulk Deal Analyzer + WhatsApp share',
-      'Priority support',
+    accentSoft: 'rgba(123,92,255,0.10)',
+    groups: [
+      {
+        label: 'Everything in Investor Pro, plus',
+        items: [
+          { icon: Globe, text: 'Custom subdomain (you.realsight.app)' },
+          { icon: Sparkles, text: 'Your logo, brand colours, photo on every report' },
+        ],
+      },
+      {
+        label: 'Adviser tools',
+        items: [
+          { icon: Users, text: 'Unlimited investor clients' },
+          { icon: Shield, text: 'Adviser dashboard — all clients in one view' },
+          { icon: FileText, text: 'Branded reports + Area Pricing Report PDF' },
+          { icon: Star, text: 'Opportunity Signals — AI flags units per client' },
+          { icon: Globe, text: 'Public lead-gen page' },
+          { icon: Zap, text: 'Bulk Deal Analyzer + WhatsApp share' },
+          { icon: Crown, text: 'Priority support' },
+        ],
+      },
     ],
     ctaIfFree: 'Start 30-day free trial',
-    ctaIfPaid: 'Upgrade — $199 / mo',
+    ctaIfPaid: 'Upgrade — $99 / mo',
+  },
+];
+
+// ─── Comparison table data ───────────────────────────────────────────────────
+
+interface CompareRow { feature: string; access: [boolean, boolean, boolean] }
+interface CompareSection { label: string; rows: CompareRow[] }
+
+const COMPARE_TABLE: CompareSection[] = [
+  {
+    label: 'Core',
+    rows: [
+      { feature: 'Unlimited portfolio · payments · documents', access: [true, true, true] },
+      { feature: 'Markets, Dubai Heatmap, AI Concierge',       access: [true, true, true] },
+      { feature: 'Deal Analyzer + branded PDF',                access: [true, true, true] },
+      { feature: 'Off-plan projects browser',                  access: [true, true, true] },
+    ],
+  },
+  {
+    label: 'Live data',
+    rows: [
+      { feature: 'Live unit availability (Reelly)',            access: [false, true, true] },
+      { feature: 'New unit alerts',                            access: [false, true, true] },
+    ],
+  },
+  {
+    label: 'White-label',
+    rows: [
+      { feature: 'Custom subdomain + branding',                access: [false, false, true] },
+      { feature: 'Your logo & contact on every PDF',           access: [false, false, true] },
+      { feature: 'Public lead-gen page',                       access: [false, false, true] },
+    ],
+  },
+  {
+    label: 'Adviser tools',
+    rows: [
+      { feature: 'Invite unlimited investor clients',          access: [false, false, true] },
+      { feature: 'Adviser dashboard (all clients)',            access: [false, false, true] },
+      { feature: 'Area Pricing Report PDF',                    access: [false, false, true] },
+      { feature: 'Opportunity Signals (AI client matches)',    access: [false, false, true] },
+      { feature: 'Bulk Deal Analyzer + WhatsApp share',        access: [false, false, true] },
+      { feature: 'Priority support',                           access: [false, false, true] },
+    ],
   },
 ];
 
@@ -169,245 +258,469 @@ export default function Billing() {
   const currentIndex = tierIndex[(currentPlan as LaunchTier) ?? 'free'] ?? 0;
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
-      {/* Header + launch promo banner */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Pricing</h1>
-        <p className="text-muted-foreground mt-1 max-w-2xl">
+    <div className="relative pb-16 animate-fade-in">
+      {/* Aurora glow underneath the plan row — matches the cinematic-bg of
+          the rest of the app so the section reads as one piece, not pasted. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] rounded-full blur-[120px] opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(24,214,164,0.18) 0%, rgba(123,92,255,0.10) 45%, transparent 70%)' }} />
+      </div>
+
+      {/* ───── HEADER ─────────────────────────────────────────────────── */}
+      <section className="text-center max-w-3xl mx-auto pt-4 pb-10">
+        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">
+          Simple, honest pricing.
+        </h1>
+        <p className="text-base sm:text-lg text-muted-foreground mt-4 leading-relaxed">
           Free for investors. Real revenue from advisers. No tiers, no traps.
         </p>
-      </div>
 
-      {/* Launch promo banner — visible during the first 90 days */}
-      <div
-        className="rounded-2xl px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
-        style={{
-          background: 'linear-gradient(90deg, rgba(24,214,164,0.18), rgba(123,92,255,0.12))',
-          border: '1px solid rgba(24,214,164,0.30)',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Crown className="h-4 w-4 text-[#FFD25E]" />
-          <span className="text-xs font-black uppercase tracking-[0.15em] text-foreground">Launch promo · first 90 days</span>
-        </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-foreground/80">
-          <span>First 1,000 signups get <strong className="text-[#FFD25E]">Founder status</strong></span>
-          <span>Investor Pro <strong className="text-[#2effc0]">$4 / mo + 1st month free</strong></span>
-          <span>Adviser Pro <strong className="text-[#b6a4ff]">$99 / mo for 6 months</strong></span>
-          <span><Gift className="inline h-3.5 w-3.5 mr-1 text-[#FFD25E]" />Refer a friend = 1 free month (both sides)</span>
-        </div>
-      </div>
-
-      {/* Current plan ribbon */}
-      {currentPlan !== 'free' && (
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
+        {/* Current-plan ribbon */}
+        {currentPlan !== 'free' && (
+          <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-xs font-bold text-primary">
             <CheckCircle className="h-3.5 w-3.5" />
-            Current plan: <span className="text-foreground">{planName}</span>
+            You're on <span className="text-foreground">{planName}</span>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* Plan cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {PLANS.map((plan, idx) => {
-          const isCurrent  = plan.key === currentPlan;
-          const isDowngrade = idx < currentIndex;
-          const isLoading  = upgrading === plan.key;
-          const isHighlighted = plan.highlight === 'adviser';
-          const Icon = plan.icon;
+      {/* ───── LAUNCH PROMO BANNER ────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto mb-12 px-1">
+        <div
+          className="relative rounded-2xl px-5 sm:px-6 py-4 sm:py-5 overflow-hidden"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(24,214,164,0.14) 0%, rgba(75,168,255,0.10) 50%, rgba(123,92,255,0.14) 100%)',
+            border: '1px solid rgba(24,214,164,0.28)',
+            boxShadow: '0 8px 40px -12px rgba(24,214,164,0.30)',
+          }}
+        >
+          <div className="absolute inset-y-0 left-0 w-1.5"
+            style={{ background: 'linear-gradient(180deg, #FFD25E, #FF8B25)' }} />
 
-          return (
-            <div
-              key={plan.key}
-              className="relative flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
-              style={{
-                background: isHighlighted
-                  ? 'linear-gradient(160deg, rgba(123,92,255,0.12) 0%, rgba(15,28,46,0.98) 45%)'
-                  : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${isHighlighted ? 'rgba(123,92,255,0.40)' : isCurrent ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'}`,
-                boxShadow: isHighlighted
-                  ? '0 0 40px rgba(123,92,255,0.18), 0 8px 32px rgba(0,0,0,0.3)'
-                  : '0 4px 24px rgba(0,0,0,0.2)',
-              }}
-            >
-              {/* Top accent bar */}
-              <div
-                className="h-[3px] w-full"
-                style={{ background: `linear-gradient(90deg, ${plan.accent}80, ${plan.accent}, ${plan.accent}80)` }}
-              />
-
-              <div className="p-6 flex flex-col flex-1">
-                {/* Top row — icon + 'Most popular' or current badge */}
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${plan.accent}15`, border: `1px solid ${plan.accent}30`, color: plan.accent }}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  {isHighlighted ? (
-                    <span
-                      className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider"
-                      style={{ background: `${plan.accent}20`, color: plan.accent, border: `1px solid ${plan.accent}40` }}
-                    >
-                      The money product
-                    </span>
-                  ) : isCurrent ? (
-                    <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-white/10 text-white/60 border border-white/10">
-                      Your plan
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* Name + tagline */}
-                <h3 className="text-lg font-black text-foreground mb-1">{plan.name}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-5 min-h-[36px]">{plan.tagline}</p>
-
-                {/* Price */}
-                <div className="mb-1">
-                  {plan.priceLaunch ? (
-                    <div className="flex items-baseline gap-2">
-                      <span
-                        className="text-5xl font-black text-foreground"
-                        style={{ fontFamily: 'Berkeley Mono, monospace', letterSpacing: '-0.04em' }}
-                      >
-                        {plan.priceLaunch}
-                      </span>
-                      <span className="text-sm text-muted-foreground">{plan.priceSuffix}</span>
-                      <span className="text-xs text-muted-foreground line-through ml-1">{plan.price}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-baseline gap-2">
-                      <span
-                        className="text-5xl font-black text-foreground"
-                        style={{ fontFamily: 'Berkeley Mono, monospace', letterSpacing: '-0.04em' }}
-                      >
-                        {plan.price}
-                      </span>
-                      <span className="text-sm text-muted-foreground">{plan.priceSuffix}</span>
-                    </div>
-                  )}
-                </div>
-                {plan.promo && (
-                  <p className="text-[10px] font-bold mb-5" style={{ color: plan.accent }}>{plan.promo}</p>
-                )}
-                {!plan.promo && <div className="mb-5" />}
-
-                {/* Features */}
-                <ul className="space-y-2.5 mb-6 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-foreground/80">
-                      <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: plan.accent }} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                {isCurrent ? (
-                  <button
-                    disabled
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold border border-white/[0.08] text-muted-foreground bg-white/[0.03] cursor-default"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 text-primary" /> {plan.ctaIfFree}
-                  </button>
-                ) : isDowngrade ? (
-                  <button
-                    disabled
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold text-muted-foreground/30 cursor-default"
-                  >
-                    <Lock className="h-3.5 w-3.5" /> {plan.ctaIfPaid}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleUpgrade(plan.key)}
-                    disabled={!!upgrading}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-all disabled:opacity-50"
-                    style={{
-                      background: isHighlighted ? plan.accent : `${plan.accent}20`,
-                      color: isHighlighted ? '#FFFFFF' : plan.accent,
-                      border: `1px solid ${plan.accent}40`,
-                      boxShadow: isHighlighted ? `0 4px 20px ${plan.accent}40` : 'none',
-                    }}
-                  >
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {isLoading ? 'Redirecting…' : currentPlan === 'free' ? plan.ctaIfFree : plan.ctaIfPaid}
-                    {!isLoading && <ArrowRight className="h-4 w-4" />}
-                  </button>
-                )}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#FFD25E]/15 border border-[#FFD25E]/35 flex items-center justify-center">
+                <Crown className="h-4 w-4 text-[#FFD25E]" />
+              </div>
+              <div className="leading-tight">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-foreground">
+                  Launch promo
+                </p>
+                <p className="text-[10px] text-muted-foreground">First 90 days</p>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Comparison table */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/[0.06]">
-          <h3 className="text-base font-black text-foreground">Compare plans</h3>
+            <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-2 flex-1 text-xs">
+              <div className="flex items-center gap-2">
+                <Star className="h-3.5 w-3.5 text-[#FFD25E] shrink-0" />
+                <div>
+                  <span className="text-foreground/90">First 1,000 signups · </span>
+                  <strong className="text-[#FFD25E]">Founder status</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-[#2effc0] shrink-0" />
+                <div>
+                  <span className="text-foreground/90">Investor Pro · </span>
+                  <strong className="text-[#2effc0]">$4/mo + 1st free</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5 text-[#b6a4ff] shrink-0" />
+                <div>
+                  <span className="text-foreground/90">Adviser Pro · </span>
+                  <strong className="text-[#b6a4ff]">$99/mo · 6 months</strong>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Gift className="h-3.5 w-3.5 text-[#FFD25E] shrink-0" />
+                <div>
+                  <span className="text-foreground/90">Refer-a-friend · </span>
+                  <strong className="text-[#FFD25E]">1 free month, both sides</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.05] bg-white/[0.02]">
-                <th className="px-6 py-3 text-left text-xs font-black text-muted-foreground">Feature</th>
-                {PLANS.map(p => (
-                  <th key={p.key} className="px-4 py-3 text-center text-xs font-black" style={{ color: p.accent }}>
-                    {p.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { feature: 'Unlimited portfolio + payments + documents', access: [true, true, true] },
-                { feature: 'Markets, Dubai Heatmap, AI Concierge', access: [true, true, true] },
-                { feature: 'Deal Analyzer + branded PDF', access: [true, true, true] },
-                { feature: 'Off-plan projects browser', access: [true, true, true] },
-                { feature: 'Live unit availability (Reelly)', access: [false, true, true] },
-                { feature: 'Custom subdomain + branding', access: [false, false, true] },
-                { feature: 'Invite unlimited investor clients', access: [false, false, true] },
-                { feature: 'Adviser dashboard (all clients)', access: [false, false, true] },
-                { feature: 'Area Pricing Report PDF', access: [false, false, true] },
-                { feature: 'Opportunity Signals (AI client matches)', access: [false, false, true] },
-                { feature: 'Bulk Deal Analyzer + WhatsApp share', access: [false, false, true] },
-                { feature: 'Public lead-gen page', access: [false, false, true] },
-                { feature: 'Priority support', access: [false, false, true] },
-              ].map((row, ri) => (
-                <tr key={ri} className={`border-b border-white/[0.04] ${ri % 2 !== 0 ? 'bg-white/[0.01]' : ''}`}>
-                  <td className="px-6 py-3 text-xs text-foreground/80 font-medium">{row.feature}</td>
-                  {row.access.map((a, ai) => (
-                    <td key={ai} className="px-4 py-3 text-center">
-                      {a === true ? (
-                        <Check className="h-4 w-4 text-emerald-400 mx-auto" />
-                      ) : (
-                        <span className="text-white/15 text-lg leading-none">—</span>
+      </section>
+
+      {/* ───── PLAN CARDS ────────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-1 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+          {PLANS.map((plan, idx) => {
+            const isCurrent      = plan.key === currentPlan;
+            const isDowngrade    = idx < currentIndex;
+            const isLoading      = upgrading === plan.key;
+            const isFeatured     = plan.highlight === 'adviser';
+            const Icon           = plan.icon;
+
+            return (
+              <div
+                key={plan.key}
+                className={cn(
+                  'relative flex flex-col rounded-3xl overflow-hidden transition-all duration-300 group',
+                  'hover:-translate-y-1',
+                  isFeatured ? 'lg:-mt-4 lg:mb-0' : '',
+                )}
+                style={{
+                  background: isFeatured
+                    ? 'linear-gradient(165deg, rgba(123,92,255,0.16) 0%, rgba(15,18,40,0.96) 50%, rgba(10,12,30,0.98) 100%)'
+                    : 'linear-gradient(165deg, rgba(255,255,255,0.05) 0%, rgba(15,18,40,0.85) 100%)',
+                  border: `1px solid ${
+                    isFeatured ? 'rgba(123,92,255,0.45)'
+                      : isCurrent ? 'rgba(255,255,255,0.20)'
+                        : 'rgba(255,255,255,0.08)'
+                  }`,
+                  boxShadow: isFeatured
+                    ? '0 0 60px rgba(123,92,255,0.22), 0 16px 50px rgba(0,0,0,0.40)'
+                    : '0 8px 28px rgba(0,0,0,0.25)',
+                  backdropFilter: 'blur(14px)',
+                  WebkitBackdropFilter: 'blur(14px)',
+                }}
+              >
+                {/* Ribbon for the featured plan */}
+                {plan.ribbon && (
+                  <div
+                    className="absolute top-0 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-b-lg text-[10px] font-black uppercase tracking-[0.18em] z-10"
+                    style={{
+                      background: 'linear-gradient(180deg, #7B5CFF, #5C3FFF)',
+                      color: '#fff',
+                      boxShadow: '0 4px 14px rgba(123,92,255,0.50)',
+                    }}
+                  >
+                    {plan.ribbon}
+                  </div>
+                )}
+
+                {/* Top accent bar */}
+                <div
+                  className="h-[3px] w-full shrink-0"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${plan.accent}, transparent)`,
+                  }}
+                />
+
+                {/* Card body */}
+                <div className={cn(
+                  'flex flex-col flex-1 p-7 sm:p-8',
+                  plan.ribbon ? 'pt-9' : '',
+                )}>
+                  {/* Icon + 'your plan' badge */}
+                  <div className="flex items-start justify-between mb-5">
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: `${plan.accent}1F`,
+                        border: `1px solid ${plan.accent}40`,
+                        color: plan.accent,
+                        boxShadow: `0 4px 18px -6px ${plan.accent}55`,
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    {isCurrent && (
+                      <span className="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-[0.15em] bg-white/[0.07] text-white/70 border border-white/15">
+                        Your plan
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Name + tagline */}
+                  <h3
+                    className="text-2xl font-black tracking-tight text-foreground mb-2"
+                    style={{ letterSpacing: '-0.025em' }}
+                  >
+                    {plan.name}
+                  </h3>
+                  <p className="text-[13px] text-muted-foreground leading-relaxed mb-6 min-h-[40px]">
+                    {plan.tagline}
+                  </p>
+
+                  {/* Price */}
+                  <div className="mb-2">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span
+                        className="text-[56px] leading-none font-black text-foreground"
+                        style={{ letterSpacing: '-0.05em' }}
+                      >
+                        {plan.priceLaunch ?? plan.price}
+                      </span>
+                      <span className="text-base text-muted-foreground font-medium">
+                        {plan.priceSuffix}
+                      </span>
+                      {plan.priceLaunch && (
+                        <span className="text-sm text-muted-foreground/55 line-through ml-1">
+                          {plan.price}
+                        </span>
                       )}
-                    </td>
+                    </div>
+                  </div>
+
+                  {/* Promo + trial */}
+                  <div className="space-y-1 min-h-[42px] mb-7">
+                    {plan.promo && (
+                      <p className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: plan.accent }}>
+                        {plan.promo}
+                      </p>
+                    )}
+                    {plan.trial && (
+                      <p className="text-[11px] text-muted-foreground/85">
+                        {plan.trial}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Feature groups */}
+                  <div className="space-y-5 mb-8 flex-1">
+                    {plan.groups.map((g, gi) => (
+                      <div key={gi}>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/45 mb-2.5">
+                          {g.label}
+                        </p>
+                        <ul className="space-y-2">
+                          {g.items.map((f, fi) => {
+                            const FIcon = f.icon;
+                            return (
+                              <li key={fi} className="flex items-start gap-2.5">
+                                <span
+                                  className="shrink-0 mt-0.5 flex items-center justify-center w-4 h-4 rounded"
+                                  style={{
+                                    background: `${plan.accent}22`,
+                                    color: plan.accent,
+                                  }}
+                                >
+                                  <FIcon className="h-3 w-3" />
+                                </span>
+                                <span className="text-[13px] text-foreground/85 leading-relaxed">
+                                  {f.text}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA */}
+                  {isCurrent ? (
+                    <button
+                      disabled
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold border border-white/[0.10] text-foreground/80 bg-white/[0.04] cursor-default"
+                    >
+                      <CheckCircle className="h-4 w-4 text-primary" /> {plan.ctaIfFree}
+                    </button>
+                  ) : isDowngrade ? (
+                    <button
+                      disabled
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-muted-foreground/40 bg-white/[0.02] border border-white/[0.04] cursor-default"
+                    >
+                      <Lock className="h-4 w-4" /> Included above
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleUpgrade(plan.key)}
+                      disabled={!!upgrading}
+                      className={cn(
+                        'w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-black transition-all duration-200 disabled:opacity-50',
+                        isFeatured ? 'hover:-translate-y-[1px]' : 'hover:-translate-y-[1px]',
+                      )}
+                      style={
+                        isFeatured
+                          ? {
+                              background: `linear-gradient(135deg, ${plan.accent}, #5C3FFF)`,
+                              color: '#FFFFFF',
+                              border: `1px solid ${plan.accent}80`,
+                              boxShadow: `0 8px 32px ${plan.accent}55`,
+                            }
+                          : {
+                              background: `${plan.accent}18`,
+                              color: plan.accent,
+                              border: `1px solid ${plan.accent}50`,
+                            }
+                      }
+                    >
+                      {isLoading
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Sparkles className="h-4 w-4" />}
+                      <span>
+                        {isLoading
+                          ? 'Redirecting…'
+                          : currentPlan === 'free' ? plan.ctaIfFree : plan.ctaIfPaid}
+                      </span>
+                      {!isLoading && <ArrowRight className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ───── COMPARISON TABLE ──────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-1 mb-14">
+        <div className="rounded-3xl bg-white/[0.025] border border-white/[0.07] overflow-hidden backdrop-blur-md">
+          <div className="px-6 sm:px-8 py-5 border-b border-white/[0.06] flex items-center justify-between">
+            <h3 className="text-lg font-black tracking-tight text-foreground">
+              Compare every feature
+            </h3>
+            <p className="hidden sm:block text-xs text-muted-foreground">
+              All prices are launch promo · USD
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.05] bg-white/[0.015]">
+                  <th className="px-6 sm:px-8 py-4 text-left text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/85">
+                    Feature
+                  </th>
+                  {PLANS.map(p => (
+                    <th
+                      key={p.key}
+                      className="px-3 py-4 text-center text-[12px] font-black uppercase tracking-[0.12em]"
+                      style={{ color: p.accent }}
+                    >
+                      <div>{p.name}</div>
+                      <div className="text-[10px] font-bold text-muted-foreground/70 normal-case mt-1">
+                        {p.priceLaunch
+                          ? <>{p.priceLaunch}<span className="text-[9px] ml-0.5">{p.priceSuffix.replace('/ ', '/')}</span></>
+                          : p.price === '$0' ? 'free' : p.price}
+                      </div>
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {COMPARE_TABLE.flatMap((section) => [
+                  // Section header — full-width row above the section's items
+                  <tr key={`${section.label}-header`}>
+                    <td colSpan={4} className="px-6 sm:px-8 pt-6 pb-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/55">
+                        {section.label}
+                      </span>
+                    </td>
+                  </tr>,
+                  // Section rows
+                  ...section.rows.map((row, ri) => (
+                    <tr
+                      key={`${section.label}-${ri}`}
+                      className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                    >
+                      <td className="px-6 sm:px-8 py-3 text-[13px] text-foreground/85 font-medium">
+                        {row.feature}
+                      </td>
+                      {row.access.map((a, ai) => (
+                        <td key={ai} className="px-3 py-3 text-center">
+                          {a ? (
+                            <span
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full"
+                              style={{
+                                background: `${PLANS[ai].accent}22`,
+                                color: PLANS[ai].accent,
+                              }}
+                            >
+                              <Check className="h-3 w-3" strokeWidth={3} />
+                            </span>
+                          ) : (
+                            <span className="text-white/15 text-base leading-none">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  )),
+                ])}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* The free moat callout */}
-      <div className="rounded-2xl p-6 flex items-start gap-4" style={{ background: 'rgba(24,214,164,0.06)', border: '1px solid rgba(24,214,164,0.18)' }}>
-        <Bot className="h-6 w-6 text-[#2effc0] shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-black text-foreground mb-1">Why Free stays generous</p>
-          <p className="text-xs text-foreground/75 leading-relaxed">
-            The whole investor app is free, forever. Investors invite advisers, advisers
-            convert to Adviser Pro — that's our business. We never paywall the tools you
-            need to track and protect your own money.
-          </p>
+      {/* ───── BOTTOM CALLOUTS ───────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-1 grid grid-cols-1 md:grid-cols-2 gap-5 mb-12">
+        {/* Why free stays generous */}
+        <div
+          className="relative rounded-3xl p-7 overflow-hidden"
+          style={{
+            background: 'linear-gradient(160deg, rgba(24,214,164,0.10), rgba(15,18,40,0.85))',
+            border: '1px solid rgba(24,214,164,0.22)',
+          }}
+        >
+          <div className="absolute -top-16 -right-12 w-56 h-56 rounded-full bg-[#18d6a4]/12 blur-3xl pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-[#18d6a4]/15 border border-[#18d6a4]/35 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-[#2effc0]" />
+              </div>
+              <h4 className="text-base font-black tracking-tight text-foreground">
+                Why Free stays generous
+              </h4>
+            </div>
+            <p className="text-[13px] text-foreground/80 leading-relaxed">
+              The whole investor app is free, forever. Investors invite advisers,
+              advisers convert to Adviser Pro — that's our business. We never paywall
+              the tools you need to track and protect your own money.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <p className="text-xs text-muted-foreground text-center">
+        {/* Need help choosing? */}
+        <div
+          className="relative rounded-3xl p-7 overflow-hidden"
+          style={{
+            background: 'linear-gradient(160deg, rgba(123,92,255,0.10), rgba(15,18,40,0.85))',
+            border: '1px solid rgba(123,92,255,0.22)',
+          }}
+        >
+          <div className="absolute -top-16 -right-12 w-56 h-56 rounded-full bg-[#7B5CFF]/15 blur-3xl pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-[#7B5CFF]/15 border border-[#7B5CFF]/35 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-[#b6a4ff]" />
+              </div>
+              <h4 className="text-base font-black tracking-tight text-foreground">
+                Not sure which plan?
+              </h4>
+            </div>
+            <ul className="space-y-2.5 text-[13px] text-foreground/80 leading-relaxed">
+              <li className="flex gap-2">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-white/30 mt-1.5" />
+                <span>
+                  <strong className="text-foreground">Investing for yourself?</strong>{' '}
+                  Stay on Free. Add Investor Pro only when you start tracking off-plan.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#2effc0] mt-1.5" />
+                <span>
+                  <strong className="text-foreground">Buying off-plan?</strong>{' '}
+                  Investor Pro pays for itself the first time you spot a unit before it sells.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#b6a4ff] mt-1.5" />
+                <span>
+                  <strong className="text-foreground">Advising clients?</strong>{' '}
+                  Adviser Pro replaces 4 tools you're already paying for. 30-day trial, then $99/mo.
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ───── FOOTER LINE ───────────────────────────────────────────── */}
+      <p className="text-xs text-muted-foreground/85 text-center max-w-2xl mx-auto px-4">
         All prices in USD · Cancel any time · No long-term contracts · 30-day free trial on Adviser Pro
+        <br />
+        <span className="text-muted-foreground/55">
+          Stripe-secured checkout · receipts emailed instantly · we never see your card
+        </span>
       </p>
     </div>
   );

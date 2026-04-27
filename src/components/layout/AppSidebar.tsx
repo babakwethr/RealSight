@@ -1,28 +1,41 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, PieChart, CreditCard, FolderOpen,
-  BarChart3, Map, Building2, Search, Bot, Bell,
-  User, LogOut, Shield, Users, Settings, Database,
-  Sparkles, ArrowRight, Star, Package, Activity, Layers,
+  LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot,
+  User, LogOut, Sparkles, ArrowRight, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
 
+/**
+ * AppSidebar — primary navigation rail.
+ *
+ * 28 Apr 2026 redesign (founder UX feedback):
+ *   • No more hover-to-expand / pin-to-stay state. Single fixed width
+ *     (240 px) on desktop. The previous two-state interaction was annoying
+ *     and easy to accidentally trigger.
+ *   • Background harmonised to the same `#07040F` base used by `cinematic-bg`
+ *     so the sidebar bleeds visually into the page instead of butting against
+ *     it (the previous opaque blue gradient created a visible seam).
+ *   • Reorganised into 3 short groups (Workspace · Markets · Admin) — total
+ *     8 items for an admin (was 19), 7 for a regular user. The 8 admin
+ *     sub-pages now live behind a single "Workspace" entry that opens an
+ *     `/admin` overview page with its own secondary tab navigation. Same
+ *     pattern as Stripe / Linear / Notion.
+ *   • Mobile uses a separate <MobileDrawer />; this component is desktop-only
+ *     (rendered inside `hidden lg:block` in AppLayout).
+ */
+
 // ─── Nav item ─────────────────────────────────────────────────────────────────
 function NavItem({
-  to, icon: Icon, label, isExpanded, locked, requiredPlan, badge,
+  to, icon: Icon, label, locked, requiredPlan, badge,
 }: {
   to: string;
   icon: React.ElementType;
   label: string;
-  isExpanded: boolean;
   locked?: boolean;
   requiredPlan?: string;
   badge?: string;
@@ -35,23 +48,22 @@ function NavItem({
     if (locked) {
       e.preventDefault();
       toast.info(`Upgrade to ${requiredPlan || 'a paid plan'} to unlock ${label}`, {
-        action: { label: 'See Plans', onClick: () => navigate('/payments') },
+        action: { label: 'See Plans', onClick: () => navigate('/billing') },
       });
     }
   };
 
-  const inner = (
+  return (
     <NavLink
       to={locked ? '#' : to}
       onClick={handleClick}
       className={cn(
-        'flex items-center rounded-xl transition-all duration-150 group/nav relative select-none',
-        isExpanded ? 'gap-2.5 px-2 py-1 mx-1' : 'justify-center py-1 mx-1',
+        'flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-xl transition-all duration-150 relative select-none group/nav',
         locked
           ? 'text-white/25 cursor-not-allowed'
           : isActive
-            ? 'bg-white/[0.06] text-white'
-            : 'text-white/55 hover:bg-white/[0.04] hover:text-white',
+            ? 'bg-white/[0.07] text-white'
+            : 'text-white/60 hover:bg-white/[0.04] hover:text-white',
       )}
     >
       {isActive && !locked && (
@@ -59,8 +71,7 @@ function NavItem({
       )}
       <span
         className={cn(
-          'shrink-0 flex items-center justify-center rounded-lg transition-colors',
-          'w-7 h-7',
+          'shrink-0 flex items-center justify-center rounded-lg w-7 h-7 transition-colors',
           locked
             ? 'bg-white/[0.03] text-white/25 border border-white/[0.04]'
             : isActive
@@ -70,60 +81,37 @@ function NavItem({
       >
         <Icon className="h-[15px] w-[15px]" />
       </span>
-      {isExpanded && (
-        <span className={cn('text-sm flex-1 truncate', isActive && !locked ? 'font-semibold' : 'font-medium')}>
-          {label}
-        </span>
-      )}
-      {isExpanded && locked && requiredPlan && (
+      <span className={cn('text-sm flex-1 truncate', isActive && !locked ? 'font-semibold' : 'font-medium')}>
+        {label}
+      </span>
+      {locked && requiredPlan && (
         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md border bg-amber-500/10 text-amber-300 border-amber-500/20 shrink-0">
-          {requiredPlan.replace('Portfolio ', 'PRO').replace('Adviser', 'ADV')}
+          {requiredPlan}
         </span>
       )}
-      {isExpanded && badge && !locked && (
+      {badge && !locked && (
         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-[#18d6a4]/15 text-[#2effc0] border border-[#18d6a4]/25 shrink-0">
           {badge}
         </span>
       )}
     </NavLink>
   );
-
-  if (!isExpanded) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{inner}</TooltipTrigger>
-        <TooltipContent side="right" className="text-sm flex items-center gap-2">
-          {label}
-          {locked && requiredPlan && <span className="text-xs text-muted-foreground">· {requiredPlan}</span>}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return inner;
 }
 
 // ─── Section label ───────────────────────────────────────────────────────────
-// Each section gets its own accent color so the sidebar is scannable at a glance.
-// Pulls from the brand palette in `src/index.css` design system header.
-type SectionAccent = 'platform' | 'intelligence' | 'admin' | 'neutral';
+type SectionAccent = 'workspace' | 'markets' | 'admin';
 const ACCENTS: Record<SectionAccent, { text: string; dot: string }> = {
-  platform:     { text: 'text-[#2effc0]/85',  dot: 'bg-[#18d6a4]' },        // emerald — your stuff
-  intelligence: { text: 'text-[#7eb8ff]/85',  dot: 'bg-[#4AA8FF]' },        // blue — analytics
-  admin:        { text: 'text-[#b6a4ff]/85',  dot: 'bg-[#7B5CFF]' },        // violet — adviser context
-  neutral:      { text: 'text-white/55',      dot: 'bg-white/30'  },
+  workspace: { text: 'text-[#2effc0]/85', dot: 'bg-[#18d6a4]' }, // emerald
+  markets:   { text: 'text-[#7eb8ff]/85', dot: 'bg-[#4AA8FF]' }, // blue
+  admin:     { text: 'text-[#b6a4ff]/85', dot: 'bg-[#7B5CFF]' }, // violet
 };
 
-function SectionLabel({
-  label, isExpanded, accent = 'neutral',
-}: {
-  label: string; isExpanded: boolean; accent?: SectionAccent;
-}) {
-  if (!isExpanded) return <div className="my-1.5 mx-4 h-px bg-white/[0.06]" />;
+function SectionLabel({ label, accent }: { label: string; accent: SectionAccent }) {
   const c = ACCENTS[accent];
   return (
-    <div className="px-3 pt-3 pb-1 flex items-center gap-1.5 select-none">
+    <div className="px-3 pt-4 pb-1.5 flex items-center gap-1.5 select-none">
       <span className={cn('inline-block h-1 w-1 rounded-full', c.dot)} />
-      <p className={cn('text-[9px] font-black uppercase tracking-[0.2em]', c.text)}>
+      <p className={cn('text-[10px] font-black uppercase tracking-[0.2em]', c.text)}>
         {label}
       </p>
     </div>
@@ -132,203 +120,96 @@ function SectionLabel({
 
 // ─── Main sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar() {
-  const { signOut, user: _user } = useAuth();
+  const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const { plan } = useSubscription();
 
-  const [isPinned, setIsPinned] = useState(() => {
-    try { return localStorage.getItem('rs-sidebar-pinned') === 'true'; } catch { return false; }
-  });
-  const [isHovered, setIsHovered] = useState(false);
-  const isExpanded = isPinned || isHovered;
-
-  const togglePin = () => {
-    const next = !isPinned;
-    setIsPinned(next);
-    try { localStorage.setItem('rs-sidebar-pinned', String(next)); } catch {}
-  };
-
   return (
     <aside
-      className={cn(
-        'relative h-screen flex flex-col border-r border-white/[0.06] overflow-hidden',
-        'transition-[width] duration-200 ease-in-out',
-        isExpanded ? 'w-60' : 'w-[68px]',
-      )}
+      className="relative h-screen w-60 flex flex-col border-r border-white/[0.06] overflow-hidden"
       style={{
+        // Translucent #07040F-matched gradient — same base as `cinematic-bg`,
+        // so the sidebar visually bleeds into the page. Previous opaque blue
+        // gradient created a visible seam (founder QA, 28 Apr 2026).
         background:
-          'linear-gradient(180deg, rgba(14,20,55,0.96) 0%, rgba(10,15,46,0.96) 50%, rgba(5,7,22,0.98) 100%)',
+          'linear-gradient(180deg, rgba(7,4,15,0.92) 0%, rgba(8,5,17,0.95) 50%, rgba(5,3,12,0.96) 100%)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Ambient glow */}
-      <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -left-16 w-[18rem] h-[18rem] rounded-full bg-[#2d5cff]/20 blur-[80px]" />
-        <div className="absolute -bottom-24 -right-10 w-[16rem] h-[16rem] rounded-full bg-[#18d6a4]/12 blur-[80px]" />
-      </div>
-
       {/* Logo */}
       <div
-        className={cn(
-          'relative flex items-center h-[57px] border-b border-white/[0.06] shrink-0 overflow-hidden',
-          isExpanded ? 'px-4 gap-2' : 'justify-center',
-        )}
+        className="relative flex items-center h-[57px] px-4 border-b border-white/[0.06] shrink-0 overflow-hidden"
         style={{ paddingTop: 'env(safe-area-inset-top, 0)', height: 'calc(57px + env(safe-area-inset-top, 0))' }}
       >
         <Link to="/dashboard" className="flex items-center min-w-0">
-          {isExpanded
-            ? <Logo variant="white" className="h-6 w-auto shrink-0" />
-            : (
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{
-                  background:
-                    'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
-                  boxShadow: '0 6px 18px rgba(24,214,164,0.35)',
-                }}
-              >
-                <span className="text-white font-black text-[11px] tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
-                  RS
-                </span>
-              </div>
-            )
-          }
+          <Logo variant="white" className="h-6 w-auto shrink-0" />
         </Link>
-        {isExpanded && (
-          <button
-            onClick={togglePin}
-            title={isPinned ? 'Unpin' : 'Pin open'}
-            className={cn(
-              'ml-auto p-1.5 rounded-lg transition-colors shrink-0',
-              isPinned
-                ? 'text-[#2effc0] bg-[#18d6a4]/10'
-                : 'text-white/30 hover:text-white/70 hover:bg-white/[0.05]',
-            )}
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="17" x2="12" y2="22" />
-              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
-            </svg>
-          </button>
-        )}
       </div>
 
       {/* Navigation */}
-      <nav className="relative flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-0 scrollbar-none">
-        {/* Primary */}
+      <nav className="relative flex-1 overflow-y-auto overflow-x-hidden py-2 scrollbar-none">
+
+        {/* WORKSPACE — daily-use items */}
+        <SectionLabel label="Workspace" accent="workspace" />
         <div className="space-y-0.5 px-1.5">
-          <NavItem to="/dashboard"          icon={LayoutDashboard} label="Home"          isExpanded={isExpanded} />
-          <NavItem to="/market-intelligence" icon={BarChart3}       label="Markets"       isExpanded={isExpanded} />
-          <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" isExpanded={isExpanded} />
-          <NavItem to="/projects"            icon={Building2}       label="New Launches"  isExpanded={isExpanded} />
-          <NavItem to="/concierge"           icon={Bot}             label="AI Concierge"  isExpanded={isExpanded} />
+          <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
+          <NavItem to="/portfolio"     icon={PieChart}        label="Portfolio" />
+          <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
+          <NavItem to="/projects"      icon={Building2}       label="New Launches" />
+          <NavItem to="/concierge"     icon={Bot}             label="AI Concierge" />
         </div>
 
-        <SectionLabel label="My Platform" isExpanded={isExpanded} accent="platform" />
-
+        {/* MARKETS — area + heatmap */}
+        <SectionLabel label="Markets" accent="markets" />
         <div className="space-y-0.5 px-1.5">
-          <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio"  isExpanded={isExpanded} />
-          <NavItem to="/payments"   icon={CreditCard}  label="Payments"   isExpanded={isExpanded} />
-          <NavItem to="/documents"  icon={FolderOpen}  label="Documents"  isExpanded={isExpanded} />
+          <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
+          <NavItem to="/heatmap"             icon={Map}       label="Dubai Heatmap" />
         </div>
 
-        <SectionLabel label="Intelligence" isExpanded={isExpanded} accent="intelligence" />
-
-        <div className="space-y-0.5 px-1.5">
-          <NavItem to="/heatmap" icon={Map}  label="Dubai Heatmap" isExpanded={isExpanded} />
-          <NavItem to="/updates" icon={Bell} label="Updates"       isExpanded={isExpanded} />
-        </div>
-
-        {/* Admin section — only visible to admins. Unified into the main sidebar
-            (was previously a separate AdminSidebar that swapped the entire rail
-            on /admin/* routes — disorienting per founder QA 27 Apr 2026). All
-            9 items from the old AdminSidebar live here now. */}
+        {/* ADMIN — single entry, opens /admin overview with its own tab nav */}
         {isAdmin && (
           <>
-            <SectionLabel label="Admin" isExpanded={isExpanded} accent="admin" />
+            <SectionLabel label="Admin" accent="admin" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/admin/investors"     icon={Users}     label="Investors"        isExpanded={isExpanded} />
-              <NavItem to="/admin/users"         icon={Shield}    label="User Roles"       isExpanded={isExpanded} />
-              <NavItem to="/admin/monthly-picks" icon={Star}      label="Top Picks"        isExpanded={isExpanded} />
-              <NavItem to="/admin/inventory"     icon={Package}   label="Portal Inventory" isExpanded={isExpanded} />
-              <NavItem to="/admin/projects"      icon={Building2} label="Manual Inventory" isExpanded={isExpanded} />
-              <NavItem to="/admin/dld-analytics" icon={Database}  label="DLD Analytics"    isExpanded={isExpanded} />
-              <NavItem to="/admin/market-pulse"  icon={Activity}  label="Market Pulse"     isExpanded={isExpanded} />
-              <NavItem to="/admin/market-index"  icon={Layers}    label="Market Index"     isExpanded={isExpanded} />
-              <NavItem to="/admin/settings"      icon={Settings}  label="Workspace Settings" isExpanded={isExpanded} />
+              <NavItem to="/admin" icon={Shield} label="Workspace" />
             </div>
           </>
         )}
       </nav>
 
-      {/* Bottom — account + upgrade hint */}
+      {/* Bottom — upgrade hint (free users) + account + sign out */}
       <div className="relative border-t border-white/[0.06] pt-1.5 pb-2 space-y-0.5 px-1.5 shrink-0">
         {!isAdmin && plan === 'free' && (
-          isExpanded ? (
-            <Link
-              to="/billing"
-              className="flex items-center gap-2 px-2.5 py-2 mx-0 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
-                border: '1px solid rgba(24,214,164,0.35)',
-              }}
-            >
-              <div className="w-7 h-7 rounded-lg bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
-                <Sparkles className="h-3.5 w-3.5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black text-white leading-none">Upgrade to Pro</p>
-                <p className="text-[9px] text-white/65 mt-0.5">$29/mo · 30-day trial</p>
-              </div>
-              <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </Link>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  to="/billing"
-                  className="flex items-center justify-center w-full py-2.5 rounded-2xl transition-colors mb-1"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, rgba(24,214,164,0.22), rgba(24,214,164,0.08))',
-                    border: '1px solid rgba(24,214,164,0.35)',
-                  }}
-                >
-                  <Sparkles className="h-4 w-4 text-[#2effc0]" />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-sm">
-                Upgrade to Pro — $29/mo
-              </TooltipContent>
-            </Tooltip>
-          )
+          <Link
+            to="/billing"
+            className="flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
+              border: '1px solid rgba(24,214,164,0.35)',
+            }}
+          >
+            <div className="w-7 h-7 rounded-lg bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-black text-white leading-none">Upgrade to Pro</p>
+              <p className="text-[9px] text-white/65 mt-0.5">$4/mo · 30-day trial</p>
+            </div>
+            <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
         )}
-        <NavItem to="/account" icon={User} label="My Account" isExpanded={isExpanded} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={signOut}
-              className={cn(
-                'w-full flex items-center rounded-xl transition-all duration-150',
-                'text-white/45 hover:bg-red-500/10 hover:text-red-300',
-                isExpanded ? 'gap-2.5 px-2 py-1 mx-1' : 'justify-center py-1 mx-1',
-              )}
-            >
-              <span
-                className={cn(
-                  'shrink-0 flex items-center justify-center rounded-lg w-7 h-7 transition-colors',
-                  'bg-white/[0.04] border border-white/[0.06]',
-                )}
-              >
-                <LogOut className="h-[15px] w-[15px]" />
-              </span>
-              {isExpanded && <span className="text-sm font-medium">Sign Out</span>}
-            </button>
-          </TooltipTrigger>
-          {!isExpanded && <TooltipContent side="right" className="text-sm">Sign Out</TooltipContent>}
-        </Tooltip>
+        <NavItem to="/account" icon={User} label="My Account" />
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-xl transition-all duration-150 text-white/50 hover:bg-red-500/10 hover:text-red-300"
+        >
+          <span className="shrink-0 flex items-center justify-center rounded-lg w-7 h-7 bg-white/[0.04] border border-white/[0.06]">
+            <LogOut className="h-[15px] w-[15px]" />
+          </span>
+          <span className="text-sm font-medium">Sign Out</span>
+        </button>
       </div>
     </aside>
   );

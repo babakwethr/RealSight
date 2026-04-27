@@ -8,7 +8,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { AdminLayout } from "@/components/layout/AdminLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TenantProvider } from "@/hooks/useTenant";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,7 +71,9 @@ import AdminSettings from "./pages/admin/Settings";
 import AdminDLDAnalytics from "./pages/admin/DLDAnalytics";
 import AdminInventory from "./pages/admin/Inventory";
 import AdminProjects from "./pages/admin/AdminProjects";
+import AdminWorkspace from "./pages/admin/AdminWorkspace";
 import SetupWizard from "./pages/admin/SetupWizard";
+import { AdminShell } from "./components/admin/AdminTabs";
 
 const queryClient = new QueryClient();
 
@@ -222,7 +223,12 @@ const App = () => (
                 <Route path="/account" element={<Account />} />
               </Route>
 
-              {/* Admin Routes */}
+              {/* Admin Routes — 28 Apr 2026 redesign: admin pages now mount inside
+                  AppLayout (the same chrome as the rest of the app) rather than
+                  the old AdminLayout. The admin sub-pages use <AdminTabs /> for
+                  secondary navigation. The /admin landing is the new
+                  AdminWorkspace overview. AdminLayout.tsx is no longer mounted
+                  but kept in the repo as orphaned code for one rollback cycle. */}
               <Route
                 path="/admin/setup"
                 element={
@@ -231,18 +237,21 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              
-              <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                <Route path="/admin/investors" element={<AdminInvestors />} />
-                <Route path="/admin/investors/:investorId" element={<AdminInvestorDashboard />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/monthly-picks" element={<AdminMonthlyPicks />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/dld-analytics" element={<AdminDLDAnalytics />} />
-                <Route path="/admin/market-pulse" element={<MarketPulse />} />
-                <Route path="/admin/market-index" element={<MarketIndex />} />
-                <Route path="/admin/inventory" element={<AdminInventory />} />
-                <Route path="/admin/projects" element={<AdminProjects />} />
+
+              <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
+                <Route element={<AdminShell />}>
+                  <Route path="/admin"                          element={<AdminWorkspace />} />
+                  <Route path="/admin/investors"                element={<AdminInvestors />} />
+                  <Route path="/admin/investors/:investorId"    element={<AdminInvestorDashboard />} />
+                  <Route path="/admin/users"                    element={<AdminUsers />} />
+                  <Route path="/admin/monthly-picks"            element={<AdminMonthlyPicks />} />
+                  <Route path="/admin/settings"                 element={<AdminSettings />} />
+                  <Route path="/admin/dld-analytics"            element={<AdminDLDAnalytics />} />
+                  <Route path="/admin/market-pulse"             element={<MarketPulse />} />
+                  <Route path="/admin/market-index"             element={<MarketIndex />} />
+                  <Route path="/admin/inventory"                element={<AdminInventory />} />
+                  <Route path="/admin/projects"                 element={<AdminProjects />} />
+                </Route>
               </Route>
 
               <Route path="*" element={<NotFound />} />
