@@ -15,16 +15,23 @@ import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { DealAnalyzer } from "@/components/ui/DealAnalyzer";
 import { AnimatedTestimonials } from "@/components/ui/animated-testimonials";
 import TrustSection from "@/components/sections/TrustSection";
+import { PublicFooter } from "@/components/layout/PublicFooter";
+import { CoverageMap } from "@/components/CoverageMap";
 import dashboardVisual from '@/assets/dashboard-main.png';
+// Per founder directive (25 Apr 2026): keep marketing pages deliberately vague
+// about per-feature UI. The hero dashboard shot is the only screenshot we
+// publish — the rest of the product reveal happens behind the trial signup.
 
 type Audience = 'investor' | 'advisor';
 
+// Per LAUNCH_PLAN.md §12 — only Dubai is genuinely live.
+// Other markets are "Coming Q3/Q4 2026". Never claim coverage we don't have.
 const markets = [
-  { name: 'Dubai', flag: '🇦🇪', status: 'Active Market', desc: '150+ areas tracked' },
-  { name: 'Spain', flag: '🇪🇸', status: 'Active Market', desc: 'Costa del Sol & more' },
-  { name: 'United States', flag: '🇺🇸', status: 'Active Market', desc: 'Major metro areas' },
-  { name: 'United Kingdom', flag: '🇬🇧', status: 'Active Market', desc: 'London & regions' },
-  { name: 'Singapore', flag: '🇸🇬', status: 'Active Market', desc: 'Premium districts' },
+  { name: 'Dubai',          flag: '🇦🇪', status: 'Live now',          desc: '150+ areas tracked',     live: true  },
+  { name: 'United Kingdom', flag: '🇬🇧', status: 'Coming Q3 2026',    desc: 'London & regions',       live: false },
+  { name: 'Singapore',      flag: '🇸🇬', status: 'Coming Q3 2026',    desc: 'Premium districts',      live: false },
+  { name: 'Spain',          flag: '🇪🇸', status: 'Coming Q4 2026',    desc: 'Costa del Sol & Madrid', live: false },
+  { name: 'United States',  flag: '🇺🇸', status: 'Coming Q4 2026',    desc: 'Miami & NYC first',      live: false },
 ];
 
 const investorFeatures = [
@@ -45,50 +52,60 @@ const advisorFeatures = [
   { icon: FileText, title: 'Automated Reports', desc: 'Generate portfolio reports, market summaries, and AI briefings for your investors automatically.' },
 ];
 
+// 3-plan launch model — see LAUNCH_PLAN.md §2
 const pricingPlans = [
   {
-    name: 'Explorer',
+    name: 'Free Investor',
     tier: 'free',
-    price: 'Free',
-    period: '',
-    desc: 'Start tracking your Dubai real estate investments.',
-    features: ['Portfolio Dashboard', 'Payment Tracking', 'Document Vault', 'Basic Market Data', 'AI Concierge (Limited)', 'New Launches Preview'],
+    price: '$0',
+    period: 'forever',
+    desc: 'The whole investor app — free, forever.',
+    features: [
+      'Unlimited portfolio + payments + documents',
+      'Markets, Dubai Heatmap, AI Concierge',
+      'Deal Analyzer + branded PDF',
+      'Off-plan projects browser',
+      'Capital gain & monthly portfolio report',
+    ],
     cta: 'Start Free',
     highlighted: false,
     badge: '',
   },
   {
-    name: 'Portfolio Pro',
-    tier: 'portfolio_pro',
-    price: '$29',
-    period: '/month',
-    desc: 'Full market intelligence for serious investors.',
-    features: ['Everything in Explorer', 'Market Intelligence', 'Dubai Heatmap', 'Deal Analyzer + PDF Report', 'Watchlist & Compare', 'New Launches Access', 'Market Index'],
-    cta: 'Start Free Trial',
+    name: 'Investor Pro',
+    tier: 'investor_pro',
+    price: '$4',
+    period: '/ mo',
+    desc: 'Free shows the project. Pro shows you which units you can still buy.',
+    features: [
+      'Everything in Free Investor',
+      'Live unit availability for every off-plan project',
+      'Floor, view, real-time price per unit',
+      'New unit alerts',
+      'Launch price · first month free',
+    ],
+    cta: 'Try Free for 30 days',
     highlighted: false,
-    badge: '',
-  },
-  {
-    name: 'Adviser Starter',
-    tier: 'adviser_starter',
-    price: '$99',
-    period: '/month',
-    desc: 'For agents who want to impress clients with data.',
-    features: ['Everything in Portfolio Pro', 'Top Picks Access', 'Opportunity Signals', 'Global Radar', 'AI Concierge Unlimited', 'New Launches Sharing'],
-    cta: 'Start Free Trial',
-    highlighted: true,
-    badge: 'Most Popular',
+    badge: 'Launch $4',
   },
   {
     name: 'Adviser Pro',
     tier: 'adviser_pro',
-    price: '$199',
-    period: '/month',
-    desc: 'Full AI toolkit for top-performing advisers.',
-    features: ['Everything in Adviser Starter', 'AI Investor Presentation PDF', 'AI Market Analysis Reports', 'Priority Support', 'Early Feature Access'],
-    cta: 'Start Free Trial',
-    highlighted: false,
-    badge: 'Best Value',
+    price: '$99',
+    period: '/ mo',
+    desc: 'Your white-label investor platform. Your brand. Your clients.',
+    features: [
+      'Everything in Investor Pro',
+      'Custom subdomain (you.realsight.app)',
+      'Your brand on every page + every PDF',
+      'Unlimited investor clients',
+      'Adviser dashboard + Opportunity Signals',
+      'Bulk Deal Analyzer + WhatsApp share',
+      'Public lead-gen page',
+    ],
+    cta: 'Start 30-day Free Trial',
+    highlighted: true,
+    badge: 'The money product',
   },
 ];
 
@@ -298,6 +315,13 @@ export default function PublicHome() {
               </p>
             </div>
 
+            {/* Per LAUNCH_PLAN.md §17 — stylized coverage map. Lightweight
+                SVG (no map-tile lib), Dubai pulses, others muted. Reads as
+                global ambition without overclaiming live coverage. */}
+            <div className="mb-10">
+              <CoverageMap />
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {markets.map((market, i) => (
                 <motion.div
@@ -311,8 +335,15 @@ export default function PublicHome() {
                 >
                   <span className="text-3xl mb-3 block">{market.flag}</span>
                   <h3 className="font-semibold text-foreground text-sm mb-1">{market.name}</h3>
-                  <div className="inline-flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />
+                  <div
+                    className={cn(
+                      'inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full',
+                      market.live
+                        ? 'text-primary bg-primary/10'
+                        : 'text-amber-300 bg-amber-500/10 border border-amber-500/20',
+                    )}
+                  >
+                    {market.live && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />}
                     {market.status}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-2">{market.desc}</p>
@@ -493,17 +524,20 @@ export default function PublicHome() {
           <section className="py-20 px-4">
             <div className="max-w-6xl mx-auto glass-panel p-8 md:p-12 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-primary/5 pointer-events-none" />
-              <div className="relative z-10 text-center">
-                <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium bg-accent-purple/10 text-accent-purple border border-accent-purple/20 mb-6">
-                  <Building className="h-3.5 w-3.5" />
-                  White-Label
+              <div className="relative z-10">
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium bg-accent-purple/10 text-accent-purple border border-accent-purple/20 mb-6">
+                    <Building className="h-3.5 w-3.5" />
+                    White-Label
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                    Your Brand. <span className="text-accent-gradient">Your Platform.</span>
+                  </h2>
+                  <p className="text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+                    Upload your logo, set your brand colors, get your own subdomain. Your investors will see only your brand — RealSight powers everything invisibly behind the scenes.
+                  </p>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                  Your Brand. <span className="text-accent-gradient">Your Platform.</span>
-                </h2>
-                <p className="text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-                  Upload your logo, set your brand colors, get your own subdomain. Your investors will see only your brand — RealSight powers everything invisibly behind the scenes.
-                </p>
+
                 <div className="grid sm:grid-cols-3 gap-6 mb-8">
                   {[
                     { icon: Globe, title: 'Custom Subdomain', desc: 'yourcompany.realsight.app' },
@@ -519,12 +553,21 @@ export default function PublicHome() {
                     </div>
                   ))}
                 </div>
-                <Button asChild className="bg-accent-purple hover:bg-accent-purple/90 text-white rounded-full px-8 py-6">
-                  <Link to="/login?mode=signup&role=advisor">
-                    Launch Your White-Label Platform
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button asChild className="bg-accent-purple hover:bg-accent-purple/90 text-white rounded-full px-8 py-6">
+                    <Link to="/login?mode=signup&plan=adviser_pro&role=advisor">
+                      Launch Your White-Label Platform
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="rounded-full px-8 py-6 border-white/20">
+                    <Link to="/for-advisers">
+                      See full walkthrough
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
@@ -546,7 +589,7 @@ export default function PublicHome() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
               {pricingPlans.map((plan, i) => (
                 <motion.div
                   key={plan.name}
@@ -587,7 +630,7 @@ export default function PublicHome() {
                         : 'bg-muted hover:bg-muted/80 text-foreground'
                     }`}
                   >
-                    <Link to={`/login?mode=signup&plan=${plan.tier}${plan.tier.startsWith('adviser') ? '&role=advisor' : ''}`}>{plan.cta}</Link>
+                    <Link to={`/login?mode=signup&plan=${plan.tier}${plan.tier === 'adviser_pro' ? '&role=advisor' : ''}`}>{plan.cta}</Link>
                   </Button>
                 </motion.div>
               ))}
@@ -618,9 +661,9 @@ export default function PublicHome() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="grid sm:grid-cols-3 gap-6">
               {[
-                { icon: Shield, title: 'Bank-Grade Security', desc: 'Enterprise encryption. SOC 2 compliant infrastructure.' },
-                { icon: Lock, title: 'Data Privacy', desc: 'Your portfolio data is encrypted and never shared.' },
-                { icon: TrendingUp, title: 'Real Transaction Data', desc: 'Powered by verified DLD and market transaction records.' },
+                { icon: Shield, title: 'US-incorporated · Delaware', desc: 'RealSight Inc. is a Delaware C-Corp. Independent software company — no agents on staff.' },
+                { icon: Lock, title: 'Your data is never shared', desc: '256-bit encryption. SOC 2 Type II in progress. We do not sell or share your portfolio with brokers — ever.' },
+                { icon: TrendingUp, title: 'Verified transaction data', desc: 'Powered by official DLD records and licensed market sources. Every number is traceable.' },
               ].map((item, i) => (
                 <motion.div
                   key={item.title}
@@ -682,53 +725,7 @@ export default function PublicHome() {
         </section>
 
         {/* ──── FOOTER ──── */}
-        <footer className="border-t border-border/30 py-12 px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-4 gap-8 mb-8">
-              <div>
-                <div className="mb-4">
-                  <Logo variant="white" height="h-10" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  AI-powered real estate intelligence for investors and advisors.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground text-sm mb-3">Platform</h4>
-                <ul className="space-y-2">
-                  {[
-                    { label: 'Portfolio', href: '#features' },
-                    { label: 'Market Pulse', href: '#features' },
-                    { label: 'Deal Analyzer', href: '#features' },
-                    { label: 'AI Concierge', href: '#features' },
-                  ].map(item => (
-                    <li key={item.label}><a href={item.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{item.label}</a></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground text-sm mb-3">Markets</h4>
-                <ul className="space-y-2">
-                  {['Dubai', 'Spain', 'United States', 'United Kingdom', 'Singapore'].map(item => (
-                    <li key={item}><span className="text-sm text-muted-foreground">{item}</span></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground text-sm mb-3">Company</h4>
-                <ul className="space-y-2">
-                  {['About', 'Privacy Policy', 'Terms of Service', 'Contact'].map(item => (
-                    <li key={item}><a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{item}</a></li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="border-t border-border/30 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <p className="text-xs text-muted-foreground">© 2026 RealSight. All rights reserved.</p>
-              <p className="text-xs text-muted-foreground">Built with ❤️ for real estate investors</p>
-            </div>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </PublicLayout>
   );

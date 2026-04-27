@@ -18,11 +18,13 @@ function verdictBg(v: string) {
 }
 
 function CoverPage({ d }: { d: DealAnalyzerPDFData }) {
+  // White-label: when isAdviser + agencyName provided, swap RealSight masthead for the adviser's brand.
+  const brandLabel = (d.isAdviser && d.agencyName ? d.agencyName : 'RealSight').toUpperCase();
   return (
     <Page size="A4" style={{ backgroundColor: RS.white, padding: 0 }}>
       {/* Top bar */}
       <View style={{ backgroundColor: RS.navy, paddingHorizontal: 40, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: RS.gold, fontSize: 13, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>REALSIGHT</Text>
+        <Text style={{ color: RS.gold, fontSize: 13, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>{brandLabel}</Text>
         <Text style={{ color: RS.gray400, fontSize: 8 }}>AI INVESTOR PRESENTATION</Text>
       </View>
 
@@ -92,11 +94,11 @@ function CoverPage({ d }: { d: DealAnalyzerPDFData }) {
   );
 }
 
-function SlideHeader({ title, subtitle, page }: { title: string; subtitle?: string; page: string }) {
+function SlideHeader({ title, subtitle, page, brandLabel }: { title: string; subtitle?: string; page: string; brandLabel?: string }) {
   return (
     <View>
       <View style={{ backgroundColor: RS.navy, paddingHorizontal: 36, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: RS.gold, fontSize: 11, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>REALSIGHT</Text>
+        <Text style={{ color: RS.gold, fontSize: 11, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>{(brandLabel || 'REALSIGHT').toUpperCase()}</Text>
         <Text style={{ color: RS.gray400, fontSize: 8 }}>AI INVESTOR PRESENTATION</Text>
       </View>
       <View style={{ paddingHorizontal: 36, paddingTop: 18, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: RS.gold, marginBottom: 16 }}>
@@ -134,15 +136,20 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
   const diffPct   = ((d.pricePerSqft - d.areaAvgPsf) / d.areaAvgPsf) * 100;
   const maxPsf    = Math.max(d.pricePerSqft, d.areaAvgPsf, d.area12mAgoPsf) * 1.1;
 
+  // White-label brand swap: when the report is rendered for an Adviser Pro tenant,
+  // every slide's masthead carries their brand instead of "REALSIGHT". RealSight is
+  // intentionally invisible — that's the deal advisers pay for.
+  const brandLabel = d.isAdviser && d.agencyName ? d.agencyName : 'RealSight';
+
   return (
-    <Document title={`RealSight AI Investor Presentation — ${d.propertyName}`} author="RealSight">
+    <Document title={`${brandLabel} — Investor Presentation · ${d.propertyName}`} author={brandLabel}>
 
       {/* SLIDE 1: Cover */}
       <CoverPage d={d} />
 
       {/* SLIDE 2: Property Overview */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Property Overview" subtitle={`${d.propertyName} · ${d.area}, Dubai`} page="02" />
+        <SlideHeader title="Property Overview" subtitle={`${d.propertyName} · ${d.area}, Dubai`} page="02" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Overview grid */}
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
@@ -197,7 +204,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 3: Dubai Market Snapshot */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Dubai Market Snapshot" subtitle={`Current market conditions · ${d.reportDate}`} page="03" />
+        <SlideHeader title="Dubai Market Snapshot" subtitle={`Current market conditions · ${d.reportDate}`} page="03" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Large KPI row */}
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
@@ -249,7 +256,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 4: Price Benchmarks + Comparables */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Price Analysis & Comparables" subtitle="DLD transaction data and market benchmarks" page="04" />
+        <SlideHeader title="Price Analysis & Comparables" subtitle="DLD transaction data and market benchmarks" page="04" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Benchmark bar chart */}
           <View style={{ marginBottom: 16 }}>
@@ -306,7 +313,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 5: Investment Metrics */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Investment Metrics & Yield Analysis" subtitle="Income projections and return scenarios" page="05" />
+        <SlideHeader title="Investment Metrics & Yield Analysis" subtitle="Income projections and return scenarios" page="05" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Investment metrics */}
           <View style={S.dataTable}>
@@ -358,7 +365,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 6: AI Investment Verdict */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="AI Investment Verdict" subtitle="Powered by RealSight AI · Based on DLD market data" page="06" />
+        <SlideHeader title="AI Investment Verdict" subtitle="Powered by RealSight AI · Based on DLD market data" page="06" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Verdict badge */}
           <View style={{ backgroundColor: verdictBg(d.investmentVerdict), borderRadius: 8, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -406,7 +413,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 7: AI Advice + Next Steps */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="AI Advice & Next Steps" subtitle="Actionable guidance from RealSight AI" page="07" />
+        <SlideHeader title="AI Advice & Next Steps" subtitle="Actionable guidance from RealSight AI" page="07" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* AI Advice box */}
           {d.aiAdvice && (
@@ -440,7 +447,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* SLIDE 8: About + Disclaimer */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="About & Disclaimer" page="08" />
+        <SlideHeader title="About & Disclaimer" page="08" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Agent / brand card */}
           <View style={{ backgroundColor: RS.navy, borderRadius: 8, padding: 20, flexDirection: 'row', gap: 20, marginBottom: 20 }}>

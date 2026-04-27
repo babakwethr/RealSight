@@ -27,7 +27,7 @@ export default function Privacy() {
         <div className="space-y-6 text-sm text-foreground/80 leading-relaxed">
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">1. Who we are</h2>
-            <p>RealSight FZ-LLC ("we", "us", "RealSight") is the data controller for personal information collected through realsight.app. We are based in Dubai, UAE. For privacy inquiries, contact <a href="mailto:privacy@realsight.app" className="text-primary hover:text-primary/80">privacy@realsight.app</a>.</p>
+            <p>RealSight Inc. ("we", "us", "RealSight") is the data controller for personal information collected through realsight.app. We are a Delaware C-Corporation registered at 1209 Orange Street, Wilmington, Delaware 19801, USA. For privacy inquiries, contact <a href="mailto:privacy@realsight.app" className="text-primary hover:text-primary/80">privacy@realsight.app</a>.</p>
           </section>
 
           <section>
@@ -88,7 +88,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">7. Data retention</h2>
-            <p>We retain your account and portfolio data for as long as your account is active. After deletion, personal data is removed within 30 days, except where we must retain it by law (e.g., accounting records for 7 years in the UAE). Backups are rotated within 90 days.</p>
+            <p>We retain your account and portfolio data for as long as your account is active. After deletion, personal data is removed within 30 days, except where we must retain it by law (e.g., US tax / accounting records, EU data retention rules where applicable). Backups are rotated within 90 days.</p>
           </section>
 
           <section>
@@ -103,7 +103,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">10. International data transfers</h2>
-            <p>Your data may be processed outside the UAE (e.g., on EU or US servers used by Supabase, Stripe, Vercel, Google). These transfers use standard contractual clauses or equivalent safeguards.</p>
+            <p>RealSight Inc. is US-incorporated. Data is primarily processed on EU servers (Supabase) and US servers (Stripe, Vercel, Google). Cross-border transfers use Standard Contractual Clauses, the EU-US Data Privacy Framework, or equivalent safeguards.</p>
           </section>
 
           <section>

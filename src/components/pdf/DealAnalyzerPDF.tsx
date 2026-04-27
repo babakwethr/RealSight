@@ -74,12 +74,12 @@ function verdictColor(v: string) {
   return RS.red;
 }
 
-function PageHeader({ reportType }: { reportType: string }) {
+function PageHeader({ reportType, brandName, brandTagline }: { reportType: string; brandName?: string; brandTagline?: string }) {
   return (
     <View style={S.pageHeader}>
       <View>
-        <Text style={S.headerBrandText}>REALSIGHT</Text>
-        <Text style={S.headerTagline}>DUBAI REAL ESTATE INTELLIGENCE</Text>
+        <Text style={S.headerBrandText}>{(brandName || 'REALSIGHT').toUpperCase()}</Text>
+        <Text style={S.headerTagline}>{(brandTagline || 'GLOBAL PROPERTY INTELLIGENCE').toUpperCase()}</Text>
       </View>
       <Text style={S.headerDate}>{reportType}</Text>
     </View>
@@ -251,7 +251,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 2: PROPERTY OVERVIEW + LOCATION ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           <SectionHeader title="Property Overview" />
           <DataTable
@@ -308,7 +308,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 3: MARKET SNAPSHOT + BENCHMARKS ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           <SectionHeader title={`Dubai Market Snapshot — ${d.reportDate}`} />
           <Text style={S.bodyText}>
@@ -372,7 +372,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 4: COMPARABLE SALES ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           <SectionHeader title={`Comparable Sales — ${d.area} (${d.unitType})`} />
           <Text style={S.bodyText}>
@@ -431,7 +431,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 5: INVESTMENT METRICS + YIELD SCENARIOS ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           <SectionHeader title="Investment Metrics" />
           <DataTable
@@ -478,7 +478,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 6: INVESTMENT VERDICT + AI ASSESSMENT ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           <SectionHeader title="Investment Verdict" />
 
@@ -536,7 +536,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 7: AGENT CARD + NEXT STEPS + DISCLAIMER ── */}
       <Page size="A4" style={S.page}>
-        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" />
+        <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
           {/* Agent / Branding Card */}
           <View style={S.agentCard}>

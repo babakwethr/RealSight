@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LogIn, Menu, X, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
+import { MarketSwitcher } from '@/components/MarketSwitcher';
 
 interface PublicLayoutProps {
   children: ReactNode;
@@ -47,10 +48,13 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     setIsDark(!isDark);
   };
 
-  const navItems = [
-    { title: 'Features', url: '#features' },
-    { title: 'Markets', url: '#markets' },
-    { title: 'Pricing', url: '#pricing' },
+  // Internal anchor links scroll within the marketing home; the For Advisers
+  // entry uses a real route so it works from any page.
+  const navItems: { title: string; url: string; route?: boolean }[] = [
+    { title: 'Features',     url: '#features' },
+    { title: 'Markets',      url: '#markets' },
+    { title: 'For Advisers', url: '/for-advisers', route: true },
+    { title: 'Pricing',      url: '#pricing' },
   ];
 
   return (
@@ -72,19 +76,32 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1 rounded-full px-2 py-1 bg-muted/30 border border-border/30">
-              {navItems.map((item) => (
-                <a
-                  key={item.title}
-                  href={item.url}
-                  className="text-sm font-medium transition-colors px-3 py-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                >
-                  {item.title}
-                </a>
-              ))}
+              {navItems.map((item) =>
+                item.route ? (
+                  <Link
+                    key={item.title}
+                    to={item.url}
+                    className="text-sm font-medium transition-colors px-3 py-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  >
+                    {item.title}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.title}
+                    href={item.url}
+                    className="text-sm font-medium transition-colors px-3 py-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  >
+                    {item.title}
+                  </a>
+                ),
+              )}
             </nav>
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
+              {/* Market switcher — see LAUNCH_PLAN.md §17. Lives next to the
+                  theme toggle so it reads as a global-context control. */}
+              <MarketSwitcher />
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
@@ -134,16 +151,27 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border/30 animate-slide-down">
             <div className="px-4 pt-2 pb-6 space-y-1">
-              {navItems.map((item) => (
-                <a
-                  key={item.title}
-                  href={item.url}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center px-4 py-3 rounded-lg transition-colors text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-                >
-                  <span className="font-medium">{item.title}</span>
-                </a>
-              ))}
+              {navItems.map((item) =>
+                item.route ? (
+                  <Link
+                    key={item.title}
+                    to={item.url}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center px-4 py-3 rounded-lg transition-colors text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                  >
+                    <span className="font-medium">{item.title}</span>
+                  </Link>
+                ) : (
+                  <a
+                    key={item.title}
+                    href={item.url}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center px-4 py-3 rounded-lg transition-colors text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                  >
+                    <span className="font-medium">{item.title}</span>
+                  </a>
+                ),
+              )}
               <div className="pt-3 mt-2 border-t border-border/30 space-y-2">
                 <Button
                   asChild

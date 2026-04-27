@@ -4,7 +4,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   MapPin, Building, Calendar, ArrowLeft, Loader2, AlertCircle, Share2,
   FileText, CheckCircle2, ShieldCheck, PlayCircle, Layers, CreditCard,
-  Info, Sparkles, Building2, ArrowRight
+  Info, Sparkles, Building2, ArrowRight, Radio
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,14 @@ import { analyzePaymentPlan } from '@/lib/reelly';
 import { DEMO_PROJECTS } from '@/data/demoProjects';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpsellBanner } from '@/components/UpsellBanner';
 
-const WHATSAPP_NUMBER = '971508856571';
+// Per LAUNCH_PLAN.md §17 — public surfaces never expose a UAE phone number.
+// We are a US-incorporated software company; enquiries route through a generic
+// concierge inbox so the lead is captured and routed centrally (not into a
+// personal WhatsApp DM that doesn't scale).
+const CONCIERGE_EMAIL = 'concierge@realsight.app';
 
 async function fetchReellyProjectDetail(id: string): Promise<ReellyProject> {
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects/${id}`;
@@ -55,6 +61,31 @@ async function fetchReellyProjectDetail(id: string): Promise<ReellyProject> {
   }
 }
 
+/**
+ * Live unit availability — Investor Pro feature (per LAUNCH_PLAN.md §13.2).
+ * Calls reelly-proxy with the project units endpoint. Returns [] on any failure
+ * so the UI can show a "connecting to live inventory" placeholder rather than
+ * an error state. The real shape is upstream-defined; we keep it loose.
+ */
+async function fetchReellyProjectUnits(id: string): Promise<any[]> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects/${id}/units`;
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const units = data?.data || data?.units || data;
+    return Array.isArray(units) ? units : [];
+  } catch {
+    return [];
+  }
+}
+
 async function fetchInternalProjectDetail(id: string) {
   const { data, error } = await (supabase
     .from('custom_projects' as any) as any)
@@ -71,6 +102,7 @@ export default function ProjectDetail() {
   const [searchParams] = useSearchParams();
   const source = searchParams.get('source') || 'reelly';
   const { t } = useTranslation();
+  const { isInvestorPro, loading: subLoading } = useSubscription();
 
   const isInternal = source === 'internal' || id?.length === 36; // UUID check as fallback
 
@@ -103,15 +135,29 @@ export default function ProjectDetail() {
     enabled: !!(project as any)?.developer,
   });
 
+  // Live unit availability (Investor Pro). Only fire when:
+  //   - we're on a Reelly-source project (internal demos don't have a Reelly id)
+  //   - the user has Investor Pro+ (server-side proxy also gates via API key)
+  const showLiveUnitsTab = !isInternal;
+  const { data: liveUnits, isLoading: isUnitsLoading } = useQuery({
+    queryKey: ['reelly-units', id],
+    queryFn: () => fetchReellyProjectUnits(id!),
+    enabled: !!id && showLiveUnitsTab && isInvestorPro && !subLoading,
+    staleTime: 60 * 1000,
+  });
+
   const isLoading = isProjectLoading || (!!(project as any)?.developer && isDevLoading);
 
-  const getWhatsappUrl = () => {
-    if (!project) return `https://wa.me/${WHATSAPP_NUMBER}`;
+  /** Build a `mailto:` link pre-filled with project context. */
+  const getConciergeUrl = () => {
+    if (!project) return `mailto:${CONCIERGE_EMAIL}`;
     const p = project as any;
-    const name = isInternal ? p.name : p.name;
-    const dev = isInternal ? p.developer : p.developer;
-    const text = encodeURIComponent(`Hi, I'm interested in the ${name} project by ${dev}. Could you provide more details?`);
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+    const subject = encodeURIComponent(`Enquiry: ${p.name} (${p.developer})`);
+    const body = encodeURIComponent(
+      `Hi RealSight team,\n\nI'm interested in the ${p.name} project by ${p.developer}. ` +
+      `Could you share more details — current availability, payment plans, and any opportunity signals you have on this project?\n\nThanks.`,
+    );
+    return `mailto:${CONCIERGE_EMAIL}?subject=${subject}&body=${body}`;
   };
 
   if (isLoading) {
@@ -256,7 +302,7 @@ export default function ProjectDetail() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild className="flex-1 bg-primary hover:bg-accent-green-light text-black font-bold h-14 rounded-2xl shadow-xl transition-all">
-                  <a href={getWhatsappUrl()} target="_blank" rel="noopener noreferrer">Inquire via Concierge</a>
+                  <a href={getConciergeUrl()}>Inquire via Concierge</a>
                 </Button>
                 {brochureUrl && (
                   <Button asChild variant="outline" className="h-14 rounded-2xl border-white/10 hover:bg-white/5 px-6">
@@ -276,6 +322,13 @@ export default function ProjectDetail() {
           <TabsTrigger value="amenities" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary data-[state=active]:text-black text-sm font-medium">Amenities</TabsTrigger>
           <TabsTrigger value="payment" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary data-[state=active]:text-black text-sm font-medium text-center">Payment Plan</TabsTrigger>
           {isInternal && p.unit_sizes && <TabsTrigger value="availability" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary data-[state=active]:text-black text-sm font-medium">Configurations</TabsTrigger>}
+          {showLiveUnitsTab && (
+            <TabsTrigger value="live-units" className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-black text-sm font-medium flex items-center gap-2">
+              <Radio className="h-3.5 w-3.5" />
+              Live Units
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">PRO</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <div className="min-h-[400px]">
@@ -354,6 +407,87 @@ export default function ProjectDetail() {
               </div>
             </div>
           </TabsContent>
+
+          {showLiveUnitsTab && (
+            <TabsContent value="live-units" className="focus-visible:ring-0">
+              <div className="max-w-4xl mx-auto space-y-8">
+                <div className="text-center space-y-2">
+                  <Radio className="h-10 w-10 text-primary mx-auto mb-4" />
+                  <h2 className="text-3xl font-cinematic text-foreground tracking-tight">Live Unit Availability</h2>
+                  <p className="text-muted-foreground font-light text-lg">
+                    Real-time inventory direct from the developer feed. Units, floors, views, prices.
+                  </p>
+                </div>
+
+                {/* Free user — show upsell. The banner returns null automatically once the
+                    user upgrades, so this is safe to leave mounted. */}
+                {!subLoading && !isInvestorPro && (
+                  <UpsellBanner feature="unit-availability" variant="card" />
+                )}
+
+                {/* Investor Pro user — fetch and render units (or graceful placeholder) */}
+                {isInvestorPro && (
+                  <>
+                    {isUnitsLoading ? (
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                        <p className="text-foreground/60 animate-pulse">Loading live inventory…</p>
+                      </div>
+                    ) : liveUnits && liveUnits.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {liveUnits.map((unit: any, i: number) => (
+                          <div key={unit.id || i} className="p-6 rounded-3xl bg-background border border-white/5 hover:border-primary/30 transition-all space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                                {unit.unit_number || unit.name || `Unit ${i + 1}`}
+                              </span>
+                              {unit.status && (
+                                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 bg-emerald-500/5 text-[9px]">
+                                  {unit.status}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-lg font-light text-foreground">
+                              {unit.bedrooms ? `${unit.bedrooms} BR` : 'Studio'}
+                              {unit.area_sqft ? ` · ${unit.area_sqft} sqft` : ''}
+                            </p>
+                            {unit.price && (
+                              <p className="text-2xl font-light text-primary">
+                                {new Intl.NumberFormat('en-AE', {
+                                  style: 'currency',
+                                  currency: unit.currency || 'AED',
+                                  maximumFractionDigits: 0,
+                                }).format(unit.price)}
+                              </p>
+                            )}
+                            {(unit.floor || unit.view) && (
+                              <p className="text-xs text-muted-foreground font-light">
+                                {[unit.floor && `Floor ${unit.floor}`, unit.view].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // No units returned — API key may be missing on the proxy, or the
+                      // project simply has no inventory loaded yet. Either way, a
+                      // calm placeholder beats a scary empty state.
+                      <div className="p-10 rounded-[2rem] bg-background border border-white/5 text-center space-y-3">
+                        <div className="inline-flex h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 items-center justify-center">
+                          <Radio className="h-6 w-6 text-primary animate-pulse" />
+                        </div>
+                        <h3 className="text-xl font-light text-foreground">Connecting to live inventory…</h3>
+                        <p className="text-sm text-muted-foreground font-light max-w-md mx-auto">
+                          Live units for this project are syncing. We'll show available units, floors,
+                          and prices here as soon as the developer feed responds.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          )}
 
           {isInternal && (
             <TabsContent value="availability" className="focus-visible:ring-0">

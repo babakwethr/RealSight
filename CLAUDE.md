@@ -5,6 +5,20 @@ Read this before making changes.
 
 ---
 
+## 0. How to talk to this user
+
+**The user is not a developer.** Write every reply in short, plain language.
+
+- Short replies. No long tables, no code-speak, no long bulleted lists.
+- Explain like you're talking to a non-technical founder.
+- Never repeat what you just said in the same reply.
+- Use concrete words ("the home page looks wrong") not jargon ("the component render
+  pipeline is misaligned").
+- When the user reviews a change, always send them a **working link** to test, not
+  just a summary.
+
+---
+
 ## 1. What RealSight is
 
 A Dubai-focused real-estate intelligence app. Surfaces deal scoring, market

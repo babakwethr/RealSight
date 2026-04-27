@@ -14,6 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
+import { ReferAFriendCard } from '@/components/ReferAFriendCard';
+import { FounderBadge } from '@/components/FounderBadge';
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(1, 'Full name is required').max(100),
@@ -256,9 +258,18 @@ export default function Account() {
     <div className="space-y-8 animate-fade-in max-w-2xl">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">My Account</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-3xl font-bold text-foreground">My Account</h1>
+          <FounderBadge variant="pill" />
+        </div>
         <p className="text-muted-foreground mt-1">Manage my profile and preferences</p>
       </div>
+
+      {/* Founder welcome (only shows for the first 1,000 signups) */}
+      <FounderBadge variant="banner" />
+
+      {/* Refer-a-friend — both sides get 1 free month (LAUNCH_PLAN.md §14 step 9) */}
+      <ReferAFriendCard variant="card" />
 
       {/* Profile Section */}
       <div className="glass-panel p-6">

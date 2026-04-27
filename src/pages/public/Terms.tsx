@@ -85,7 +85,7 @@ export default function Terms() {
 
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">11. Governing Law and Jurisdiction</h2>
-            <p>These Terms are governed by the laws of the United Arab Emirates and the Emirate of Dubai. Any dispute shall be resolved exclusively in the courts of Dubai, UAE.</p>
+            <p>These Terms are governed by the laws of the State of Delaware, USA. Any dispute shall be resolved exclusively in the state and federal courts of Delaware, with each party submitting to the personal jurisdiction of those courts.</p>
           </section>
 
           <section>

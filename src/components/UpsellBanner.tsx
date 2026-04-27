@@ -17,94 +17,62 @@ interface BannerConfig {
   icon?: string;
 }
 
+// Per LAUNCH_PLAN.md §2 — only TWO upsell paths exist now:
+//   • Investor Pro ($9/mo, launch $4) — unlocks live unit availability
+//   • Adviser Pro  ($199/mo, launch $99) — white-label + sales tooling
+//
+// Legacy feature keys (heatmap, watchlist, etc.) are now FREE, so this
+// banner naturally returns null for them via the `hasFeature` check upstream.
 const BANNER_CONFIG: Record<string, BannerConfig> = {
-  'heatmap': {
-    headline: 'Unlock interactive Dubai Heatmap',
-    description: 'Price growth layers, rental yield zones, demand scores, and transaction density — all on one interactive map.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '🗺️',
+  // ── Investor Pro upsell ──────────────────────────────────────────────────
+  'unit-availability': {
+    headline: 'See live unit availability',
+    description: 'Free shows you the project. Pro shows you exactly which units, floors, and views are still available — with real-time pricing.',
+    plan: 'Investor Pro',
+    price: '$4/mo (launch)',
+    planKey: 'investor_pro',
+    icon: '🏗️',
   },
-  'market-intelligence': {
-    headline: 'Unlock full Market Intelligence',
-    description: 'Complete DLD transaction history, area deep-dives, comparable analysis, and downloadable reports.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '📈',
-  },
-  'deal-analyzer-pdf': {
-    headline: 'Download your Deal Analysis Report',
-    description: 'Get a professional 7-page PDF report with market comps, yield scenarios, and AI investment verdict. Share with clients.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '📄',
-  },
-  'watchlist': {
-    headline: 'Save areas to your Watchlist',
-    description: 'Track your favourite Dubai areas and get notified when prices, yields, or volume changes significantly.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '👁️',
-  },
-  'compare': {
-    headline: 'Compare projects side-by-side',
-    description: 'Put up to 4 projects against each other — price, yield, developer reliability, payment plan and location score.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '⚖️',
-  },
-  'market-pulse': {
-    headline: 'Unlock Market Pulse live feed',
-    description: 'Live DLD transaction feeds, daily volume alerts, and price movement signals across all Dubai communities.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '⚡',
-  },
-  'market-index': {
-    headline: 'Unlock the Dubai Market Index',
-    description: 'Track price index movements across all areas month-over-month. Identify emerging growth corridors before the market moves.',
-    plan: 'Portfolio Pro',
-    price: '$29/mo',
-    planKey: 'portfolio_pro',
-    icon: '📊',
-  },
+  // ── Adviser Pro upsell ───────────────────────────────────────────────────
   'opportunity-signals': {
-    headline: 'Unlock AI Opportunity Signals',
-    description: 'AI detects undervalued areas, high-yield zones, and growth corridors using DLD data before they become mainstream.',
-    plan: 'Adviser Starter',
-    price: '$99/mo',
-    planKey: 'adviser_starter',
+    headline: 'AI flags units that match your clients',
+    description: 'Opportunity Signals scans new launches and surfaces units that fit each client\'s yield, location, and price criteria — before competitors see them.',
+    plan: 'Adviser Pro',
+    price: '$99/mo (launch)',
+    planKey: 'adviser_pro',
     icon: '🎯',
   },
-  'global-radar': {
-    headline: 'Unlock Global Investment Radar',
-    description: 'Cross-market signals across Dubai, Spain, US, UK, and Singapore — spot where capital is flowing before your clients.',
-    plan: 'Adviser Starter',
-    price: '$99/mo',
-    planKey: 'adviser_starter',
-    icon: '🌍',
-  },
-  'top-picks': {
-    headline: 'Unlock Top Picks curation',
-    description: 'Curate and push top investment picks to your investor base with AI market backing and one-click sharing.',
-    plan: 'Adviser Starter',
-    price: '$99/mo',
-    planKey: 'adviser_starter',
-    icon: '⭐',
-  },
-  'ai-investor-presentation': {
-    headline: 'Generate AI Investor Presentations',
-    description: 'Create a branded 8-slide PDF deck for any property in seconds. Your name and contact on every page.',
+  'white-label': {
+    headline: 'Your brand. Your subdomain.',
+    description: 'Your logo, colours, and contact on every page and every PDF. Public lead-gen page at you.realsight.app. RealSight powers everything invisibly.',
     plan: 'Adviser Pro',
-    price: '$199/mo',
+    price: '$99/mo (launch)',
     planKey: 'adviser_pro',
     icon: '🎨',
+  },
+  'invite-clients': {
+    headline: 'Invite unlimited investor clients',
+    description: 'Onboard your investors with branded invites. Manage every client\'s portfolio from one dashboard. No per-seat fees, no caps.',
+    plan: 'Adviser Pro',
+    price: '$99/mo (launch)',
+    planKey: 'adviser_pro',
+    icon: '👥',
+  },
+  'bulk-deal-analyzer': {
+    headline: 'Bulk Deal Analyzer',
+    description: 'Analyse multiple properties at once. Compare yields, run AI verdicts side-by-side, and export branded reports for every client meeting.',
+    plan: 'Adviser Pro',
+    price: '$99/mo (launch)',
+    planKey: 'adviser_pro',
+    icon: '⚡',
+  },
+  'area-pricing-report': {
+    headline: 'Generate the Area Pricing Report',
+    description: 'A 6-page branded PDF with DPI chart, recent sales, MOUs, surveyor valuations, and AI verdict. Replaces Property Monitor — fully co-branded with you.',
+    plan: 'Adviser Pro',
+    price: '$99/mo (launch)',
+    planKey: 'adviser_pro',
+    icon: '📑',
   },
 };
 
@@ -127,10 +95,10 @@ export function UpsellBanner({ feature, className = '', variant = 'card' }: Upse
   const config = BANNER_CONFIG[feature];
   if (!config) return null;
 
-  // Accent color driven by plan tier — used for halos, badges, and the CTA
+  // Accent color driven by plan tier — used for halos, badges, and the CTA.
+  // investor_pro = mint, adviser_pro = violet.
   const accentColor =
-    config.planKey === 'adviser_pro' ? '#A855F7' :
-    config.planKey === 'adviser_starter' ? '#3B82F6' : '#18D6A4';
+    config.planKey === 'adviser_pro' ? '#7B5CFF' : '#18D6A4';
 
   if (variant === 'compact') {
     return (

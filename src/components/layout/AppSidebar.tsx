@@ -1,8 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, PieChart, CreditCard, FolderOpen,
-  BarChart3, Map, Building2, Search, Activity, Layers,
-  Star, Target, Radar, Bot, Bookmark, Columns, Bell,
+  BarChart3, Map, Building2, Search, Bot, Bell,
   User, LogOut, Shield, Users, Settings, Database,
   Sparkles, ArrowRight,
 } from 'lucide-react';
@@ -46,8 +45,8 @@ function NavItem({
       to={locked ? '#' : to}
       onClick={handleClick}
       className={cn(
-        'flex items-center rounded-2xl transition-all duration-150 group/nav relative select-none',
-        isExpanded ? 'gap-3 px-3 py-2 mx-1' : 'justify-center py-2 mx-1',
+        'flex items-center rounded-xl transition-all duration-150 group/nav relative select-none',
+        isExpanded ? 'gap-2.5 px-2 py-1 mx-1' : 'justify-center py-1 mx-1',
         locked
           ? 'text-white/25 cursor-not-allowed'
           : isActive
@@ -56,12 +55,12 @@ function NavItem({
       )}
     >
       {isActive && !locked && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-[#18d6a4]" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#18d6a4]" />
       )}
       <span
         className={cn(
-          'shrink-0 flex items-center justify-center rounded-xl transition-colors',
-          isExpanded ? 'w-8 h-8' : 'w-8 h-8',
+          'shrink-0 flex items-center justify-center rounded-lg transition-colors',
+          'w-7 h-7',
           locked
             ? 'bg-white/[0.03] text-white/25 border border-white/[0.04]'
             : isActive
@@ -69,7 +68,7 @@ function NavItem({
               : 'bg-white/[0.05] text-white/70 border border-white/[0.07] group-hover/nav:text-white',
         )}
       >
-        <Icon className="h-[17px] w-[17px]" />
+        <Icon className="h-[15px] w-[15px]" />
       </span>
       {isExpanded && (
         <span className={cn('text-sm flex-1 truncate', isActive && !locked ? 'font-semibold' : 'font-medium')}>
@@ -105,9 +104,9 @@ function NavItem({
 
 // ─── Section label ───────────────────────────────────────────────────────────
 function SectionLabel({ label, isExpanded }: { label: string; isExpanded: boolean }) {
-  if (!isExpanded) return <div className="my-2 mx-4 h-px bg-white/[0.06]" />;
+  if (!isExpanded) return <div className="my-1.5 mx-4 h-px bg-white/[0.06]" />;
   return (
-    <p className="px-4 pt-4 pb-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-white/35 select-none">
+    <p className="px-3 pt-2 pb-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-white/35 select-none">
       {label}
     </p>
   );
@@ -117,7 +116,7 @@ function SectionLabel({ label, isExpanded }: { label: string; isExpanded: boolea
 export function AppSidebar() {
   const { signOut, user: _user } = useAuth();
   const { isAdmin } = useUserRole();
-  const { hasFeature, plan } = useSubscription();
+  const { plan } = useSubscription();
 
   const [isPinned, setIsPinned] = useState(() => {
     try { return localStorage.getItem('rs-sidebar-pinned') === 'true'; } catch { return false; }
@@ -214,28 +213,13 @@ export function AppSidebar() {
           <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio"  isExpanded={isExpanded} />
           <NavItem to="/payments"   icon={CreditCard}  label="Payments"   isExpanded={isExpanded} />
           <NavItem to="/documents"  icon={FolderOpen}  label="Documents"  isExpanded={isExpanded} />
-          <NavItem to="/watchlist"  icon={Bookmark}    label="Watchlist"  isExpanded={isExpanded}
-            locked={!hasFeature('watchlist') && !isAdmin} requiredPlan="Portfolio Pro" />
-          <NavItem to="/compare"    icon={Columns}     label="Compare"    isExpanded={isExpanded}
-            locked={!hasFeature('compare') && !isAdmin} requiredPlan="Portfolio Pro" />
         </div>
 
         <SectionLabel label="Intelligence" isExpanded={isExpanded} />
 
         <div className="space-y-0.5 px-1.5">
-          <NavItem to="/heatmap"             icon={Map}      label="Dubai Heatmap"       isExpanded={isExpanded}
-            locked={!hasFeature('heatmap') && !isAdmin} requiredPlan="Portfolio Pro" />
-          <NavItem to="/market-pulse"        icon={Activity} label="Market Pulse"        isExpanded={isExpanded}
-            locked={!hasFeature('market-intelligence') && !isAdmin} requiredPlan="Portfolio Pro" />
-          <NavItem to="/market-index"        icon={Layers}   label="Market Index"        isExpanded={isExpanded}
-            locked={!hasFeature('market-index') && !isAdmin} requiredPlan="Portfolio Pro" />
-          <NavItem to="/top-picks"           icon={Star}     label="Top Picks"           isExpanded={isExpanded}
-            locked={!hasFeature('top-picks') && !isAdmin} requiredPlan="Adviser" />
-          <NavItem to="/opportunity-signals" icon={Target}   label="Opportunity Signals" isExpanded={isExpanded}
-            locked={!hasFeature('opportunity-signals') && !isAdmin} requiredPlan="Adviser" />
-          <NavItem to="/radar"               icon={Radar}    label="Global Radar"        isExpanded={isExpanded}
-            locked={!hasFeature('global-radar') && !isAdmin} requiredPlan="Adviser" />
-          <NavItem to="/updates"             icon={Bell}     label="Updates"             isExpanded={isExpanded} />
+          <NavItem to="/heatmap" icon={Map}  label="Dubai Heatmap" isExpanded={isExpanded} />
+          <NavItem to="/updates" icon={Bell} label="Updates"       isExpanded={isExpanded} />
         </div>
 
         {/* Admin section — only visible to admins */}
@@ -254,24 +238,24 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom — account + upgrade hint */}
-      <div className="relative border-t border-white/[0.06] pt-2 pb-3 space-y-0.5 px-1.5 shrink-0">
+      <div className="relative border-t border-white/[0.06] pt-1.5 pb-2 space-y-0.5 px-1.5 shrink-0">
         {!isAdmin && plan === 'free' && (
           isExpanded ? (
             <Link
               to="/billing"
-              className="flex items-center gap-2.5 px-3 py-3 mx-0 rounded-2xl transition-all duration-200 mb-1 group overflow-hidden"
+              className="flex items-center gap-2 px-2.5 py-2 mx-0 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
               style={{
                 background:
                   'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
                 border: '1px solid rgba(24,214,164,0.35)',
               }}
             >
-              <div className="w-8 h-8 rounded-xl bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
-                <Sparkles className="h-4 w-4" />
+              <div className="w-7 h-7 rounded-lg bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
+                <Sparkles className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-black text-white leading-none">Upgrade to Pro</p>
-                <p className="text-[10px] text-white/65 mt-1">$29/mo · 30-day free trial</p>
+                <p className="text-[11px] font-black text-white leading-none">Upgrade to Pro</p>
+                <p className="text-[9px] text-white/65 mt-0.5">$29/mo · 30-day trial</p>
               </div>
               <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </Link>
@@ -302,18 +286,18 @@ export function AppSidebar() {
             <button
               onClick={signOut}
               className={cn(
-                'w-full flex items-center rounded-2xl transition-all duration-150',
+                'w-full flex items-center rounded-xl transition-all duration-150',
                 'text-white/45 hover:bg-red-500/10 hover:text-red-300',
-                isExpanded ? 'gap-3 px-3 py-2 mx-1' : 'justify-center py-2 mx-1',
+                isExpanded ? 'gap-2.5 px-2 py-1 mx-1' : 'justify-center py-1 mx-1',
               )}
             >
               <span
                 className={cn(
-                  'shrink-0 flex items-center justify-center rounded-xl w-8 h-8 transition-colors',
+                  'shrink-0 flex items-center justify-center rounded-lg w-7 h-7 transition-colors',
                   'bg-white/[0.04] border border-white/[0.06]',
                 )}
               >
-                <LogOut className="h-[17px] w-[17px]" />
+                <LogOut className="h-[15px] w-[15px]" />
               </span>
               {isExpanded && <span className="text-sm font-medium">Sign Out</span>}
             </button>

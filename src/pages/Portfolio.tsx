@@ -25,12 +25,10 @@ import { Holding } from '@/hooks/useInvestorData';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
 
-const formatCurrency = (value: number) => {
-  return `AED ${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)}`;
-};
+// Per LAUNCH_PLAN.md §17 — dual-price (AED + USD) everywhere. The pegged
+// rate makes a static helper safe and keeps non-UAE investors anchored.
+import { formatDualPrice } from '@/lib/currency';
+const formatCurrency = (value: number) => formatDualPrice(value);
 
 export default function Portfolio() {
   const queryClient = useQueryClient();

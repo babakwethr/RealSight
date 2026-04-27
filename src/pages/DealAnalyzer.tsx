@@ -742,8 +742,10 @@ function DealAnalyzerContent() {
           {/* Metrics grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Price/sqft', value: `AED ${result.pricePerSqft.toLocaleString()}`, sub: 'This listing' },
-              { label: 'Area Avg', value: `AED ${result.areaAvgPsf.toLocaleString()}`, sub: 'DLD Market' },
+              // Per LAUNCH_PLAN.md §17 — per-sqft prices show USD equivalent in the
+              // tile sub-label so non-UAE investors see the global anchor instantly.
+              { label: 'Price/sqft', value: `AED ${result.pricePerSqft.toLocaleString()}`, sub: `≈ USD ${Math.round(result.pricePerSqft / 3.6725).toLocaleString()} /sqft` },
+              { label: 'Area Avg',   value: `AED ${result.areaAvgPsf.toLocaleString()}`,   sub: `≈ USD ${Math.round(result.areaAvgPsf / 3.6725).toLocaleString()} /sqft` },
               { label: 'vs Market', value: `${result.diff > 0 ? '+' : ''}${result.diff}%`, sub: result.diff > 0 ? 'Above avg' : result.diff < 0 ? 'Below avg' : 'At market' },
               { label: 'Rental Yield', value: `${((result.annualRentMid / result.askingPrice) * 100).toFixed(1)}%`, sub: 'Gross annual' },
               { label: 'Demand', value: result.demand, sub: result.area },

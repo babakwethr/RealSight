@@ -7,27 +7,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Plan definitions — amounts in USD cents
+// Plan definitions — amounts in USD cents.
+// Per LAUNCH_PLAN.md §2: launch pricing is $4 / $99. Once we cross the founder cap
+// (1,000 signups) prices step to $9 / $199; founders keep their locked-in price.
+// At launch every signup gets the launch price; founder lock-in protects them when
+// we raise prices later.
+//
+// LEGACY KEYS (`portfolio_pro`, `adviser_starter`) still resolve here so any old
+// links / autoresponders mid-flight don't 400; they map to the closest new plan.
 const PLANS = {
-  portfolio_pro: {
-    name:        'Portfolio Pro',
-    description: 'Market intelligence, deal analysis, and portfolio tools',
-    amount:      2900,   // $29/mo
-    interval:    'month' as const,
-  },
-  adviser_starter: {
-    name:        'Adviser Starter',
-    description: 'Full market suite + opportunity signals for advisers',
-    amount:      9900,   // $99/mo
+  // ── Launch (current) ────────────────────────────────────────────────────────
+  investor_pro: {
+    name:        'Investor Pro',
+    description: 'Live unit availability for every off-plan project — direct from developer feeds.',
+    amount:      400,    // $4/mo launch promo
     interval:    'month' as const,
   },
   adviser_pro: {
     name:        'Adviser Pro',
-    description: 'Complete adviser toolkit including AI Investor Presentation',
-    amount:      19900,  // $199/mo
+    description: 'White-label platform: subdomain, branding, invite clients, branded reports, opportunity signals, bulk Deal Analyzer.',
+    amount:      9900,   // $99/mo launch promo (6 months, then $199)
+    interval:    'month' as const,
+  },
+  // ── Legacy (still accepted; routed to nearest launch tier) ─────────────────
+  portfolio_pro: {
+    name:        'Investor Pro',
+    description: 'Live unit availability — formerly Portfolio Pro.',
+    amount:      400,
+    interval:    'month' as const,
+  },
+  adviser_starter: {
+    name:        'Adviser Pro',
+    description: 'White-label platform — formerly Adviser Starter.',
+    amount:      9900,
     interval:    'month' as const,
   },
 } as const
+
+/** Normalise legacy plan keys onto the current launch tier name. */
+function normalizePlanKey(plan: string): 'investor_pro' | 'adviser_pro' {
+  if (plan === 'adviser_pro' || plan === 'adviser_starter' || plan === 'brokerage') return 'adviser_pro'
+  return 'investor_pro'
+}
 
 type PlanKey = keyof typeof PLANS
 
@@ -63,7 +84,12 @@ serve(async (req) => {
     }
 
     const planConfig = PLANS[plan as PlanKey]
+    const normalizedPlan = normalizePlanKey(plan as string)
     const origin = req.headers.get('origin') || 'https://realsight.app'
+
+    // Pull referral code from user_metadata if present (set at signup by useAuth.signUp).
+    // We pass it into Stripe metadata so the webhook can credit both sides on first paid month.
+    const referredBy = (user.user_metadata?.referred_by as string | undefined)?.toUpperCase() || null
 
     // ── Get or create Stripe customer ──────────────────────────────────────────
     let stripeCustomerId: string | undefined = user.user_metadata?.stripe_customer_id
@@ -113,15 +139,20 @@ serve(async (req) => {
       // Used in webhook to identify the user
       client_reference_id: user.id,
       metadata: {
-        plan,
+        plan: normalizedPlan,
         user_id: user.id,
+        ...(referredBy ? { referred_by: referredBy } : {}),
       },
-      success_url: success_url || `${origin}/payments?upgraded=1`,
-      cancel_url:  cancel_url  || `${origin}/payments`,
+      success_url: success_url || `${origin}/billing?upgraded=1`,
+      cancel_url:  cancel_url  || `${origin}/billing`,
       allow_promotion_codes:            true,
       billing_address_collection:       'auto',
       subscription_data: {
-        metadata: { plan, supabase_user_id: user.id },
+        metadata: {
+          plan: normalizedPlan,
+          supabase_user_id: user.id,
+          ...(referredBy ? { referred_by: referredBy } : {}),
+        },
         // 30-day free trial for new customers only — one trial per account
         ...(hasUsedTrial ? {} : { trial_period_days: 30 }),
         // Cancel instead of charging if no payment method captured at trial end

@@ -19,8 +19,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
-const formatCurrency = (value: number) =>
-  `AED ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)}`
+// Per LAUNCH_PLAN.md §17 — every monetary display goes dual-price (AED + USD).
+import { formatDualPrice } from '@/lib/currency'
+const formatCurrency = (value: number) => formatDualPrice(value)
 
 const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })

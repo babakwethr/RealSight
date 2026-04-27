@@ -105,7 +105,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string, signupRole?: string) => {
     // Capture plan from URL if present (e.g. /login?plan=pro)
-    const urlPlan = new URLSearchParams(window.location.search).get('plan');
+    const params = new URLSearchParams(window.location.search);
+    const urlPlan = params.get('plan');
+
+    // Refer-a-friend (LAUNCH_PLAN.md §14 step 9). The URL might carry ?ref=ABC123,
+    // OR a previous landing-page visit might have stashed it in localStorage so the
+    // code survives the auth bounce. We persist into user_metadata.referred_by so
+    // the Stripe webhook can credit the referrer 1 free month on first paid sub.
+    let referralCode: string | null = params.get('ref');
+    if (!referralCode && typeof localStorage !== 'undefined') {
+      try { referralCode = localStorage.getItem('rs_ref'); } catch { /* private mode */ }
+    }
+    if (referralCode) {
+      referralCode = referralCode.trim().toUpperCase().slice(0, 12) || null;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -116,9 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tenant_id: tenant?.id || '00000000-0000-0000-0000-000000000000',
           signup_role: signupRole || 'investor',
           ...(urlPlan && { plan: urlPlan }),
+          ...(referralCode && { referred_by: referralCode }),
         },
       },
     });
+
+    // One-shot — clear the stash so a second signup on the same device doesn't
+    // accidentally reuse the prior code.
+    if (!error && referralCode && typeof localStorage !== 'undefined') {
+      try { localStorage.removeItem('rs_ref'); } catch { /* noop */ }
+    }
+
     return { error };
   };
 

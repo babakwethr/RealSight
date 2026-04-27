@@ -120,6 +120,7 @@ serve(async (req) => {
         const userId = session.client_reference_id
         const plan = session.metadata?.plan
         const customerId = session.customer as string
+        const referredBy = session.metadata?.referred_by
 
         if (!userId || !plan) {
           console.error('[stripe-webhook] Missing userId or plan:', { userId, plan })
@@ -127,6 +128,14 @@ serve(async (req) => {
         }
 
         await setUserPlan(supabase, userId, plan, customerId)
+
+        // Refer-a-friend bookkeeping (LAUNCH_PLAN.md §14 step 9).
+        // Both sides get 1 free month when the referee starts a paid plan. We
+        // log the event here so ops can apply Stripe coupons until we automate
+        // the coupon issuance (tracked in FUTURE_IDEAS.md).
+        if (referredBy) {
+          console.log(`[stripe-webhook] REFERRAL_CREDIT_DUE — new sub by ${userId} via code ${referredBy}. Credit 1 month to: (a) referee ${userId}, (b) referrer with code ${referredBy}.`)
+        }
         break
       }
 

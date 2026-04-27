@@ -15,6 +15,7 @@ import {
   Brain, FileText, BarChart3, Lock, Sparkles,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
+import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { AuthModal } from '@/components/AuthModal';
 import { Button } from '@/components/ui/button';
@@ -27,8 +28,14 @@ import {
 } from 'recharts';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+import { formatDualPrice } from '@/lib/currency';
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
-const fmtAED = (n: number) => `AED ${fmtNum(n)}`;
+/**
+ * AED + USD side by side ("AED 2.6M / USD 707K"). Per LAUNCH_PLAN.md §17 —
+ * we display dual prices everywhere a non-UAE investor might see them, so
+ * Dubai feels like one of our markets, not the only one we know.
+ */
+const fmtAED = (n: number) => formatDualPrice(n);
 
 function mktPosBadge(yoy: number) {
   if (yoy >= 15) return { label: `+${yoy.toFixed(0)}% YoY`, cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
@@ -54,6 +61,11 @@ function PublicTopNav({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: 
           <Logo variant="white" className="h-6 w-auto max-w-[120px]" />
         </Link>
         <div className="flex items-center gap-2">
+          {/* Market switcher — global positioning device per LAUNCH_PLAN.md §17.
+              Hidden on smallest screens to preserve room for the primary CTA. */}
+          <div className="hidden sm:block">
+            <MarketSwitcher />
+          </div>
           <button onClick={onSignIn} className="text-sm text-muted-foreground hover:text-foreground px-3 py-2 transition-colors min-h-[44px]">Sign In</button>
           <button onClick={onSignUp} className="text-xs sm:text-sm bg-primary text-primary-foreground px-3 sm:px-5 py-2 rounded-full font-semibold hover:bg-primary/90 transition-colors min-h-[44px] whitespace-nowrap">
             <span className="hidden sm:inline">Start Free — It's Free</span>
@@ -535,14 +547,18 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           <div className="relative mx-auto max-w-3xl">
             {isPublic ? (
               <div className="mb-7">
+                {/* Per LAUNCH_PLAN.md §17 — lean on "global · live in Dubai"
+                    framing rather than "Dubai's leading X". The rotating city
+                    already telegraphs the international ambition; eyebrow + sub
+                    headline back it up without overclaiming coverage. */}
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4">
-                  <Zap className="h-3 w-3" /> Dubai Real Estate Intelligence · Live DLD Data
+                  <Zap className="h-3 w-3" /> Global Property Intelligence · Live in Dubai
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-foreground mb-3 tracking-tight">
                   <RotatingCity /> <span className="text-white">Property Market</span>
                 </h1>
                 <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
-                  Search, analyse and track any area — with real transaction data from the Dubai Land Department.
+                  Search, analyse and track any area — starting with the deepest live data on Dubai.
                 </p>
               </div>
             ) : (
@@ -971,7 +987,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           <div className="flex items-center gap-3 mb-6">
             <Zap className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-black text-foreground">
-              Intelligence tools built for <span className="gradient-word">Dubai investors</span>
+              Intelligence tools built for <span className="gradient-word">global investors</span>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -20,8 +20,10 @@ import MarketHome from "./pages/MarketHome";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
+import ForAdvisers from "./pages/public/ForAdvisers";
 import Terms from "./pages/public/Terms";
 import Privacy from "./pages/public/Privacy";
+import Security from "./pages/public/Security";
 
 // Auth pages
 import Login from "./pages/Login";
@@ -81,6 +83,24 @@ const queryClient = new QueryClient();
  * scheme, opens the RealSight app, and fires the appUrlOpen event via
  * @capacitor/app. We then exchange the PKCE code for a Supabase session.
  */
+/**
+ * ReferralCapture — sticky-stash any `?ref=CODE` from the URL into localStorage,
+ * so a visitor who clicks an adviser's referral link still gets credited even if
+ * they browse around for an hour before signing up. useAuth.signUp() reads
+ * `localStorage.rs_ref` at account creation. Per LAUNCH_PLAN.md §14 step 9.
+ */
+function ReferralCapture() {
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref && ref.length > 0 && ref.length < 32) {
+        localStorage.setItem('rs_ref', ref.trim().toUpperCase());
+      }
+    } catch { /* private browsing / SSR — silently skip */ }
+  }, []);
+  return null;
+}
+
 function CapacitorDeepLinkHandler() {
   useEffect(() => {
     if (!isCapacitorNative()) return;
@@ -134,6 +154,7 @@ const App = () => (
       <AuthProvider>
         <TooltipProvider>
           <CapacitorDeepLinkHandler />
+          <ReferralCapture />
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -143,7 +164,10 @@ const App = () => (
               <Route path="/" element={<MarketHome isPublic={true} />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/security" element={<Security />} />
               <Route path="/about" element={<PublicHome />} />
+              <Route path="/for-advisers" element={<ForAdvisers />} />
+              <Route path="/for-advisors" element={<ForAdvisers />} />
               <Route path="/request-access" element={<RequestAccess />} />
               {/* /login redirects to home + opens modal. Keep /login-page for email confirmation links */}
               <Route path="/login" element={<LoginRedirect />} />
