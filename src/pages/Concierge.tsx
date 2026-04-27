@@ -71,7 +71,7 @@ export default function Concierge() {
           { label: 'What is the Market Score?', icon: Zap },
           { label: 'New launches in JVC', icon: Building2 },
           { label: 'My portfolio', icon: PieChart },
-          { label: 'Upgrade to Portfolio Pro', icon: Zap },
+          { label: 'Upgrade to Investor Pro', icon: Zap },
         ]
     // Not logged in: purely market-intelligence focused
     : [

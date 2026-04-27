@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserRole } from '@/hooks/useUserRole';
+import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
 import {
   Search, TrendingUp, TrendingDown, ChevronDown, X,
   ArrowRight, Zap, BarChart2, Activity, Target,
@@ -432,7 +434,12 @@ function RotatingCity() {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function MarketHome({ isPublic = false }: { isPublic?: boolean }) {
   const { user } = useAuth();
-  const { isPro, isAdviserPro } = useSubscription();
+  const { isPro, isAdviserPro, plan } = useSubscription();
+  const { isAdmin } = useUserRole();
+  const upsell = getUpsellTarget(
+    plan,
+    isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
+  );
   const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState('');
   const [timePeriod, setTimePeriod] = useState('7D');
@@ -1046,44 +1053,66 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           </div>
         </div>
 
-        {/* ── Upsell CTA bar — premium glass with clean alignment ── */}
-        {user && !isPro && (
+        {/* ── Upsell CTA bar — plan-aware: investors see Investor Pro,
+            advisers see Adviser Pro, top-tier users see nothing.
+            mt-8 added 28 Apr 2026 — without it, the upsell card's coloured
+            halo bleeds into the bottom edge of the feature-cards row above
+            (founder QA). */}
+        {user && upsell && (
           <div
-            className="relative overflow-hidden rounded-2xl p-5 sm:p-6"
+            className="relative overflow-hidden rounded-2xl p-5 sm:p-6 mt-8"
             style={{
               background:
-                'linear-gradient(120deg, rgba(24,214,164,0.12) 0%, rgba(45,92,255,0.08) 50%, rgba(122,92,255,0.08) 100%)',
-              border: '1px solid rgba(24,214,164,0.28)',
+                upsell.targetPlan === 'adviser_pro'
+                  ? 'linear-gradient(120deg, rgba(123,92,255,0.14) 0%, rgba(45,92,255,0.10) 50%, rgba(24,214,164,0.08) 100%)'
+                  : 'linear-gradient(120deg, rgba(24,214,164,0.12) 0%, rgba(45,92,255,0.08) 50%, rgba(122,92,255,0.08) 100%)',
+              border: `1px solid ${upsell.accent}40`,
               boxShadow:
-                '0 10px 32px -12px rgba(24,214,164,0.25), inset 0 1px 0 rgba(255,255,255,0.06)',
+                `0 10px 32px -12px ${upsell.accent}40, inset 0 1px 0 rgba(255,255,255,0.06)`,
             }}
           >
             {/* Soft accent blobs */}
-            <div aria-hidden="true" className="absolute -top-16 -left-8 w-[14rem] h-[14rem] rounded-full bg-[#18d6a4]/20 blur-[70px] pointer-events-none" />
+            <div
+              aria-hidden="true"
+              className="absolute -top-16 -left-8 w-[14rem] h-[14rem] rounded-full blur-[70px] pointer-events-none"
+              style={{ background: `${upsell.accent}30` }}
+            />
             <div aria-hidden="true" className="absolute -bottom-20 -right-10 w-[14rem] h-[14rem] rounded-full bg-[#2d5cff]/18 blur-[80px] pointer-events-none" />
 
             <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1 min-w-0">
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase text-[#2effc0] bg-[#18d6a4]/15 border border-[#18d6a4]/35 mb-2">
-                  Portfolio Pro · 30 days free
+                <div
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase mb-2"
+                  style={{
+                    color: upsell.accent,
+                    background: `${upsell.accent}25`,
+                    border: `1px solid ${upsell.accent}55`,
+                  }}
+                >
+                  {upsell.headline.replace('Upgrade to ', '')} · {upsell.price}
                 </div>
                 <p className="text-base sm:text-lg font-black text-foreground leading-tight">
-                  Unlock the full Market Intelligence suite
+                  {upsell.targetPlan === 'adviser_pro'
+                    ? 'Run your own white-label investor platform'
+                    : 'Unlock live unit availability for every off-plan project'}
                 </p>
                 <p className="text-xs sm:text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
-                  Market Intelligence · Deal Analyzer PDF · Dubai Heatmap · Watchlist · Compare — <span className="text-foreground/80 font-semibold">$29/month</span>, cancel anytime.
+                  {upsell.blurb}
                 </p>
               </div>
               <button
                 onClick={() => navigate('/billing')}
-                className="shrink-0 inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full text-sm font-black text-black whitespace-nowrap transition-transform hover:-translate-y-[1px] active:translate-y-0 w-full sm:w-auto"
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full text-sm font-black whitespace-nowrap transition-transform hover:-translate-y-[1px] active:translate-y-0 w-full sm:w-auto"
                 style={{
+                  color: upsell.targetPlan === 'adviser_pro' ? '#FFFFFF' : '#000000',
                   background:
-                    'linear-gradient(90deg,#2effc0 0%, #18d6a4 55%, #059669 100%)',
-                  boxShadow: '0 10px 28px -6px rgba(24,214,164,0.55)',
+                    upsell.targetPlan === 'adviser_pro'
+                      ? 'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)'
+                      : 'linear-gradient(90deg,#2effc0 0%, #18d6a4 55%, #059669 100%)',
+                  boxShadow: `0 10px 28px -6px ${upsell.accent}80`,
                 }}
               >
-                Start 30-day trial
+                {upsell.targetPlan === 'adviser_pro' ? 'Start 30-day trial' : 'Try free for 30 days'}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

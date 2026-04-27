@@ -235,19 +235,21 @@ export default function Projects() {
         </div>
       )}
 
-      {/* Upsell: Unit availability is Portfolio Pro */}
+      {/* Upsell: Unit availability is Investor Pro per LAUNCH_PLAN.md §4
+          (was previously labelled "Portfolio Pro $29/mo" — legacy from the
+          old 5-tier pricing model). */}
       {isFullyLoaded && (
-        <div className="mt-10 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <div className="mt-10 rounded-2xl bg-gradient-to-r from-[#18d6a4]/12 via-[#18d6a4]/5 to-transparent border border-[#18d6a4]/30 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#18d6a4]/15 border border-[#18d6a4]/30 flex items-center justify-center shrink-0">
+            <svg className="h-5 w-5 text-[#2effc0]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-foreground">See available units, floor plans and exact pricing</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Unit-level inventory, floor numbers, sizes, and live availability are unlocked with Portfolio Pro ($29/mo).</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Unit-level inventory, floor numbers, sizes, and live availability are unlocked with <strong className="text-foreground">Investor Pro</strong> — <span className="text-[#2effc0] font-semibold">$4/mo launch · 30-day free trial</span>.</p>
           </div>
           <a href="/billing"
-            className="shrink-0 px-5 py-2.5 bg-amber-500 text-black text-sm font-black rounded-xl hover:bg-amber-400 transition-colors whitespace-nowrap">
-            Unlock Units — $29/mo
+            className="shrink-0 px-5 py-2.5 bg-[#18d6a4] text-black text-sm font-black rounded-xl hover:bg-[#2effc0] transition-colors whitespace-nowrap">
+            Unlock Units — $4/mo
           </a>
         </div>
       )}

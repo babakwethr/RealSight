@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserRole } from '@/hooks/useUserRole';
+import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
 import { User, Mail, Phone, Shield, Bell, LogOut, Globe, Languages, Loader2, CheckCircle2, ShieldCheck, ShieldOff, Copy, Eye, EyeOff, Zap, ArrowRight, CreditCard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +34,7 @@ type MfaStatus = 'loading' | 'disabled' | 'enrolling' | 'verifying' | 'enabled';
 export default function Account() {
   const { user, signOut } = useAuth();
   const { planName, plan, isPro, isAdviser } = useSubscription();
+  const { isAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -561,22 +564,40 @@ export default function Account() {
           </div>
         </div>
 
-        {/* Upgrade CTA for free users */}
-        {plan === 'free' && (
-          <Link to="/billing"
-            className="flex items-center justify-between gap-3 w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <div>
-                <p className="text-sm font-black">Upgrade to Portfolio Pro</p>
-                <p className="text-[10px] opacity-75">Market Intelligence · Deal Analyzer · Heatmap · $29/mo</p>
+        {/* Upgrade CTA — plan-aware via getUpsellTarget(). Free investor sees
+            Investor Pro; free adviser-path sees Adviser Pro; top-tier sees no
+            CTA. (28 Apr 2026 — was previously hardcoded "Portfolio Pro · $29".) */}
+        {(() => {
+          const upsell = getUpsellTarget(
+            plan,
+            isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
+          );
+          if (!upsell) return null;
+          const isAdviserUpsell = upsell.targetPlan === 'adviser_pro';
+          return (
+            <Link
+              to="/billing"
+              className="flex items-center justify-between gap-3 w-full px-4 py-3 rounded-xl transition-colors"
+              style={{
+                background: isAdviserUpsell
+                  ? 'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)'
+                  : 'hsl(var(--primary))',
+                color: isAdviserUpsell ? '#FFFFFF' : 'hsl(var(--primary-foreground))',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <div>
+                  <p className="text-sm font-black">{upsell.headline}</p>
+                  <p className="text-[10px] opacity-80">{upsell.blurb} · {upsell.price}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-bold shrink-0">
-              30 days free <ArrowRight className="h-3.5 w-3.5" />
-            </div>
-          </Link>
-        )}
+              <div className="flex items-center gap-1 text-xs font-bold shrink-0">
+                30 days free <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </Link>
+          );
+        })()}
 
         {/* Plan features summary */}
         {plan !== 'free' && (

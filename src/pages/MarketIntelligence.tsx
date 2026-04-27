@@ -199,13 +199,13 @@ function UpgradeInline({ feature }: { feature: string }) {
       <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
         <Lock className="h-6 w-6 text-primary" />
       </div>
-      <h3 className="font-bold text-foreground mb-1">Portfolio Pro Feature</h3>
+      <h3 className="font-bold text-foreground mb-1">Investor Pro Feature</h3>
       <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
         {feature}
       </p>
       <Link to="/billing"
         className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
-        <Sparkles className="h-4 w-4" /> Upgrade — $29/mo
+        <Sparkles className="h-4 w-4" /> Upgrade — $4/mo launch
       </Link>
     </div>
   );

@@ -7,6 +7,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
+import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
@@ -138,13 +139,16 @@ function SectionLabel({ label, accent }: { label: string; accent: SectionAccent 
 
 // ─── Main sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { isAdmin } = useUserRole();
   const { plan } = useSubscription();
 
-  const isFree         = plan === 'free';
-  const isInvestorPro  = plan === 'investor_pro';
-  const isAdviserPro   = plan === 'adviser_pro' || plan === 'adviser_trial';
+  // Single plan-aware upsell — same helper used by AppLayout, MarketHome,
+  // Account, etc. so every surface offers the same next-tier plan.
+  const upsell = getUpsellTarget(
+    plan,
+    isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
+  );
 
   return (
     <aside
@@ -241,48 +245,38 @@ export function AppSidebar() {
         )}
       </nav>
 
-      {/* Bottom — plan-aware upsell + account + sign out
-          • Free Investor    → "Upgrade to Investor Pro" card
-          • Investor Pro     → "Become an adviser" cross-tier upsell
-          • Adviser Pro/trial → just account + sign out (top tier, no upsell) */}
+      {/* Bottom — plan-aware upsell + account + sign out.
+          The upsell variant comes from `getUpsellTarget()` so every surface
+          across the app stays in sync. Top-tier users see no upsell. */}
       <div className="relative border-t border-white/[0.06] pt-1.5 pb-2 space-y-0.5 px-1.5 shrink-0">
-        {isFree && (
+        {upsell && (
           <Link
             to="/billing"
             className="flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
             style={{
               background:
-                'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
-              border: '1px solid rgba(24,214,164,0.35)',
+                upsell.targetPlan === 'adviser_pro'
+                  ? 'linear-gradient(90deg, rgba(123,92,255,0.22), rgba(123,92,255,0.06))'
+                  : 'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
+              border: `1px solid ${upsell.accent}55`,
             }}
           >
-            <div className="w-7 h-7 rounded-lg bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
-              <Sparkles className="h-3.5 w-3.5" />
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{
+                background: upsell.accent,
+                color: upsell.targetPlan === 'adviser_pro' ? '#FFFFFF' : '#000000',
+              }}
+            >
+              {upsell.targetPlan === 'adviser_pro'
+                ? <Crown className="h-3.5 w-3.5" />
+                : <Sparkles className="h-3.5 w-3.5" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-black text-white leading-none">Upgrade to Pro</p>
-              <p className="text-[9px] text-white/65 mt-0.5">$4/mo · 30-day trial</p>
-            </div>
-            <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
-          </Link>
-        )}
-
-        {isInvestorPro && !isAdmin && (
-          <Link
-            to="/billing"
-            className="flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
-            style={{
-              background:
-                'linear-gradient(90deg, rgba(123,92,255,0.22), rgba(123,92,255,0.06))',
-              border: '1px solid rgba(123,92,255,0.35)',
-            }}
-          >
-            <div className="w-7 h-7 rounded-lg bg-[#7B5CFF] text-white flex items-center justify-center shrink-0">
-              <Crown className="h-3.5 w-3.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-black text-white leading-none">Are you an adviser?</p>
-              <p className="text-[9px] text-white/65 mt-0.5">White-label · $99/mo</p>
+              <p className="text-[11px] font-black text-white leading-none">
+                {upsell.headline.replace('Upgrade to ', '')}
+              </p>
+              <p className="text-[9px] text-white/65 mt-0.5">{upsell.price} · 30-day trial</p>
             </div>
             <ArrowRight className="h-3.5 w-3.5 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </Link>

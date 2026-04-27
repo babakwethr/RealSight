@@ -304,7 +304,7 @@ function NewLaunchesStrip({ isPro }: { isPro: boolean }) {
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="flex flex-col items-center gap-1 text-center px-2">
                         <Lock className="h-4 w-4 text-white" />
-                        <span className="text-[9px] text-white font-medium">Units — Portfolio Pro</span>
+                        <span className="text-[9px] text-white font-medium">Units — Investor Pro</span>
                       </div>
                     </div>
                   )}

@@ -12,40 +12,37 @@ interface FeatureGateProps {
   blur?: boolean;
 }
 
-// Value stacking: what else is included in each plan
+// Value stacking — keys aligned with the launch tier model in
+// LAUNCH_PLAN.md §2-5 (was previously keyed by the legacy 5-tier names
+// "Portfolio Pro / Adviser / Adviser Pro" — found stale during the 28 Apr
+// founder QA when the homepage and sidebar said different prices).
 const PLAN_ALSO_INCLUDED: Record<string, { icon: React.ElementType; label: string }[]> = {
-  'Portfolio Pro': [
-    { icon: BarChart3, label: 'Market Intelligence' },
-    { icon: Map,       label: 'Dubai Heatmap' },
-    { icon: Search,    label: 'Deal Analyzer' },
-    { icon: Bookmark,  label: 'Watchlist' },
-    { icon: Columns,   label: 'Compare Projects' },
-    { icon: Building2, label: 'New Launches units' },
-  ],
-  'Adviser': [
-    { icon: Star,      label: 'Top Picks' },
-    { icon: Target,    label: 'Opportunity Signals' },
-    { icon: Radar,     label: 'Global Radar' },
-    { icon: Bot,       label: 'Unlimited AI Concierge' },
-    { icon: Building2, label: 'New Launches share' },
+  'Investor Pro': [
+    { icon: Building2, label: 'Live unit availability' },
+    { icon: Star,      label: 'Floor & view per unit' },
+    { icon: Search,    label: 'Real-time pricing' },
+    { icon: Bot,       label: 'New unit alerts' },
   ],
   'Adviser Pro': [
-    { icon: FileText,  label: 'AI Investor Presentation' },
-    { icon: BarChart3, label: 'AI Market Analysis' },
+    { icon: BarChart3, label: 'Adviser dashboard — all clients' },
+    { icon: FileText,  label: 'Branded reports + Area Pricing PDF' },
+    { icon: Target,    label: 'Opportunity Signals (per-client AI)' },
+    { icon: Bot,       label: 'AI Investor Presentation' },
+    { icon: Building2, label: 'Bulk Deal Analyzer' },
+    { icon: Bookmark,  label: 'Public lead-gen page' },
   ],
 };
 
 const PLAN_PRICE: Record<string, string> = {
-  'Portfolio Pro': '$29/mo',
-  'Adviser':       '$99/mo',
-  'Adviser Pro':   '$199/mo',
+  // Launch promo prices — first 90 days. After: $9 / $199.
+  'Investor Pro': '$4/mo · launch',
+  'Adviser Pro':  '$99/mo · 6 months launch',
 };
 
 // Accent colour per plan tier — matches UpsellBanner / MarketHome treatment
 const PLAN_ACCENT: Record<string, string> = {
-  'Portfolio Pro': '#18D6A4', // mint
-  'Adviser':       '#3B82F6', // blue
-  'Adviser Pro':   '#A855F7', // purple
+  'Investor Pro': '#18D6A4', // mint
+  'Adviser Pro':  '#7B5CFF', // violet
 };
 
 export function FeatureGate({ feature, children }: FeatureGateProps) {
@@ -62,7 +59,7 @@ export function FeatureGate({ feature, children }: FeatureGateProps) {
     return <>{children}</>;
   }
 
-  const requiredPlan = FEATURE_PLAN_LABEL[feature] || 'Portfolio Pro';
+  const requiredPlan = FEATURE_PLAN_LABEL[feature] || 'Investor Pro';
   const price = PLAN_PRICE[requiredPlan] || '';
   const alsoIncluded = PLAN_ALSO_INCLUDED[requiredPlan] || [];
   const accent = PLAN_ACCENT[requiredPlan] || '#18D6A4';
