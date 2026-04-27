@@ -315,6 +315,10 @@ Build in this order — don't skip ahead:
       - **S5 `/account` POST 400** — deferred. Worktree code shows no auto-POST on mount (only SELECTs and a manual `handleSave`). Likely a Supabase REST select misclassified by the bot. Park until next QA pass with a HAR file
       - **R1 + R2 marked working-as-designed** — investor/advisor toggle lives on `/about` (per `REALSIGHT_MASTER_SPEC.md` §6: `/` is the market-data page, not a marketing landing). Theme toggle on `/dashboard` was intentionally removed (`PRODUCT_PLAN.md` §SIDEBAR: "single dark mode only"). Update March QA checklist to match
       - All changes typecheck-clean (`tsc --noEmit` exit 0) and build-clean (10,427 modules, 7.54s)
+    - ✅ **Post-merge follow-up batch** (commit pending, 27 Apr 2026 evening) addresses the 3 remaining items from `LAUNCH-VERIFICATION-2026-04-27.md`:
+      - **S5 root-caused + fixed**: the mysterious `/account` 400 was the `useFounder` hook hitting `profiles?select=is_founder` — but the founder migration (`20260425000001_add_founder_status.sql`) had been committed to repo without ever being applied to the live DB. Applied via Management API; column + trigger + index now live. Verified the previously-400ing endpoint now returns HTTP 200
+      - **S4 root-caused + fixed**: 2 Unsplash URLs in `src/data/demoProjects.ts` were genuinely dead (`photo-1577457713437-0ea876274070` and `photo-1628611225249-6c47bf621576` — both 404'd on probe, deleted by their Unsplash uploaders). Replaced with stable substitutes from elsewhere in the same demo set. Added `crossOrigin="anonymous"` + image-failure fallback (swaps to Building icon) on `src/pages/public/Projects.tsx` and `src/pages/admin/Inventory.tsx` so any future Unsplash deletion degrades gracefully instead of showing a broken-image glyph
+      - Build still green (10,427 modules, 7.79s)
     - ⬜ **Founder action — soft-launch user list** (20 hand-picked: 5 advisers, 10 retail investors, 5 friendlies) — final blocker before Step 16
 16. ⬜ Public launch
 

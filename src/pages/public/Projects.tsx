@@ -279,14 +279,30 @@ function ProjectCard({ project }: { project: ReellyProject }) {
           <img
             src={imageUrl}
             alt={project.name}
+            // crossOrigin silences Chrome's Opaque Response Blocking on the
+            // Unsplash CDN. Without it, Chrome refuses to render even valid
+            // 200-OK responses on cross-origin <img> tags from images.unsplash.com.
+            // onError swaps to the Building icon if the URL is dead — keeps
+            // the card from showing a broken-image glyph.
+            crossOrigin="anonymous"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
+            onError={(e) => {
+              const t = e.target as HTMLImageElement;
+              t.style.display = 'none';
+              const sibling = t.nextElementSibling as HTMLElement | null;
+              if (sibling) sibling.style.display = 'flex';
+            }}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
-            <Building className="h-12 w-12 text-primary/20" />
-          </div>
-        )}
+        ) : null}
+        {/* Fallback container — shown when no imageUrl OR revealed by the
+            <img> onError handler above (sets sibling display to flex). */}
+        <div
+          className="w-full h-full items-center justify-center bg-gradient-to-br from-primary/10 to-transparent"
+          style={{ display: imageUrl ? 'none' : 'flex' }}
+        >
+          <Building className="h-12 w-12 text-primary/20" />
+        </div>
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

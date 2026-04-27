@@ -164,12 +164,29 @@ export default function AdminInventory() {
                                 <div key={project.id} className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:border-primary/30 transition-colors">
                                     <div className="flex items-center gap-4 mb-4 sm:mb-0 w-full sm:w-auto">
                                         {project.cover_image?.url ? (
-                                            <img src={project.cover_image.url} alt={project.name} className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
-                                        ) : (
-                                            <div className="w-16 h-16 rounded-md bg-white/10 flex items-center justify-center flex-shrink-0">
-                                                <Building className="h-6 w-6 text-white/40" />
-                                            </div>
-                                        )}
+                                            <img
+                                                src={project.cover_image.url}
+                                                alt={project.name}
+                                                // crossOrigin silences Chrome's ORB on Unsplash CDN.
+                                                // onError swaps in the Building icon if the photo
+                                                // URL has been deleted by its uploader.
+                                                crossOrigin="anonymous"
+                                                className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                                                onError={(e) => {
+                                                    const t = e.target as HTMLImageElement;
+                                                    t.style.display = 'none';
+                                                    const sib = t.nextElementSibling as HTMLElement | null;
+                                                    if (sib) sib.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        {/* Fallback — visible when no cover_image OR when img errors. */}
+                                        <div
+                                            className="w-16 h-16 rounded-md bg-white/10 items-center justify-center flex-shrink-0"
+                                            style={{ display: project.cover_image?.url ? 'none' : 'flex' }}
+                                        >
+                                            <Building className="h-6 w-6 text-white/40" />
+                                        </div>
 
                                         <div>
                                             <h4 className="font-medium text-foreground">{project.name}</h4>

@@ -104,9 +104,9 @@ export const DEMO_PROJECTS: any[] = [
         completion_date: "Ready",
         sale_status: "Available",
         description: "An architectural masterpiece in the heart of Dubai, featuring the world's longest panoramic sky podium (The Link) and ultra-luxury residential units.",
-        cover_image: { url: "https://images.unsplash.com/photo-1577457713437-0ea876274070?auto=format&fit=crop&q=80&w=1600" },
+        cover_image: { url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=1600" },
         media: {
-            architecture: [{ url: "https://images.unsplash.com/photo-1577457713437-0ea876274070?auto=format&fit=crop&q=80&w=1600" }],
+            architecture: [{ url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=1600" }],
             interior: [],
             floor_plans: []
         },
@@ -219,9 +219,9 @@ export const DEMO_PROJECTS: any[] = [
         completion_date: "Ready",
         sale_status: "Available",
         description: "Managed by Dorchester Collection, offering unparalleled design by Foster + Partners and interiors by Gilles & Boissier along the Marasi Marina.",
-        cover_image: { url: "https://images.unsplash.com/photo-1628611225249-6c47bf621576?auto=format&fit=crop&q=80&w=1600" },
+        cover_image: { url: "https://images.unsplash.com/photo-1546412414-e1885259563a?auto=format&fit=crop&q=80&w=1600" },
         media: {
-            architecture: [{ url: "https://images.unsplash.com/photo-1628611225249-6c47bf621576?auto=format&fit=crop&q=80&w=1600" }],
+            architecture: [{ url: "https://images.unsplash.com/photo-1546412414-e1885259563a?auto=format&fit=crop&q=80&w=1600" }],
             interior: [],
             floor_plans: []
         },
