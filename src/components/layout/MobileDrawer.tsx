@@ -2,8 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard, PieChart, CreditCard, FolderOpen,
   BarChart3, Map, Building2, Search, Bookmark, Columns,
-  Star, Target, Radar, Bot, Bell, User, LogOut, X, Sparkles,
-  ChevronRight,
+  Bot, Bell, User, LogOut, X, Sparkles, ChevronRight, Shield,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -16,67 +15,67 @@ interface MobileDrawerProps {
   onClose: () => void;
 }
 
-// Adviser / Admin sections — full toolkit
+// MobileDrawer mirrors the desktop AppSidebar's role-aware navigation.
+// 28 Apr 2026 — aligned with the launch plan (LAUNCH_PLAN.md §2-5):
+//   • Investors get their personal ledger inline (Portfolio + Records).
+//   • Advisers get Markets tools + an Admin entry; their clients' ledgers
+//     are accessed via /admin/investors → drill into a client.
+//   • Deferred-from-launch items (Global Radar, Top Picks user view,
+//     Opportunity Signals as a standalone page) are not in the rail.
+
+// Adviser / Admin sections — Markets + Admin
 const ADVISER_SECTIONS = [
   {
-    label: 'Discover',
+    label: 'Workspace',
     items: [
       { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
-      { to: '/market-intelligence', icon: BarChart3,        label: 'Market Intelligence' },
       { to: '/deal-analyzer',       icon: Search,           label: 'Deal Analyzer' },
       { to: '/projects',            icon: Building2,        label: 'New Launches' },
-      { to: '/concierge',           icon: Bot,              label: 'AI Concierge' },
     ],
   },
   {
-    label: 'My Platform',
+    label: 'Markets',
     items: [
-      { to: '/billing',    icon: CreditCard,label: 'Billing' },
-      { to: '/payments',   icon: CreditCard,label: 'Payment Schedule' },
-      { to: '/documents',  icon: FolderOpen,label: 'Documents' },
-      { to: '/watchlist',  icon: Bookmark,  label: 'Watchlist' },
-      { to: '/compare',    icon: Columns,   label: 'Compare' },
+      { to: '/market-intelligence', icon: BarChart3,        label: 'Markets' },
+      { to: '/heatmap',             icon: Map,              label: 'Dubai Heatmap' },
+      { to: '/watchlist',           icon: Bookmark,         label: 'Watchlist' },
+      { to: '/compare',             icon: Columns,          label: 'Compare' },
     ],
   },
   {
-    label: 'Intelligence',
+    label: 'Admin',
     items: [
-      { to: '/heatmap',              icon: Map,    label: 'Dubai Heatmap' },
-      { to: '/top-picks',            icon: Star,   label: 'Top Picks' },
-      { to: '/opportunity-signals',  icon: Target, label: 'Opportunity Signals' },
-      { to: '/radar',                icon: Radar,  label: 'Global Radar' },
-      { to: '/updates',              icon: Bell,   label: 'Updates' },
+      { to: '/admin',               icon: Shield,           label: 'Workspace' },
     ],
   },
 ];
 
-// Investor sections — portfolio-first, minimal pro clutter
+// Investor sections (free or Investor Pro)
 const INVESTOR_SECTIONS = [
   {
-    label: 'My Investments',
+    label: 'Workspace',
     items: [
       { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
       { to: '/portfolio',           icon: PieChart,        label: 'Portfolio' },
-      { to: '/payments',            icon: CreditCard,      label: 'Payment Schedule' },
-      { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
-    ],
-  },
-  {
-    label: 'Discover',
-    items: [
-      { to: '/concierge',           icon: Bot,             label: 'AI Concierge' },
-      { to: '/market-intelligence', icon: BarChart3,       label: 'Market Intelligence' },
-      { to: '/projects',            icon: Building2,       label: 'New Launches' },
       { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
+      { to: '/projects',            icon: Building2,       label: 'New Launches' },
+      { to: '/concierge',           icon: Bot,             label: 'AI Concierge' },
     ],
   },
   {
-    label: 'Tools',
+    label: 'Markets',
     items: [
+      { to: '/market-intelligence', icon: BarChart3,       label: 'Markets' },
+      { to: '/heatmap',             icon: Map,             label: 'Dubai Heatmap' },
       { to: '/watchlist',           icon: Bookmark,        label: 'Watchlist' },
       { to: '/compare',             icon: Columns,         label: 'Compare' },
-      { to: '/heatmap',             icon: Map,             label: 'Dubai Heatmap' },
-      { to: '/billing',             icon: CreditCard,      label: 'Billing' },
+    ],
+  },
+  {
+    label: 'Records',
+    items: [
+      { to: '/payments',            icon: CreditCard,      label: 'Payments' },
+      { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
       { to: '/updates',             icon: Bell,            label: 'Updates' },
     ],
   },
@@ -210,7 +209,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-black text-white leading-none">Upgrade to Pro</p>
-                <p className="text-[11px] text-white/65 mt-1">$29/mo · 30-day free trial</p>
+                <p className="text-[11px] text-white/65 mt-1">$4/mo · 30-day free trial</p>
               </div>
               <ChevronRight className="h-4 w-4 text-white/60" />
             </Link>
