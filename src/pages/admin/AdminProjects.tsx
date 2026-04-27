@@ -128,6 +128,10 @@ export default function AdminProjects() {
                                     <img
                                         src={project.media.cover_image}
                                         alt={project.name}
+                                        // crossOrigin="anonymous" silences Chrome's Opaque
+                                        // Response Blocking on the Unsplash fallbacks below.
+                                        // Without it, all 3 fallback URLs hit ERR_BLOCKED_BY_ORB.
+                                        crossOrigin="anonymous"
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;

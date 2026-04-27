@@ -29,8 +29,33 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase processes the recovery token from the URL hash automatically
-    // and fires a PASSWORD_RECOVERY event when successful.
+    // Synchronous up-front check: if there's no recovery token in the URL at all,
+    // skip the loading spinner entirely and show the actionable error UI on the
+    // first paint. Catches users who type /reset-password directly, follow a
+    // malformed link, or come back to an old reset email after the token TTL.
+    //
+    // Without this branch, the previous version showed a 5-second spinner before
+    // surfacing the error — which the Playwright QA bot (27 Apr 2026) captured
+    // as a "white-screen launch blocker".
+    const hash = window.location.hash;
+    const search = window.location.search;
+    const looksLikeRecovery =
+      hash.includes('access_token=') ||
+      hash.includes('type=recovery') ||
+      hash.includes('type=signup') ||
+      search.includes('code=');
+
+    if (!looksLikeRecovery) {
+      setStep('error');
+      setErrorMessage(
+        'This password reset link is invalid or has expired. Request a new one to continue.'
+      );
+      return;
+    }
+
+    // From here on, we know there IS a token-shaped thing in the URL — Supabase
+    // just hasn't finished processing it yet. We listen for PASSWORD_RECOVERY
+    // and also poll the session, with a tighter 1.5s safety net.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
         if (event === 'PASSWORD_RECOVERY') {
@@ -39,33 +64,28 @@ export default function ResetPassword() {
       }
     );
 
-    // Also check if a session already exists (page reload after recovery link)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // Check URL hash for recovery type
-        const hash = window.location.hash;
-        if (hash.includes('type=recovery') || hash.includes('type=signup')) {
-          setStep('form');
-        } else {
-          // Session exists but not a recovery — might be a returning user
-          // Still show the form if they navigated here intentionally
-          setStep('form');
-        }
-      } else {
-        // No session yet — wait a moment for Supabase to process the hash
-        const timeout = setTimeout(() => {
-          if (step === 'loading') {
-            setStep('error');
-            setErrorMessage(
-              'This password reset link has expired or is invalid. Please request a new one.'
-            );
-          }
-        }, 5000);
-        return () => clearTimeout(timeout);
+        setStep('form');
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety net: if Supabase hasn't fired PASSWORD_RECOVERY within 1.5s and we're
+    // still on 'loading', the token in the URL is malformed/expired — show error.
+    const timeout = setTimeout(() => {
+      setStep((prev) =>
+        prev === 'loading' ? 'error' : prev,
+      );
+      setErrorMessage((prev) =>
+        prev ||
+        'This password reset link has expired or is invalid. Please request a new one.'
+      );
+    }, 1500);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

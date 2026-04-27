@@ -1,7 +1,27 @@
 /* ── Fonts (MUST be before @tailwind per CSS spec) ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-@import url('https://fonts.cdnfonts.com/css/berkeley-mono');
+/*
+ * Berkeley Mono — formerly imported from fonts.cdnfonts.com. That source:
+ *   • Was blocked by our CSP (style-src didn't list cdnfonts.com)
+ *   • Returned HTTP 500 intermittently (founder's QA pass, 27 Apr 2026)
+ *
+ * Until we self-host a licensed copy at /public/fonts/berkeley-mono.woff2,
+ * the font-family fallback chain in `tailwind.config.ts` and inline styles
+ * cleanly degrades to JetBrains Mono / SF Mono / Menlo. No layout breakage,
+ * no per-page CSP violation noise.
+ *
+ * To self-host once we have a license:
+ *   1. Drop berkeley-mono.woff2 into /public/fonts/
+ *   2. Uncomment the @font-face block below
+ */
+/* @font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+} */
 
 @tailwind base;
 @tailwind components;

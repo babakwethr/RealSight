@@ -279,6 +279,9 @@ export default function AdminMonthlyPicks() {
                                                 {item.custom_projects?.media?.cover_image ? (
                                                     <img
                                                         src={item.custom_projects.media.cover_image}
+                                                        // crossOrigin silences Chrome's ORB
+                                                        // on the Unsplash fallback below.
+                                                        crossOrigin="anonymous"
                                                         className="w-full h-full object-cover"
                                                         onError={(e) => {
                                                             (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop";
