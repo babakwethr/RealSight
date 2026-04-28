@@ -8,15 +8,27 @@
 //   2. <script type="application/ld+json"> — schema.org structured data.
 //   3. og:title / og:description regex — last-resort title parsing.
 //
-// Multi-UA fallback: try desktop Safari first; on 4xx/5xx retry with a
-// mobile Safari UA (anti-bot rules sometimes treat mobile traffic
-// differently and let us through).
+// Fetch strategy (28 Apr 2026 update):
+//   Bayut, Property Finder and Dubizzle all sit behind Cloudflare and
+//   actively block edge-function IPs (Bayut 302s to /captchaChallenge,
+//   PF returns HTTP 202 + empty body, Dubizzle returns "Pardon Our
+//   Interruption"). Direct curl from this function effectively never
+//   reaches the listing.
 //
-// Founder ask: this should "always work or fall back gracefully". We
-// can't realistically guarantee 100% — Bayut etc. employ Cloudflare —
-// but with 3 parsers + 2 UAs we expect ~80-90% success.
+//   So we use a two-step pipeline:
+//     1. Try direct fetch with desktop + mobile UAs (works for non-CF
+//        sites and as a free fallback if it does sneak through).
+//     2. If the response looks blocked (HTTP 202, < 5 KB, captcha/
+//        challenge/interruption keywords), retry through ScraperAPI's
+//        residential-proxy endpoint with `render=true`.
+//   ScraperAPI's free tier gives 5,000 requests/month at no cost; if
+//   `SCRAPER_API_KEY` isn't set, step 2 is skipped and the function
+//   returns the direct-fetch result (which the client surfaces as
+//   "couldn't read this listing — fill the form manually").
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+
+const SCRAPER_API_KEY = Deno.env.get('SCRAPER_API_KEY') ?? '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -274,12 +286,58 @@ function extractFromTitleRegex(title: string): Partial<ExtractResult> {
   return out;
 }
 
-// ── Fetch with multi-UA fallback ──────────────────────────────────────────
-async function fetchHtml(url: string): Promise<{ html: string; status: number } | { error: string }> {
+// ── Anti-bot detection ────────────────────────────────────────────────────
+// Each of the 3 sites returns a recognisable "blocked" response when our
+// IP gets challenged. We detect the markers cheaply (size + a few
+// keywords) and trigger the ScraperAPI fallback on a hit.
+function looksBlocked(html: string, status: number, finalUrl?: string): boolean {
+  if (status === 202) return true;                       // PF empty-body block
+  if (html.length < 5000 && /captcha|challenge|cf-mitigated|cf-error|access denied/i.test(html))
+    return true;                                          // tiny page = challenge
+  if (/Pardon\s+Our\s+Interruption|Captcha\s*\|\s*Bayut/i.test(html)) return true;
+  if (finalUrl && /captchaChallenge|cdn-cgi\/challenge/i.test(finalUrl)) return true;
+  // If we got HTML but it has neither __NEXT_DATA__ nor a JSON-LD block,
+  // for one of the 3 listing sites that's a strong signal we got the
+  // challenge / shell page, not the real listing.
+  if (!/__NEXT_DATA__/i.test(html) && !/application\/ld\+json/i.test(html)) return true;
+  return false;
+}
+
+// ── Fetch via ScraperAPI (residential proxy + Cloudflare bypass) ──────────
+// ScraperAPI handles Cloudflare/anti-bot for us. Free tier: 5,000 req/mo.
+// If SCRAPER_API_KEY isn't configured, this is a no-op.
+async function fetchViaScraperApi(url: string): Promise<{ html: string; status: number } | { error: string }> {
+  if (!SCRAPER_API_KEY) return { error: 'No SCRAPER_API_KEY configured' };
+  const controller = new AbortController();
+  const tm = setTimeout(() => controller.abort(), 60000); // ScraperAPI can take 30-60s on render
+  try {
+    const params = new URLSearchParams({
+      api_key:        SCRAPER_API_KEY,
+      url,
+      render:         'true',           // run JS so __NEXT_DATA__ hydrates
+      country_code:   'ae',             // residential proxy from UAE — closer geo, less likely to block
+      premium:        'true',           // costs 10 credits but reliable through Cloudflare
+    });
+    const r = await fetch(`https://api.scraperapi.com/?${params}`, {
+      signal: controller.signal,
+    });
+    if (!r.ok) return { error: `ScraperAPI returned ${r.status}` };
+    return { html: await r.text(), status: r.status };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'ScraperAPI fetch failed' };
+  } finally {
+    clearTimeout(tm);
+  }
+}
+
+// ── Fetch with direct → multi-UA → ScraperAPI fallback ────────────────────
+async function fetchHtml(url: string): Promise<{ html: string; status: number; via: 'direct' | 'scraper' } | { error: string }> {
   const attempts: { ua: string; label: string }[] = [
     { ua: UA_DESKTOP, label: 'desktop' },
     { ua: UA_MOBILE,  label: 'mobile' },
   ];
+
+  // Step 1 — try direct fetch with browser-like headers.
   for (const a of attempts) {
     const controller = new AbortController();
     const tm = setTimeout(() => controller.abort(), 15000);
@@ -301,22 +359,33 @@ async function fetchHtml(url: string): Promise<{ html: string; status: number } 
           'Upgrade-Insecure-Requests': '1',
         },
       });
-      if (!r.ok) {
-        // Try the next UA on 403/429 — those are the typical anti-bot rejects.
+      if (!r.ok && r.status !== 202) {
         if (r.status === 403 || r.status === 429 || r.status === 503) continue;
-        return { error: `Listing site returned ${r.status}`, };
+        // Non-typical-block error — break and try ScraperAPI.
+        break;
       }
       const html = await r.text();
-      return { html, status: r.status };
-    } catch (e) {
-      const msg = e instanceof Error ? (e.name === 'AbortError' ? 'Timed out' : e.message) : 'fetch failed';
-      // Try next UA if any timeout / network error
-      if (a === attempts[attempts.length - 1]) return { error: msg };
+      // If the response looks like a real listing page, we're done.
+      if (!looksBlocked(html, r.status, r.url)) {
+        return { html, status: r.status, via: 'direct' };
+      }
+      // Otherwise fall through to next UA / ScraperAPI.
+    } catch {
+      // try next UA
     } finally {
       clearTimeout(tm);
     }
   }
-  return { error: 'All fetch attempts failed' };
+
+  // Step 2 — ScraperAPI fallback (handles Cloudflare).
+  const sa = await fetchViaScraperApi(url);
+  if ('error' in sa) {
+    return { error: SCRAPER_API_KEY
+      ? `Listing is protected by anti-bot — ScraperAPI fallback failed: ${sa.error}`
+      : `Listing is protected by anti-bot. Configure SCRAPER_API_KEY to enable the proxy fallback.`,
+    };
+  }
+  return { ...sa, via: 'scraper' };
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────
@@ -353,7 +422,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch with multi-UA fallback.
+    // Fetch with direct → ScraperAPI fallback.
     const fetched = await fetchHtml(url);
     if ('error' in fetched) {
       return new Response(JSON.stringify({ error: fetched.error }), {
@@ -364,6 +433,8 @@ Deno.serve(async (req) => {
 
     const html = fetched.html;
     const result: ExtractResult = { platform, confidence: 0 };
+    // Annotate which path got us the HTML — handy for debugging.
+    (result as any)._via = fetched.via;
 
     // ── Strategy 1: __NEXT_DATA__ (richest) ────────────────────────────
     const nd = readJsonScript(html, { id: '__NEXT_DATA__' });
