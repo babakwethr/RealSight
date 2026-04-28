@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
 import {
   Search, BarChart3, TrendingUp, CheckCircle2, Loader2,
-  Building2, X, Sparkles, ExternalLink,
+  Building2, X, Sparkles, ExternalLink, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -316,6 +316,11 @@ function DealAnalyzerContent() {
   const [dubizzleUrl, setDubizzleUrl] = useState('');
   const [extracting, setExtracting] = useState<'bayut' | 'propertyfinder' | 'dubizzle' | null>(null);
 
+  // Manual-entry section auto-collapses once an analysis result appears
+  // (keeps the page from getting overly long below the Result panel).
+  // The user can click the section header to re-open it for tweaks.
+  const [manualOpen, setManualOpen] = useState(true);
+
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
   const [areaSearch, setAreaSearch] = useState('');
@@ -479,6 +484,12 @@ function DealAnalyzerContent() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dubizzleUrl]);
+
+  // Auto-collapse the manual entry form when an analysis result arrives,
+  // so the Result panel sits closer to the top of the visible area.
+  useEffect(() => {
+    if (result) setManualOpen(false);
+  }, [result]);
 
   const findAreaData = (areaName: string) => {
     if (!dldAreas || !areaName) return null;
@@ -800,31 +811,60 @@ function DealAnalyzerContent() {
         </div>
       </section>
 
-      {/* OR divider — both paths are equal weight (no "primary" hierarchy).
-          Founder feedback (28 Apr 2026): Quick start vs Property details
-          must read as either-or, not Optional / Required. */}
-      <div className="flex items-center gap-3 text-white/30">
-        <span className="flex-1 h-px bg-white/[0.08]" />
-        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">OR</span>
-        <span className="flex-1 h-px bg-white/[0.08]" />
-      </div>
+      {/* OR divider — only shown while the manual section is expanded.
+          When collapsed (post-analysis) the divider would dangle on its
+          own row, which looks like an empty layout artefact. */}
+      {manualOpen && (
+        <div className="flex items-center gap-3 text-white/30">
+          <span className="flex-1 h-px bg-white/[0.08]" />
+          <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">OR</span>
+          <span className="flex-1 h-px bg-white/[0.08]" />
+        </div>
+      )}
 
-      {/* ── Option B · Manual entry (the form) ── */}
+      {/* ── Option B · Manual entry (collapsible) ── */}
       <section className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
+        {/* Clickable header — toggles the form open/closed. We keep the
+            full title + bullet description while open, and collapse to
+            a single concise row once a result is on screen so the page
+            doesn't grow unnecessarily long. */}
+        <button
+          type="button"
+          onClick={() => setManualOpen(o => !o)}
+          aria-expanded={manualOpen}
+          className={cn(
+            'w-full flex items-start justify-between gap-3 text-left rounded-xl transition-colors',
+            !manualOpen && 'bg-white/[0.03] border border-white/[0.08] px-4 py-3 hover:bg-white/[0.05]',
+          )}
+        >
           <div className="flex-1 min-w-0">
             <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#7aa6ff] mb-1 flex items-center gap-1.5">
               <BarChart3 className="h-3 w-3" />
               Option B · No link
             </p>
-            <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
-              Enter the property details by hand.
-            </p>
-            <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-              Pick this if your client called you with the basics — area, building, beds, asking price. We need <span className="text-white/85 font-semibold">area, price, and size</span> at minimum.
-            </p>
+            {manualOpen ? (
+              <>
+                <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
+                  Enter the property details by hand.
+                </p>
+                <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
+                  Pick this if your client called you with the basics — area, building, beds, asking price. We need <span className="text-white/85 font-semibold">area, price, and size</span> at minimum.
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px] text-white/65 leading-tight">
+                Enter or edit property details manually
+              </p>
+            )}
           </div>
-        </div>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 text-white/45 mt-1 shrink-0 transition-transform',
+              manualOpen && 'rotate-180',
+            )}
+          />
+        </button>
+        {manualOpen && (<>
 
         <div
           className="rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
@@ -986,6 +1026,7 @@ function DealAnalyzerContent() {
             </div>
           </div>
         </div>
+        </>)}
       </section>
 
       {/* ── Results ── */}

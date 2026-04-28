@@ -126,12 +126,23 @@ function normalizeTier(raw: string | undefined | null): PlanTier {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+import { useFounder } from '@/hooks/useFounder';
+
 export function useSubscription() {
   const { tenant } = useTenant();
   const { user, loading } = useAuth();
+  // Founders (profiles.is_founder = true) always get top-tier access.
+  // This means the team can dogfood every paid feature without having to
+  // touch user_metadata.plan or tenants.subscription_tier — and any new
+  // founder added later (via the is_founder flag) gets the same treatment
+  // automatically. Single source of truth: the database flag.
+  const { isFounder } = useFounder();
 
   // Resolve current plan tier
   const plan: PlanTier = (() => {
+    // 0. Founders always get full Adviser Pro access for testing.
+    if (isFounder) return 'adviser_pro';
+
     // 1. Tenant subscription takes priority (multi-tenant B2B orgs)
     if (tenant?.id) {
       const raw = (tenant as { subscription_tier?: string | null }).subscription_tier;
