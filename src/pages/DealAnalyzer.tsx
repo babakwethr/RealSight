@@ -551,56 +551,92 @@ function DealAnalyzerContent() {
 
       {/* ── Plain-language guidance ── */}
       <GuidanceCard
-        storageKey="deal-analyzer-v1"
+        storageKey="deal-analyzer-v2"
         tone="success"
         title="What this page does for you"
-        description="Paste a Bayut/Property Finder/Dubizzle link (optional, for your records), then enter the property details below. We compare it against real DLD transactions and give you a clear BUY / HOLD / AVOID verdict — plus a downloadable PDF report you can share."
+        description="Enter the property details below — area, price, size, rent — and we compare it against real DLD transactions to give you a clear BUY / HOLD / AVOID verdict plus a downloadable PDF report. Optionally paste a Bayut, Property Finder or Dubizzle link to attach it to your report."
         bullets={[
-          'Step 1 — Optionally paste the listing URL(s) so the link is on your PDF report.',
-          'Step 2 — Fill the property details (area, price, size, rent). All fields with * are required.',
-          'Step 3 — Click "Analyze Deal". You get a market verdict, AI advice, and downloadable PDFs.',
-          'Tip — The tool works best when you fill expected annual rent + service charge for a true cash-flow view.',
+          'Fill the form. All fields with * are required (area, price, size).',
+          'Click "Analyze Deal" — you get a market verdict, AI advice, and downloadable PDFs.',
+          'Tip — fill expected annual rent + service charge for a true cash-flow view.',
         ]}
       />
 
-      {/* ── 1. Listing source URLs (all visible) ── */}
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
-            <span className="text-[#18d6a4]">Step 1</span> · Listing links <span className="font-semibold text-white/35 normal-case tracking-normal">(optional)</span>
-          </h2>
-          <span className="text-[11px] text-white/40">For your reference / PDF</span>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          <ListingSourceField
-            source="Bayut"
-            value={bayutUrl}
-            onChange={setBayutUrl}
-            brandColor="#7d2ae8"
-            logoLetter="B"
-          />
-          <ListingSourceField
-            source="Property Finder"
-            value={pfUrl}
-            onChange={setPfUrl}
-            brandColor="#ef4135"
-            logoLetter="P"
-          />
-          <ListingSourceField
-            source="Dubizzle"
-            value={dubizzleUrl}
-            onChange={setDubizzleUrl}
-            brandColor="#ed3a47"
-            logoLetter="D"
-          />
+      {/* ── Quick start: listing links (optional shortcut) ── */}
+      {/* Per founder design (28 Apr 2026): URLs are framed as a future
+          quick-fill shortcut, not a sequential step. Today they\'re saved
+          to the PDF report; once we ship scrapers they\'ll auto-fill the
+          form below. The "Soon" microcopy keeps that promise visible. */}
+      <section
+        className="relative rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
+        style={{
+          background: 'rgba(7, 4, 15, 0.45)',
+          backdropFilter: 'blur(20px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        }}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute -top-16 -left-12 w-[14rem] h-[14rem] rounded-full pointer-events-none"
+          style={{ background: 'rgba(46,255,192,0.10)', filter: 'blur(70px)' }}
+        />
+        <div className="relative px-5 sm:px-6 py-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#2effc0] mb-1 flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3" />
+                Quick start
+              </p>
+              <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
+                Got a listing link? Paste it here.
+              </p>
+              <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
+                Today the link is attached to your PDF report.{' '}
+                <span className="text-[#2effc0]/90 font-semibold">Coming soon</span> — we’ll read the link and auto-fill the form below.
+              </p>
+            </div>
+            <span className="shrink-0 hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#2effc0] bg-[#2effc0]/10 border border-[#2effc0]/25 rounded-full px-2 py-0.5">
+              Optional
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <ListingSourceField
+              source="Bayut"
+              value={bayutUrl}
+              onChange={setBayutUrl}
+              brandColor="#7d2ae8"
+              logoLetter="B"
+            />
+            <ListingSourceField
+              source="Property Finder"
+              value={pfUrl}
+              onChange={setPfUrl}
+              brandColor="#ef4135"
+              logoLetter="P"
+            />
+            <ListingSourceField
+              source="Dubizzle"
+              value={dubizzleUrl}
+              onChange={setDubizzleUrl}
+              brandColor="#ed3a47"
+              logoLetter="D"
+            />
+          </div>
         </div>
       </section>
 
-      {/* ── 2. Property details ── */}
+      {/* "or enter manually" divider — makes the alternative path explicit */}
+      <div className="flex items-center gap-3 text-white/30">
+        <span className="flex-1 h-px bg-white/[0.08]" />
+        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">or enter manually</span>
+        <span className="flex-1 h-px bg-white/[0.08]" />
+      </div>
+
+      {/* ── Property details (the actual analysis input) ── */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
-            <span className="text-[#18d6a4]">Step 2</span> · Property details
+          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/65">
+            Property details
           </h2>
           <span className="text-[11px] text-white/40">* required</span>
         </div>
