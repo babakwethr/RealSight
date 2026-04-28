@@ -316,9 +316,11 @@ function DealAnalyzerContent() {
   const [dubizzleUrl, setDubizzleUrl] = useState('');
   const [extracting, setExtracting] = useState<'bayut' | 'propertyfinder' | 'dubizzle' | null>(null);
 
-  // Manual-entry section auto-collapses once an analysis result appears
-  // (keeps the page from getting overly long below the Result panel).
-  // The user can click the section header to re-open it for tweaks.
+  // Both "input" sections (Option A · Got a link, Option B · No link)
+  // auto-collapse once an analysis result appears so the result sits
+  // closer to the top of the visible page. Click the header of either
+  // to reopen and edit.
+  const [linksOpen, setLinksOpen] = useState(true);
   const [manualOpen, setManualOpen] = useState(true);
 
   // Form entry state
@@ -485,10 +487,13 @@ function DealAnalyzerContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dubizzleUrl]);
 
-  // Auto-collapse the manual entry form when an analysis result arrives,
+  // Auto-collapse both input sections when an analysis result arrives,
   // so the Result panel sits closer to the top of the visible area.
   useEffect(() => {
-    if (result) setManualOpen(false);
+    if (result) {
+      setManualOpen(false);
+      setLinksOpen(false);
+    }
   }, [result]);
 
   const findAreaData = (areaName: string) => {
@@ -743,11 +748,11 @@ function DealAnalyzerContent() {
         ]}
       />
 
-      {/* ── Quick start: listing links (optional shortcut) ── */}
-      {/* Per founder design (28 Apr 2026): URLs are framed as a future
-          quick-fill shortcut, not a sequential step. Today they\'re saved
-          to the PDF report; once we ship scrapers they\'ll auto-fill the
-          form below. The "Soon" microcopy keeps that promise visible. */}
+      {/* ── Quick start: listing links (collapsible) ──
+          Per founder design (28 Apr 2026): URLs are a quick-fill
+          shortcut. Auto-collapses when an analysis result is on
+          screen so the result panel sits near the top; click the
+          header to reopen. */}
       <section
         className="relative rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
         style={{
@@ -762,20 +767,40 @@ function DealAnalyzerContent() {
           style={{ background: 'rgba(46,255,192,0.10)', filter: 'blur(70px)' }}
         />
         <div className="relative px-5 sm:px-6 py-5">
-          <div className="flex items-start justify-between gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => setLinksOpen(o => !o)}
+            aria-expanded={linksOpen}
+            className="w-full flex items-start justify-between gap-3 text-left mb-4"
+          >
             <div className="flex-1 min-w-0">
               <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#2effc0] mb-1 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
                 Option A · Got a link
               </p>
-              <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
-                Paste your client's Bayut, Property Finder or Dubizzle link.
-              </p>
-              <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                Paste the link and we'll <span className="text-[#2effc0]/90 font-semibold">read the listing and run the analysis automatically</span>. You'll see the full report below in seconds. If we can't read the listing, just fill the form manually below.
-              </p>
+              {linksOpen ? (
+                <>
+                  <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
+                    Paste your client's Bayut, Property Finder or Dubizzle link.
+                  </p>
+                  <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
+                    Paste the link and we'll <span className="text-[#2effc0]/90 font-semibold">read the listing and run the analysis automatically</span>. You'll see the full report below in seconds. If we can't read the listing, just fill the form manually below.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] text-white/65 leading-tight">
+                  Paste a Bayut, Property Finder, or Dubizzle link to run a new analysis
+                </p>
+              )}
             </div>
-          </div>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-white/45 mt-1 shrink-0 transition-transform',
+                linksOpen && 'rotate-180',
+              )}
+            />
+          </button>
+          {linksOpen && (
           <div className="grid sm:grid-cols-3 gap-3">
             {/* Logos live at /public/brand/. The component falls back
                 to a colored letter mark if the image fails to load —
@@ -808,13 +833,14 @@ function DealAnalyzerContent() {
               isExtracting={extracting === 'dubizzle'}
             />
           </div>
+          )}
         </div>
       </section>
 
-      {/* OR divider — only shown while the manual section is expanded.
-          When collapsed (post-analysis) the divider would dangle on its
-          own row, which looks like an empty layout artefact. */}
-      {manualOpen && (
+      {/* OR divider — only meaningful when both input sections are
+          expanded (i.e. the user is actively choosing between paths).
+          Hide whenever either is collapsed to avoid a dangling row. */}
+      {linksOpen && manualOpen && (
         <div className="flex items-center gap-3 text-white/30">
           <span className="flex-1 h-px bg-white/[0.08]" />
           <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">OR</span>
