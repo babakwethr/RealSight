@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { GuidanceCard } from '@/components/GuidanceCard';
 import { Bookmark, X, Building, MapPin, Target, Trash2, Plus, Search, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +113,18 @@ function WatchlistContent() {
           Add Item
         </Button>
       </div>
+
+      <GuidanceCard
+        storageKey="watchlist-v1"
+        tone="info"
+        title="Save anything worth tracking"
+        description="Add projects, areas, or market signals you want to keep an eye on. We surface fresh data on each item the next time you visit."
+        bullets={[
+          'Add a project (e.g. "Creek Rise Tower 1") — we\'ll track its price + sales velocity.',
+          'Add an area (e.g. "JVC") — get notified when DLD prices or yields shift.',
+          'Add a signal (e.g. "Price drops in Damac Lagoons") — we monitor and alert.',
+        ]}
+      />
 
       {/* Add Item Form */}
       {addOpen && (

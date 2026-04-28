@@ -48,6 +48,13 @@ export default function SetupWizard() {
       broker_name: user?.user_metadata?.full_name || '',
       logo_url: '',
       color: BRAND_PRESETS[0].color,
+      // Public-profile fields — surface on the path-based landing
+      // (realsight.app/a/{slug}) and on every branded report. All optional;
+      // the landing page falls back to sensible defaults when missing.
+      photo_url: '',
+      bio: '',
+      contact_email: user?.email || '',
+      // ──────────────────────────────────────────────────────────────────
       subdomain: '',
       concierge_name: 'Alex',
       concierge_tone: 'professional',
@@ -122,9 +129,12 @@ export default function SetupWizard() {
             branding_config: {
                 colors: { primary: formData.color },
                 logo_url: formData.logo_url,
+                photo_url: formData.photo_url || null,
+                bio: formData.bio || null,
+                contact_email: formData.contact_email || null,
                 ai_instructions: aiInstructions,
-                welcome_text: formData.welcome_message
-            }
+                welcome_text: formData.welcome_message,
+            },
         })
         .eq('id', rpcResult.tenant_id);
 
@@ -233,6 +243,53 @@ export default function SetupWizard() {
                         )}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* ── Public profile (optional but recommended) ──
+                    These three fields surface on the path-based landing
+                    page (realsight.app/a/{slug}) that prospective investors
+                    see before they sign up. All optional — the page falls
+                    back to sensible defaults if you skip them. */}
+                <div className="space-y-3 pt-6 border-t border-border/40">
+                  <p className="text-[10px] uppercase font-black tracking-[0.18em] text-muted-foreground/80">
+                    Public profile <span className="font-normal normal-case tracking-normal text-muted-foreground/60">(optional · shown on your landing page)</span>
+                  </p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Short bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio}
+                      onChange={(e) => handleChange('bio', e.target.value)}
+                      placeholder="Two sentences about you and how you help investors. Shown on your branded landing page."
+                      rows={3}
+                      className="glass-input"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="photo_url">Profile photo URL</Label>
+                    <Input
+                      id="photo_url"
+                      type="url"
+                      value={formData.photo_url}
+                      onChange={(e) => handleChange('photo_url', e.target.value)}
+                      placeholder="https://… (a square headshot works best)"
+                      className="glass-input h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_email">Contact email</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => handleChange('contact_email', e.target.value)}
+                      placeholder="hello@yourbrand.com"
+                      className="glass-input h-11"
+                    />
                   </div>
                 </div>
               </div>

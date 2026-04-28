@@ -1,21 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
 import {
-  Search, Link as LinkIcon, BarChart3, TrendingUp, CheckCircle2,
-  Loader2, FileText, Presentation, Download, ChevronDown, Building2, X,
+  Search, BarChart3, TrendingUp, CheckCircle2, Loader2, FileText,
+  Presentation, Building2, X, Sparkles, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { FeatureGate } from '@/components/FeatureGate';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { GuidanceCard } from '@/components/GuidanceCard';
 import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/pdf/DealAnalyzerPDF';
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
 
@@ -74,7 +74,6 @@ strengths and weaknesses: 3-5 items each, concise bullet-point style`,
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean);
   } catch {
-    // Fallback if AI unavailable
     const diffPct = ((params.pricePerSqft - params.areaAvgPsf) / params.areaAvgPsf) * 100;
     return {
       verdict: diffPct > 10 ? 'CONDITIONAL BUY' : diffPct < -5 ? 'BUY' : 'CONDITIONAL BUY',
@@ -167,6 +166,80 @@ function DLDSearchInput({
   );
 }
 
+// ── Listing source tile ───────────────────────────────────────────────────
+function ListingSourceField({
+  source,
+  value,
+  onChange,
+  brandColor,
+  logoLetter,
+}: {
+  source: 'Bayut' | 'Property Finder' | 'Dubizzle';
+  value: string;
+  onChange: (v: string) => void;
+  brandColor: string;
+  logoLetter: string;
+}) {
+  const detected = value.toLowerCase().includes(source.toLowerCase().split(' ')[0]);
+  const placeholder = source === 'Bayut'
+    ? 'https://bayut.com/property/...'
+    : source === 'Property Finder'
+      ? 'https://propertyfinder.ae/...'
+      : 'https://dubizzle.com/...';
+
+  return (
+    <div className="relative group">
+      <div
+        className={cn(
+          'rounded-2xl ring-1 transition-all overflow-hidden',
+          detected ? 'ring-[#18d6a4]/45' : 'ring-white/[0.08] hover:ring-white/[0.18]',
+        )}
+        style={{
+          background: 'rgba(7, 4, 15, 0.45)',
+          backdropFilter: 'blur(18px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+        }}
+      >
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[0.06]">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white shrink-0"
+            style={{ background: brandColor }}
+          >
+            {logoLetter}
+          </div>
+          <span className="text-[12px] font-bold text-white tracking-tight flex-1">{source}</span>
+          {detected && (
+            <span className="text-[10px] font-semibold text-[#2effc0] flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Detected
+            </span>
+          )}
+        </div>
+        <div className="px-3 py-2.5">
+          <div className="relative">
+            <Input
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              className="glass-input pr-10 text-[12px] h-9"
+            />
+            {value && (
+              <a
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                aria-label={`Open ${source} listing`}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────
 interface AnalysisResult {
   propertyName: string;
@@ -191,7 +264,6 @@ interface AnalysisResult {
   verdictColor: string;
   cashFlow?: string;
   irr?: string;
-  // AI fields (filled after AI call)
   aiVerdict?: DealAnalyzerPDFData['investmentVerdict'];
   strengths?: string[];
   weaknesses?: string[];
@@ -202,14 +274,16 @@ interface AnalysisResult {
 }
 
 function DealAnalyzerContent() {
-  const { isAdviser, isAdviserPro, isPro, hasFeature } = useSubscription();
+  const { isAdviser, isAdviserPro, isPro } = useSubscription();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'url' | 'form'>('form');
-  const [listingUrl, setListingUrl] = useState('');
-  const [urlSearchText, setUrlSearchText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [pdfLoading, setPdfLoading] = useState<'deal' | 'presentation' | null>(null);
+
+  // Listing-source URLs (all visible, all optional — for adviser reference)
+  const [bayutUrl, setBayutUrl] = useState('');
+  const [pfUrl, setPfUrl] = useState('');
+  const [dubizzleUrl, setDubizzleUrl] = useState('');
 
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
@@ -232,7 +306,6 @@ function DealAnalyzerContent() {
     },
   });
 
-  // Fetch agent profile for PDF
   const { data: agentProfile } = useQuery({
     queryKey: ['agent-profile', user?.id],
     enabled: !!user?.id && isAdviser,
@@ -248,13 +321,6 @@ function DealAnalyzerContent() {
       };
     },
   });
-
-  const detectPlatform = (url: string) => {
-    if (url.includes('propertyfinder')) return 'Property Finder';
-    if (url.includes('bayut')) return 'Bayut';
-    if (url.includes('dubizzle')) return 'Dubizzle';
-    return null;
-  };
 
   const findAreaData = (areaName: string) => {
     if (!dldAreas || !areaName) return null;
@@ -296,7 +362,7 @@ function DealAnalyzerContent() {
     const rent = manualRent ? Number(manualRent) : undefined;
     const serviceFee = manualServiceCharge ? Number(manualServiceCharge) : undefined;
 
-    let calculatedYield = rent ? (rent / price) * 100 : yieldAvg;
+    const calculatedYield = rent ? (rent / price) * 100 : yieldAvg;
     const rentMid = rent || Math.round(price * (yieldAvg / 100));
     const rentLow = Math.round(rentMid * 0.9);
     const rentHigh = Math.round(rentMid * 1.1);
@@ -346,7 +412,6 @@ function DealAnalyzerContent() {
     setResult(baseResult);
     setAnalyzing(false);
 
-    // Generate AI verdict in background
     try {
       const ai = await generateAIVerdict({
         propertyName: baseResult.propertyName,
@@ -412,7 +477,6 @@ function DealAnalyzerContent() {
   const handleDownloadDeal = async () => {
     const data = buildPDFData();
     if (!data) return;
-    if (data.aiLoading) { toast.info('Please wait for AI analysis to complete.'); return; }
     setPdfLoading('deal');
     try {
       const blob = await generateDealAnalyzerPDF(data);
@@ -423,7 +487,7 @@ function DealAnalyzerContent() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Deal Analysis Report downloaded!');
-    } catch (e) {
+    } catch {
       toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setPdfLoading(null);
@@ -433,7 +497,6 @@ function DealAnalyzerContent() {
   const handleDownloadPresentation = async () => {
     const data = buildPDFData();
     if (!data) return;
-    if (data.aiLoading) { toast.info('Please wait for AI analysis to complete.'); return; }
     setPdfLoading('presentation');
     try {
       const blob = await generateInvestorPresentationPDF(data);
@@ -444,89 +507,117 @@ function DealAnalyzerContent() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success('AI Investor Presentation downloaded!');
-    } catch (e) {
+    } catch {
       toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setPdfLoading(null);
     }
   };
 
-  const platform = detectPlatform(listingUrl);
+  const canAnalyze = !!manualPrice && !!manualSize && (!!selectedArea || !!areaSearch);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <BackButton />
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Search className="h-6 w-6 text-primary" />
-          Deal Analyzer
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Analyze any property against real DLD market data and generate a professional PDF report
-        </p>
-      </div>
 
-      {/* Entry mode tabs */}
-      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'url' | 'form')} className="w-full">
-        <TabsList className="grid w-full max-w-sm grid-cols-2 bg-muted/30">
-          <TabsTrigger value="form" className="gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" />
-            Enter Details
-          </TabsTrigger>
-          <TabsTrigger value="url" className="gap-1.5">
-            <LinkIcon className="h-3.5 w-3.5" />
-            Paste URL
-          </TabsTrigger>
-        </TabsList>
-
-        {/* URL tab */}
-        <TabsContent value="url" className="mt-4">
-          <div className="glass-panel p-6">
-            <h3 className="font-semibold text-foreground mb-1">Paste a Listing URL</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Paste a Bayut, Property Finder, or Dubizzle link — then fill in the property details below.
-            </p>
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1 relative">
-                <Input
-                  value={listingUrl}
-                  onChange={e => setListingUrl(e.target.value)}
-                  placeholder="https://bayut.com/property/..."
-                  className="glass-input pr-28"
-                />
-                {platform && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    {platform}
-                  </span>
-                )}
-              </div>
-              <Button
-                onClick={() => setActiveTab('form')}
-                disabled={!listingUrl}
-                className="bg-primary text-primary-foreground rounded-lg shrink-0"
+      {/* ── Hero header — gradient word + AI accent ── */}
+      <div className="relative">
+        <div className="flex items-center gap-3 mb-2">
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+            style={{
+              background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
+              boxShadow: '0 8px 24px rgba(24,214,164,0.35), inset 0 1px 0 rgba(255,255,255,0.45)',
+            }}
+          >
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-none">
+              Deal{' '}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #2d5cff 100%)' }}
               >
-                Fill Details →
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              After pasting, switch to "Enter Details" and fill in the property info from the listing.
+                Analyzer
+              </span>
+            </h1>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Score any Dubai property against live DLD data + AI advice — in seconds
             </p>
           </div>
-        </TabsContent>
+        </div>
+      </div>
 
-        {/* Form tab */}
-        <TabsContent value="form" className="mt-4">
-          <div className="glass-panel p-6">
-            <h3 className="font-semibold text-foreground mb-1">Property Details</h3>
-            <p className="text-xs text-muted-foreground mb-5">
-              Fill in the property details. As you type the area, we'll match it to DLD market data automatically.
-            </p>
+      {/* ── Plain-language guidance ── */}
+      <GuidanceCard
+        storageKey="deal-analyzer-v1"
+        tone="success"
+        title="What this page does for you"
+        description="Paste a Bayut/Property Finder/Dubizzle link (optional, for your records), then enter the property details below. We compare it against real DLD transactions and give you a clear BUY / HOLD / AVOID verdict — plus a downloadable PDF report you can share."
+        bullets={[
+          'Step 1 — Optionally paste the listing URL(s) so the link is on your PDF report.',
+          'Step 2 — Fill the property details (area, price, size, rent). All fields with * are required.',
+          'Step 3 — Click "Analyze Deal". You get a market verdict, AI advice, and downloadable PDFs.',
+          'Tip — The tool works best when you fill expected annual rent + service charge for a true cash-flow view.',
+        ]}
+      />
 
-            <div className="grid sm:grid-cols-2 gap-4">
+      {/* ── 1. Listing source URLs (all visible) ── */}
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
+            <span className="text-[#18d6a4]">Step 1</span> · Listing links <span className="font-semibold text-white/35 normal-case tracking-normal">(optional)</span>
+          </h2>
+          <span className="text-[11px] text-white/40">For your reference / PDF</span>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <ListingSourceField
+            source="Bayut"
+            value={bayutUrl}
+            onChange={setBayutUrl}
+            brandColor="#7d2ae8"
+            logoLetter="B"
+          />
+          <ListingSourceField
+            source="Property Finder"
+            value={pfUrl}
+            onChange={setPfUrl}
+            brandColor="#ef4135"
+            logoLetter="P"
+          />
+          <ListingSourceField
+            source="Dubizzle"
+            value={dubizzleUrl}
+            onChange={setDubizzleUrl}
+            brandColor="#ed3a47"
+            logoLetter="D"
+          />
+        </div>
+      </section>
+
+      {/* ── 2. Property details ── */}
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">
+            <span className="text-[#18d6a4]">Step 2</span> · Property details
+          </h2>
+          <span className="text-[11px] text-white/40">* required</span>
+        </div>
+
+        <div
+          className="rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
+          style={{
+            background: 'rgba(7, 4, 15, 0.55)',
+            backdropFilter: 'blur(28px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+          }}
+        >
+          <div className="p-5 sm:p-6">
+            <div className="grid sm:grid-cols-2 gap-x-5 gap-y-4">
               {/* Property name */}
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="text-xs text-muted-foreground">Property / Development Name</Label>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Property / Development Name</Label>
                 <Input
                   value={propertyName}
                   onChange={e => setPropertyName(e.target.value)}
@@ -535,9 +626,11 @@ function DealAnalyzerContent() {
                 />
               </div>
 
-              {/* Area search with autocomplete */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Area * <span className="text-primary">(searches DLD database)</span></Label>
+              {/* Area + auto-match */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">
+                  Area <span className="text-red-400">*</span> <span className="text-[10px] font-normal normal-case text-[#18d6a4]">(matches DLD database)</span>
+                </Label>
                 <DLDSearchInput
                   value={areaSearch}
                   onChange={v => { setAreaSearch(v); if (v !== selectedArea) setSelectedArea(''); }}
@@ -546,15 +639,15 @@ function DealAnalyzerContent() {
                   placeholder="Type area name, e.g. JVC..."
                 />
                 {selectedArea && (
-                  <p className="text-[10px] text-emerald-500 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Matched to DLD data: {selectedArea}
+                  <p className="text-[10px] text-emerald-400 flex items-center gap-1 pt-0.5">
+                    <CheckCircle2 className="h-3 w-3" /> Matched to DLD: {selectedArea}
                   </p>
                 )}
               </div>
 
               {/* Property type */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Property Type</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Property Type</Label>
                 <Select value={manualType} onValueChange={setManualType}>
                   <SelectTrigger className="glass-input">
                     <SelectValue />
@@ -568,8 +661,8 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Bedrooms */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Bedrooms</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Bedrooms</Label>
                 <Select value={manualBeds} onValueChange={setManualBeds}>
                   <SelectTrigger className="glass-input">
                     <SelectValue />
@@ -584,8 +677,8 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Floor */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Floor / Level</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Floor / Level</Label>
                 <Input
                   value={manualFloor}
                   onChange={e => setManualFloor(e.target.value)}
@@ -595,8 +688,10 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Price */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Asking Price (AED) *</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">
+                  Asking Price (AED) <span className="text-red-400">*</span>
+                </Label>
                 <Input
                   type="number"
                   value={manualPrice}
@@ -607,8 +702,10 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Size */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Size (sq ft) *</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">
+                  Size (sq ft) <span className="text-red-400">*</span>
+                </Label>
                 <Input
                   type="number"
                   value={manualSize}
@@ -619,8 +716,8 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Annual rent */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Expected Annual Rent (AED)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Expected Annual Rent (AED)</Label>
                 <Input
                   type="number"
                   value={manualRent}
@@ -631,8 +728,8 @@ function DealAnalyzerContent() {
               </div>
 
               {/* Service charge */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Service Charge (AED/sqft/yr)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Service Charge (AED/sqft/yr)</Label>
                 <Input
                   type="number"
                   value={manualServiceCharge}
@@ -643,26 +740,45 @@ function DealAnalyzerContent() {
               </div>
             </div>
 
-            <Button
-              onClick={handleAnalyze}
-              disabled={analyzing || !manualPrice || !manualSize || (!selectedArea && !areaSearch)}
-              className="mt-5 bg-primary text-primary-foreground rounded-lg"
-            >
-              {analyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BarChart3 className="h-4 w-4 mr-2" />}
-              Analyze Deal
-            </Button>
+            {/* Sticky-feel CTA bar */}
+            <div className="mt-6 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-[12px] text-white/55">
+                We'll match your area to live <span className="text-white/85 font-semibold">DLD transactions</span> and run an{' '}
+                <span className="text-[#2effc0] font-semibold">AI verdict</span> in seconds.
+              </p>
+              <Button
+                onClick={handleAnalyze}
+                disabled={analyzing || !canAnalyze}
+                size="lg"
+                className="rounded-full px-6 font-bold shrink-0"
+                style={{
+                  background: canAnalyze
+                    ? 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #2d5cff 100%)'
+                    : undefined,
+                  color: canAnalyze ? '#04130b' : undefined,
+                }}
+              >
+                {analyzing
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Analyzing…</>
+                  : <><Sparkles className="h-4 w-4 mr-2" /> Analyze Deal</>}
+              </Button>
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </section>
 
       {/* ── Results ── */}
       {result && (
         <div className="space-y-4 animate-slide-up">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Analysis Results</h2>
-            {/* Download buttons — gated per REALSIGHT_MASTER_SPEC.md §4.4 */}
-            <div className="flex items-center gap-2">
-              {/* Deal Report PDF — Portfolio Pro+ */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <span
+                className="w-1.5 h-5 rounded-full"
+                style={{ background: 'linear-gradient(180deg, #2effc0, #2d5cff)' }}
+              />
+              Analysis Results
+            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
               {isPro ? (
                 <Button
                   size="sm"
@@ -686,7 +802,6 @@ function DealAnalyzerContent() {
                   <span className="text-[9px] font-bold text-amber-400 border border-amber-400/30 bg-amber-400/10 px-1 rounded">PRO</span>
                 </Button>
               )}
-              {/* AI Investor Presentation PDF — Adviser Pro only */}
               {isAdviserPro ? (
                 <Button
                   size="sm"
@@ -721,7 +836,7 @@ function DealAnalyzerContent() {
                 <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
               )}
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-semibold text-foreground">Market Verdict</h3>
                   {result.aiLoading && <span className="text-xs text-muted-foreground">Generating AI analysis…</span>}
                 </div>
@@ -742,8 +857,6 @@ function DealAnalyzerContent() {
           {/* Metrics grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              // Per LAUNCH_PLAN.md §17 — per-sqft prices show USD equivalent in the
-              // tile sub-label so non-UAE investors see the global anchor instantly.
               { label: 'Price/sqft', value: `AED ${result.pricePerSqft.toLocaleString()}`, sub: `≈ USD ${Math.round(result.pricePerSqft / 3.6725).toLocaleString()} /sqft` },
               { label: 'Area Avg',   value: `AED ${result.areaAvgPsf.toLocaleString()}`,   sub: `≈ USD ${Math.round(result.areaAvgPsf / 3.6725).toLocaleString()} /sqft` },
               { label: 'vs Market', value: `${result.diff > 0 ? '+' : ''}${result.diff}%`, sub: result.diff > 0 ? 'Above avg' : result.diff < 0 ? 'Below avg' : 'At market' },
@@ -787,7 +900,7 @@ function DealAnalyzerContent() {
 
           {/* PDF CTA if not adviser pro */}
           {!isAdviserPro && (
-            <div className="glass-panel p-4 flex items-center justify-between">
+            <div id="pdf-upgrade-nudge" className="glass-panel p-4 flex items-center justify-between flex-wrap gap-3">
               <div>
                 <p className="text-sm font-medium text-foreground">AI Investor Presentation PDF</p>
                 <p className="text-xs text-muted-foreground">8-page branded presentation to share with your clients — Adviser Pro only</p>

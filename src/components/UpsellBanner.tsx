@@ -96,9 +96,10 @@ export function UpsellBanner({ feature, className = '', variant = 'card' }: Upse
   if (!config) return null;
 
   // Accent color driven by plan tier — used for halos, badges, and the CTA.
-  // investor_pro = mint, adviser_pro = violet.
+  // investor_pro = mint, adviser_pro = amber/gold (premium upgrade tone, more
+  // eye-catchy than violet against the dark navy UI).
   const accentColor =
-    config.planKey === 'adviser_pro' ? '#7B5CFF' : '#18D6A4';
+    config.planKey === 'adviser_pro' ? '#FFB020' : '#18D6A4';
 
   if (variant === 'compact') {
     return (

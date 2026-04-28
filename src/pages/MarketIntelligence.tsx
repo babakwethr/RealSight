@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
+import { GuidanceCard } from '@/components/GuidanceCard';
 
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
 
@@ -308,6 +309,18 @@ function MarketIntelligenceContent() {
           ))}
         </div>
       </div>
+
+      <GuidanceCard
+        storageKey="market-intelligence-v1"
+        tone="info"
+        title="Live Dubai market intelligence"
+        description="Pick an area chip above (or stay on All Dubai) to see prices, yields, transaction volume and the year-on-year trend — sourced from real DLD records."
+        bullets={[
+          'Pick an area chip above to drill into a specific neighbourhood.',
+          'Hero card shows the headline market score + price growth at a glance.',
+          'Use what you see here when you run the Deal Analyzer — context matters.',
+        ]}
+      />
 
       {/* ── Hero + AI Verdict — mint gradient, signals live market read ── */}
       {kpis && (() => {

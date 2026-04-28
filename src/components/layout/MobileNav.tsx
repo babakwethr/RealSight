@@ -5,8 +5,8 @@ import {
   PieChart,
   MoreHorizontal,
   Sparkles,
-  MessageCircle,
-  Radar as RadarIcon,
+  Bot,
+  Shield,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -18,15 +18,22 @@ interface MobileNavProps {
 }
 
 /**
- * V3 mobile nav — Apple-style glass bar with a protruding FAB.
+ * Mobile nav — Apple-style glass bar with a protruding FAB.
  *
- * Role-based layout:
- *   • Adviser / Admin: Home → Market → [Analyze FAB → /deal-analyzer] → Radar → More
- *   • Investor:        Home → Portfolio → [Ask AI FAB → /concierge]    → Market → More
+ * 28 Apr 2026 redesign — aligned with the role-aware desktop sidebar:
  *
- * The FAB label ("Analyze" or "Ask AI") now sits INSIDE the bar alongside
- * the other tab labels. The bar uses Apple's hallmark frosted-glass look
- * (backdrop-filter blur + saturate over a translucent dark fill).
+ *   INVESTOR (free + Investor Pro):
+ *     Home · Portfolio · [Deal Analyzer FAB] · AI Concierge · More
+ *
+ *   ADVISER (Adviser Pro / admin):
+ *     Home · Markets · [Deal Analyzer FAB] · Admin · More
+ *
+ * The Deal Analyzer FAB is consistent across both roles — it's the single
+ * highest-frequency action either user takes. The 4 tabs around the FAB
+ * vary by role to surface the most-used surfaces for that user type.
+ *
+ * The bar uses the macOS frosted-glass look — translucent dark fill +
+ * strong backdrop blur + saturate.
  */
 export function MobileNav({ onMenuClick }: MobileNavProps) {
   const location = useLocation();
@@ -34,22 +41,27 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   const { isAdmin } = useUserRole();
 
   const signupRole = user?.user_metadata?.signup_role;
-  // Treat admins + explicit advisors as adviser nav; everyone else = investor nav
   const isAdviserNav = isAdmin || signupRole === 'advisor';
 
   const isActive = (to: string) =>
     location.pathname === to || location.pathname.startsWith(to + '/');
 
-  // ---- Role-aware config ----------------------------------------------------
-  const fabConfig = isAdviserNav
-    ? { to: '/deal-analyzer', label: 'Analyze', icon: Sparkles, aria: 'Open Deal Analyzer' }
-    : { to: '/concierge',     label: 'Ask AI',  icon: MessageCircle, aria: 'Open AI Concierge' };
+  // FAB is always Deal Analyzer — the single most-used action for both
+  // investors (analyse a property they're considering) and advisers
+  // (analyse on behalf of a client). Consistent gesture across roles.
+  const fabConfig = {
+    to:    '/deal-analyzer',
+    label: 'Analyze',
+    icon:  Sparkles,
+    aria:  'Open Deal Analyzer',
+  };
 
-  // Left two + right two tabs around the center FAB
+  // Left two + right two tabs around the center FAB.
+  // Choices follow the desktop sidebar's role split.
   const leftTabs = isAdviserNav
     ? [
-        { to: '/dashboard',           label: 'Home',   icon: HomeIcon },
-        { to: '/market-intelligence', label: 'Market', icon: BarChart3 },
+        { to: '/dashboard',           label: 'Home',    icon: HomeIcon },
+        { to: '/market-intelligence', label: 'Markets', icon: BarChart3 },
       ]
     : [
         { to: '/dashboard',           label: 'Home',      icon: HomeIcon },
@@ -58,10 +70,10 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
 
   const rightTabs = isAdviserNav
     ? [
-        { to: '/radar',               label: 'Radar',  icon: RadarIcon },
+        { to: '/admin',               label: 'Admin',   icon: Shield },
       ]
     : [
-        { to: '/market-intelligence', label: 'Market', icon: BarChart3 },
+        { to: '/concierge',           label: 'AI Chat', icon: Bot },
       ];
 
   const FabIcon = fabConfig.icon;

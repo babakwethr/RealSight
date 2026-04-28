@@ -52,7 +52,7 @@ const PLAN_PRICE: Record<string, { active: string; regular: string; discountPct:
 // Accent colour per plan tier — matches UpsellBanner / MarketHome treatment
 const PLAN_ACCENT: Record<string, string> = {
   'Investor Pro': '#18D6A4', // mint
-  'Adviser Pro':  '#7B5CFF', // violet
+  'Adviser Pro':  '#FFB020', // amber/gold — premium "upgrade" tone, more eye-catchy than violet
 };
 
 export function FeatureGate({ feature, children }: FeatureGateProps) {

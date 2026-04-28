@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { GuidanceCard } from '@/components/GuidanceCard';
 import { useNavigate } from 'react-router-dom';
 import { Building, MapPin, DollarSign, TrendingUp, MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -192,8 +193,8 @@ function CompareContent() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Compare Projects</h1>
-          <p className="text-muted-foreground mt-1">Side-by-side project comparison with real market data</p>
+          <h1 className="text-3xl font-bold text-foreground">Compare Holdings</h1>
+          <p className="text-muted-foreground mt-1">Side-by-side ROI between properties in your portfolio</p>
         </div>
         <Button
           onClick={handleAskAI}
@@ -204,6 +205,18 @@ function CompareContent() {
           Ask AI to Compare
         </Button>
       </div>
+
+      <GuidanceCard
+        storageKey="compare-v1"
+        tone="info"
+        title="Compare two of your properties side by side"
+        description="Pick any two holdings from your portfolio. We line up the same metrics — ROI, rental yield, area trend, demand — so you can see which one is pulling its weight."
+        bullets={[
+          'Pick Project 1 and Project 2 below — they\'re drawn from your portfolio.',
+          'We compare ROI, rental yield, YoY growth, demand and liquidity side by side.',
+          'Click "Ask AI to Compare" for a written verdict on which is the stronger hold.',
+        ]}
+      />
 
       {/* Project Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

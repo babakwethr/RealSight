@@ -95,7 +95,7 @@ export function getUpsellTarget(
 
   // Adviser-path users always upsell to Adviser Pro, regardless of intermediate plan.
   if (isAdviser) {
-    return buildCopy('adviser_pro', 'Upgrade to Adviser Pro', adviserBlurb, '#7B5CFF');
+    return buildCopy('adviser_pro', 'Upgrade to Adviser Pro', adviserBlurb, '#FFB020');
   }
 
   // Investor-path: free → Investor Pro; Investor Pro is their target, no upsell.

@@ -31,6 +31,10 @@ export default function AdminSettings() {
         color: '#22c55e',
         logo_url: '',
         ai_instructions: '',
+        // Public-profile fields shown on /a/{slug} landing
+        bio: '',
+        photo_url: '',
+        contact_email: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,12 +55,16 @@ export default function AdminSettings() {
                         .single();
 
                     if (data) {
+                        const config = data.branding_config as any;
                         setFormData({
                             broker_name: data.broker_name || '',
                             subdomain: data.subdomain || '',
-                            color: (data.branding_config as any)?.colors?.primary || '#22c55e',
-                            logo_url: (data.branding_config as any)?.logo_url || '',
-                            ai_instructions: (data.branding_config as any)?.ai_instructions || '',
+                            color: config?.colors?.primary || '#22c55e',
+                            logo_url: config?.logo_url || '',
+                            ai_instructions: config?.ai_instructions || '',
+                            bio: config?.bio || '',
+                            photo_url: config?.photo_url || '',
+                            contact_email: config?.contact_email || '',
                         });
                     }
                 }
@@ -99,8 +107,12 @@ export default function AdminSettings() {
                             ...(tenant.branding_config as any)?.colors || {},
                             primary: validated.color,
                         },
-                        ai_instructions: validated.ai_instructions
-                    }
+                        ai_instructions: validated.ai_instructions,
+                        // Public profile (path-based landing page)
+                        bio: formData.bio || null,
+                        photo_url: formData.photo_url || null,
+                        contact_email: formData.contact_email || null,
+                    },
                 })
                 .eq('id', tenant.id);
 
@@ -206,6 +218,80 @@ export default function AdminSettings() {
                                 ) : (
                                     <p className="text-xs text-muted-foreground">Your branded workspace URL. Changing this updates the link you share with investors.</p>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Public Profile Section ──
+                        Drives the path-based landing at realsight.app/a/{slug}.
+                        Optional fields — landing falls back to defaults if blank. */}
+                    <div className="bg-card glass-panel p-6 sm:p-8 rounded-xl border border-border">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                                <Globe className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="text-xl font-semibold">Public Profile</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    Shown on your branded landing page at{' '}
+                                    <code className="text-foreground/70 bg-muted/40 px-1 py-0.5 rounded">
+                                        realsight.app/a/{formData.subdomain || 'your-slug'}
+                                    </code>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="bio">Short bio</Label>
+                                <Textarea
+                                    id="bio"
+                                    value={formData.bio}
+                                    onChange={(e) => handleChange('bio', e.target.value)}
+                                    placeholder="Two sentences about you and how you help investors. Shown front and centre on your landing page."
+                                    rows={3}
+                                    className="glass-input"
+                                />
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 gap-5">
+                                <div className="space-y-2">
+                                    <Label htmlFor="photo_url">Profile photo URL</Label>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-muted/30 border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                                            {formData.photo_url ? (
+                                                <img
+                                                    src={formData.photo_url}
+                                                    alt="Profile preview"
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                            ) : (
+                                                <Globe className="w-4 h-4 text-muted-foreground/30" />
+                                            )}
+                                        </div>
+                                        <Input
+                                            id="photo_url"
+                                            type="url"
+                                            value={formData.photo_url}
+                                            onChange={(e) => handleChange('photo_url', e.target.value)}
+                                            placeholder="https://… (square headshot)"
+                                            className="glass-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="contact_email">Contact email</Label>
+                                    <Input
+                                        id="contact_email"
+                                        type="email"
+                                        value={formData.contact_email}
+                                        onChange={(e) => handleChange('contact_email', e.target.value)}
+                                        placeholder="hello@yourbrand.com"
+                                        className="glass-input"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -140,8 +140,8 @@ const PLANS: PlanDef[] = [
     trial:        '30-day free trial · cancel anytime',
     highlight: 'adviser',
     ribbon: 'The money product',
-    accent: '#7B5CFF',
-    accentSoft: 'rgba(123,92,255,0.10)',
+    accent: '#FFB020',
+    accentSoft: 'rgba(255,176,32,0.10)',
     groups: [
       {
         label: 'Everything in Investor Pro, plus',
@@ -306,7 +306,7 @@ export default function Billing() {
               className="relative rounded-2xl px-5 sm:px-6 py-4 sm:py-5 overflow-hidden"
               style={{
                 background:
-                  'linear-gradient(90deg, rgba(255,143,30,0.16) 0%, rgba(24,214,164,0.12) 50%, rgba(123,92,255,0.16) 100%)',
+                  'linear-gradient(90deg, rgba(255,143,30,0.18) 0%, rgba(24,214,164,0.14) 50%, rgba(255,176,32,0.20) 100%)',
                 border: '1px solid rgba(255,143,30,0.35)',
                 boxShadow: '0 8px 40px -12px rgba(255,143,30,0.35)',
               }}
@@ -341,11 +341,11 @@ export default function Billing() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-3.5 w-3.5 text-[#b6a4ff] shrink-0" />
+                    <Building2 className="h-3.5 w-3.5 text-[#FFD15C] shrink-0" />
                     <div>
                       <span className="text-foreground/90">Adviser Pro · </span>
                       <span className="text-muted-foreground/55 line-through mr-1">{fmtUsd(PRICING.adviser_pro.regularUsd)}</span>
-                      <strong className="text-[#b6a4ff]">{fmtUsd(PRICING.adviser_pro.launchUsd)}/mo</strong>
+                      <strong className="text-[#FFD15C]">{fmtUsd(PRICING.adviser_pro.launchUsd)}/mo</strong>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -382,15 +382,15 @@ export default function Billing() {
                 )}
                 style={{
                   background: isFeatured
-                    ? 'linear-gradient(165deg, rgba(123,92,255,0.16) 0%, rgba(15,18,40,0.96) 50%, rgba(10,12,30,0.98) 100%)'
+                    ? 'linear-gradient(165deg, rgba(255,176,32,0.18) 0%, rgba(15,18,40,0.96) 50%, rgba(10,12,30,0.98) 100%)'
                     : 'linear-gradient(165deg, rgba(255,255,255,0.05) 0%, rgba(15,18,40,0.85) 100%)',
                   border: `1px solid ${
-                    isFeatured ? 'rgba(123,92,255,0.45)'
+                    isFeatured ? 'rgba(255,176,32,0.50)'
                       : isCurrent ? 'rgba(255,255,255,0.20)'
                         : 'rgba(255,255,255,0.08)'
                   }`,
                   boxShadow: isFeatured
-                    ? '0 0 60px rgba(123,92,255,0.22), 0 16px 50px rgba(0,0,0,0.40)'
+                    ? '0 0 60px rgba(255,176,32,0.28), 0 16px 50px rgba(0,0,0,0.40)'
                     : '0 8px 28px rgba(0,0,0,0.25)',
                   backdropFilter: 'blur(14px)',
                   WebkitBackdropFilter: 'blur(14px)',
@@ -401,9 +401,9 @@ export default function Billing() {
                   <div
                     className="absolute top-0 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-b-lg text-[10px] font-black uppercase tracking-[0.18em] z-10"
                     style={{
-                      background: 'linear-gradient(180deg, #7B5CFF, #5C3FFF)',
-                      color: '#fff',
-                      boxShadow: '0 4px 14px rgba(123,92,255,0.50)',
+                      background: 'linear-gradient(180deg, #FFD15C, #FF8A1F)',
+                      color: '#0a0814',
+                      boxShadow: '0 4px 14px rgba(255,176,32,0.55)',
                     }}
                   >
                     {plan.ribbon}
@@ -700,15 +700,15 @@ export default function Billing() {
         <div
           className="relative rounded-3xl p-7 overflow-hidden"
           style={{
-            background: 'linear-gradient(160deg, rgba(123,92,255,0.10), rgba(15,18,40,0.85))',
-            border: '1px solid rgba(123,92,255,0.22)',
+            background: 'linear-gradient(160deg, rgba(255,176,32,0.10), rgba(15,18,40,0.85))',
+            border: '1px solid rgba(255,176,32,0.24)',
           }}
         >
-          <div className="absolute -top-16 -right-12 w-56 h-56 rounded-full bg-[#7B5CFF]/15 blur-3xl pointer-events-none" />
+          <div className="absolute -top-16 -right-12 w-56 h-56 rounded-full bg-[#FFB020]/15 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-[#7B5CFF]/15 border border-[#7B5CFF]/35 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-[#b6a4ff]" />
+              <div className="w-9 h-9 rounded-xl bg-[#FFB020]/15 border border-[#FFB020]/40 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-[#FFD15C]" />
               </div>
               <h4 className="text-base font-black tracking-tight text-foreground">
                 Not sure which plan?

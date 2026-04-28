@@ -579,10 +579,12 @@ export default function Account() {
               to="/billing"
               className="flex items-center justify-between gap-3 w-full px-4 py-3 rounded-xl transition-colors"
               style={{
+                // Adviser Pro upsell uses amber/gold — premium, eye-catchy on
+                // dark cards, paired with dark text for AA contrast.
                 background: isAdviserUpsell
-                  ? 'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)'
+                  ? 'linear-gradient(135deg, #FFD15C 0%, #FFB020 50%, #FF8A1F 100%)'
                   : 'hsl(var(--primary))',
-                color: isAdviserUpsell ? '#FFFFFF' : 'hsl(var(--primary-foreground))',
+                color: isAdviserUpsell ? '#0a0814' : 'hsl(var(--primary-foreground))',
               }}
             >
               <div className="flex items-center gap-2">

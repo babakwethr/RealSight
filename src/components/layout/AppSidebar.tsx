@@ -204,7 +204,9 @@ export function AppSidebar() {
               <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
               <NavItem to="/heatmap"             icon={Map}       label="Dubai Heatmap" />
               <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
-              <NavItem to="/compare"             icon={Scale}     label="Compare" />
+              {/* Compare lives only in the investor view — it diff's holdings
+                  in the investor's own portfolio, not generic market data.
+                  Advisers compare a CLIENT's holdings via /admin/investors. */}
             </div>
 
             <SectionLabel label="Admin" accent="admin" />
@@ -256,7 +258,7 @@ export function AppSidebar() {
             style={{
               background:
                 upsell.targetPlan === 'adviser_pro'
-                  ? 'linear-gradient(90deg, rgba(123,92,255,0.22), rgba(123,92,255,0.06))'
+                  ? 'linear-gradient(90deg, rgba(255,176,32,0.24), rgba(255,176,32,0.06))'
                   : 'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
               border: `1px solid ${upsell.accent}55`,
             }}
@@ -265,7 +267,8 @@ export function AppSidebar() {
               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
               style={{
                 background: upsell.accent,
-                color: upsell.targetPlan === 'adviser_pro' ? '#FFFFFF' : '#000000',
+                // Amber & mint both need dark text for AA contrast.
+                color: '#0a0814',
               }}
             >
               {upsell.targetPlan === 'adviser_pro'

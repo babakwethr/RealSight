@@ -39,7 +39,8 @@ const ADVISER_SECTIONS = [
       { to: '/market-intelligence', icon: BarChart3,        label: 'Markets' },
       { to: '/heatmap',             icon: Map,              label: 'Dubai Heatmap' },
       { to: '/watchlist',           icon: Bookmark,         label: 'Watchlist' },
-      { to: '/compare',             icon: Columns,          label: 'Compare' },
+      // Compare is investor-only (it diffs holdings in the investor's
+      // portfolio). Advisers compare a CLIENT's holdings inside admin.
     ],
   },
   {

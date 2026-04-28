@@ -64,11 +64,13 @@ export function AppLayout() {
             ? 'White-label · Custom subdomain · Invite clients · Branded reports'
             : 'Live unit availability · Floor & view · Real-time prices';
           const accent = upsell.accent;
+          // Adviser Pro: amber/gold — universally signals "premium upgrade",
+          // far more eye-catchy than violet against the dark navy chrome.
           const buttonGradient = isAdviserUpsell
-            ? 'linear-gradient(90deg,#7B5CFF 0%, #5C3FFF 100%)'
+            ? 'linear-gradient(90deg,#FFD15C 0%, #FFB020 50%, #FF8A1F 100%)'
             : 'linear-gradient(90deg,#2effc0 0%, #18d6a4 55%, #059669 100%)';
           const stripGradient = isAdviserUpsell
-            ? 'linear-gradient(90deg, rgba(123,92,255,0.16) 0%, rgba(123,92,255,0.05) 60%, transparent 100%)'
+            ? 'linear-gradient(90deg, rgba(255,176,32,0.18) 0%, rgba(255,176,32,0.05) 60%, transparent 100%)'
             : 'linear-gradient(90deg, rgba(24,214,164,0.14) 0%, rgba(24,214,164,0.05) 60%, transparent 100%)';
           return (
             <div
@@ -115,7 +117,8 @@ export function AppLayout() {
                   className="flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-xs font-bold sm:font-black px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full transition-transform hover:-translate-y-[1px] whitespace-nowrap"
                   style={{
                     background: buttonGradient,
-                    color: isAdviserUpsell ? '#FFFFFF' : '#000000',
+                    // Amber/gold needs dark text for contrast (same as mint).
+                    color: '#0a0814',
                     boxShadow: `0 4px 14px -4px ${accent}80`,
                   }}
                 >
