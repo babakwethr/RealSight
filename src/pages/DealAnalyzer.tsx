@@ -574,14 +574,14 @@ function DealAnalyzerContent() {
 
       {/* ── Plain-language guidance ── */}
       <GuidanceCard
-        storageKey="deal-analyzer-v2"
+        storageKey="deal-analyzer-v3"
         tone="success"
-        title="What this page does for you"
-        description="Enter the property details below — area, price, size, rent — and we compare it against real DLD transactions to give you a clear BUY / HOLD / AVOID verdict plus a downloadable PDF report. Optionally paste a Bayut, Property Finder or Dubizzle link to attach it to your report."
+        title="Two ways to analyse a deal"
+        description="Pick whichever matches the situation: paste the listing URL your client sent, or enter the property details by hand if all you have is a phone call. You get the same verdict, AI advice, and shareable PDF either way."
         bullets={[
-          'Fill the form. All fields with * are required (area, price, size).',
-          'Click "Analyze Deal" — you get a market verdict, AI advice, and downloadable PDFs.',
-          'Tip — fill expected annual rent + service charge for a true cash-flow view.',
+          'Got a link? Paste a Bayut, Property Finder or Dubizzle URL.',
+          'No link? Enter the area, price, size and beds — that\'s all we need.',
+          'Click "Analyze Deal" — get a verdict, an AI take, and a branded PDF you can send to your client.',
         ]}
       />
 
@@ -608,19 +608,16 @@ function DealAnalyzerContent() {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#2effc0] mb-1 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
-                Quick start
+                Option A · Got a link
               </p>
               <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
-                Got a listing link? Paste it here.
+                Paste your client's Bayut, Property Finder or Dubizzle link.
               </p>
               <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                Today the link is attached to your PDF report.{' '}
-                <span className="text-[#2effc0]/90 font-semibold">Coming soon</span> — we’ll read the link and auto-fill the form below.
+                Today the link is attached to your branded PDF report.{' '}
+                <span className="text-[#2effc0]/90 font-semibold">Coming soon</span> — we'll read the link and auto-fill the property details for you.
               </p>
             </div>
-            <span className="shrink-0 hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#2effc0] bg-[#2effc0]/10 border border-[#2effc0]/25 rounded-full px-2 py-0.5">
-              Optional
-            </span>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
             {/* Logos live at /public/brand/. The component falls back
@@ -654,20 +651,30 @@ function DealAnalyzerContent() {
         </div>
       </section>
 
-      {/* "or enter manually" divider — makes the alternative path explicit */}
+      {/* OR divider — both paths are equal weight (no "primary" hierarchy).
+          Founder feedback (28 Apr 2026): Quick start vs Property details
+          must read as either-or, not Optional / Required. */}
       <div className="flex items-center gap-3 text-white/30">
         <span className="flex-1 h-px bg-white/[0.08]" />
-        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">or enter manually</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">OR</span>
         <span className="flex-1 h-px bg-white/[0.08]" />
       </div>
 
-      {/* ── Property details (the actual analysis input) ── */}
+      {/* ── Option B · Manual entry (the form) ── */}
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/65">
-            Property details
-          </h2>
-          <span className="text-[11px] text-white/40">* required</span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#7aa6ff] mb-1 flex items-center gap-1.5">
+              <BarChart3 className="h-3 w-3" />
+              Option B · No link
+            </p>
+            <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
+              Enter the property details by hand.
+            </p>
+            <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
+              Pick this if your client called you with the basics — area, building, beds, asking price. We need <span className="text-white/85 font-semibold">area, price, and size</span> at minimum.
+            </p>
+          </div>
         </div>
 
         <div
