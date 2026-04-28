@@ -74,12 +74,17 @@ function htmlBody(args: {
             <div style="color:#666;font-size:13px;margin-bottom:20px;">${escapeHtml(args.propertyName)}</div>
             <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#1a1a1a;">${greet}</p>
             ${customMessage}
-            <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#1a1a1a;">The full report is attached as a PDF — it includes the AI verdict, comparable transactions, market context and our recommended strategy.</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-              <tr><td style="background:#0a0f2e;border-radius:8px;">
-                <div style="padding:12px 22px;color:#FFB020;font-size:14px;font-weight:700;">📎 Open the attached PDF</div>
-              </td></tr>
-            </table>
+            <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#1a1a1a;">The full report is attached as a PDF — it includes the AI verdict, comparable transactions, market context and our recommended strategy.</p>
+            <!-- Attachment note — purely visual cue, not a button.
+                 Earlier version used a navy box that looked clickable
+                 but did nothing; founder QA flagged it. Now styled as
+                 a flat outlined notice with a paperclip and the
+                 filename so it's obvious you scroll down to find the
+                 attachment in your mail client. -->
+            <div style="margin:0 0 28px;padding:12px 14px;border:1px dashed #d4d4d8;border-radius:8px;background:#fafafa;color:#52525b;font-size:13px;line-height:1.5;">
+              <span style="display:inline-block;margin-right:8px;color:#a1a1aa;">📎</span>
+              <strong style="color:#0a0f2e;">PDF attached to this email.</strong> Look for the attachment in your mail client (usually at the bottom of this message).
+            </div>
             ${args.agentName ? `
             <div style="border-top:1px solid #eee;padding-top:20px;color:#1a1a1a;">
               <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:6px;">YOUR PROPERTY ADVISER</div>

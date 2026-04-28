@@ -99,7 +99,11 @@ export function SendActionsBar({
     setWhatsapping(true);
     try {
       const blob = await generatePdf();
-      const { publicUrl } = await uploadPdfForShare(blob, {
+      // Prefer the short branded URL (realsight.app/r/{id}) over the
+      // raw Supabase storage URL — looks much better in a WhatsApp
+      // message. Falls back to publicUrl automatically if short-link
+      // creation fails (e.g. RLS issue).
+      const { shortUrl } = await uploadPdfForShare(blob, {
         tenantId,
         filenameSlug: propertyName,
       });
@@ -110,7 +114,7 @@ export function SendActionsBar({
         `Hi! Here's the property analysis I prepared for you:`,
         `${propertyName}`,
         ``,
-        publicUrl,
+        shortUrl,
         ``,
         `— ${brand}`,
         `Powered by RealSight · ${slugLine}`,
