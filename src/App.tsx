@@ -21,6 +21,7 @@ import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
 import ForAdvisers from "./pages/public/ForAdvisers";
 import AdviserLanding from "./pages/public/AdviserLanding";
+import ShareLinkRedirect from "./pages/public/ShareLinkRedirect";
 import Terms from "./pages/public/Terms";
 import Privacy from "./pages/public/Privacy";
 import Security from "./pages/public/Security";
@@ -173,6 +174,11 @@ const App = () => (
               {/* Path-based adviser landing — soft white-label per
                   LAUNCH_PLAN.md §5. Replaces the old subdomain pattern. */}
               <Route path="/a/:slug" element={<AdviserLanding />} />
+              {/* Short-link redirector for shared PDF reports —
+                  realsight.app/r/{12-char-id}. Looks up the share_links
+                  row (RLS allows public select) then window.location
+                  .replaces to the underlying Supabase storage URL. */}
+              <Route path="/r/:id" element={<ShareLinkRedirect />} />
               <Route path="/request-access" element={<RequestAccess />} />
               {/* /login redirects to home + opens modal. Keep /login-page for email confirmation links */}
               <Route path="/login" element={<LoginRedirect />} />

@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/r/:id", "destination": "https://hcbpveurcfdvfjskovvf.supabase.co/functions/v1/r/:id" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
