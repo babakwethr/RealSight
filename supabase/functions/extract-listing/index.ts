@@ -304,19 +304,28 @@ function looksBlocked(html: string, status: number, finalUrl?: string): boolean 
 }
 
 // ── Fetch via ScraperAPI (residential proxy + Cloudflare bypass) ──────────
-// ScraperAPI handles Cloudflare/anti-bot for us. Free tier: 5,000 req/mo.
+// ScraperAPI handles Cloudflare/anti-bot for us. The free trial covers
+// Dubizzle reliably. Bayut and Property Finder use Cloudflare's
+// strongest protection and require ScraperAPI's premium proxy pool —
+// available on the Hobby plan ($49/mo) and above. We do NOT pass
+// premium=true here because the trial plan rejects it with HTTP 403
+// ("your current plan does not allow you to use our premium proxies").
+//
+// When the founder upgrades the ScraperAPI plan, just pass
+// `premium=true` in the params block and Bayut/PF will start working.
+//
 // If SCRAPER_API_KEY isn't configured, this is a no-op.
 async function fetchViaScraperApi(url: string): Promise<{ html: string; status: number } | { error: string }> {
   if (!SCRAPER_API_KEY) return { error: 'No SCRAPER_API_KEY configured' };
   const controller = new AbortController();
-  const tm = setTimeout(() => controller.abort(), 60000); // ScraperAPI can take 30-60s on render
+  const tm = setTimeout(() => controller.abort(), 70000); // render mode can take 30-60s
   try {
     const params = new URLSearchParams({
-      api_key:        SCRAPER_API_KEY,
+      api_key: SCRAPER_API_KEY,
       url,
-      render:         'true',           // run JS so __NEXT_DATA__ hydrates
-      country_code:   'ae',             // residential proxy from UAE — closer geo, less likely to block
-      premium:        'true',           // costs 10 credits but reliable through Cloudflare
+      render:  'true', // run JS so __NEXT_DATA__ hydrates
+      // No country_code — UAE proxies sometimes 500 on PF; default
+      // pool is more reliable for the trial tier.
     });
     const r = await fetch(`https://api.scraperapi.com/?${params}`, {
       signal: controller.signal,
