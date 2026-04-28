@@ -11,6 +11,7 @@ import { Loader2, Globe, Palette, Bot, Save, Settings as SettingsIcon } from 'lu
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { z } from 'zod';
 import { SectionIntro } from '@/components/SectionIntro';
+import { verifyReraQr, reraQrCheckMessage, type ReraQrCheck } from '@/lib/verifyReraQr';
 
 const settingsSchema = z.object({
     broker_name: z.string().trim().min(2, 'Agency name is required'),
@@ -45,10 +46,22 @@ export default function AdminSettings() {
     // RERA QR file pick (component state — doesn't persist).
     const [reraQrFile, setReraQrFile] = useState<File | null>(null);
     const [reraQrPreview, setReraQrPreview] = useState<string | null>(null);
-    const handleReraQrPick = (file: File | null) => {
+    const [reraQrCheck, setReraQrCheck] = useState<ReraQrCheck | null>(null);
+    const [reraVerifying, setReraVerifying] = useState(false);
+    const handleReraQrPick = async (file: File | null) => {
         setReraQrFile(file);
-        if (reraQrPreview) URL.revokeObjectURL(reraQrPreview);
+        setReraQrCheck(null);
+        if (reraQrPreview && !reraQrPreview.startsWith('http')) URL.revokeObjectURL(reraQrPreview);
         setReraQrPreview(file ? URL.createObjectURL(file) : null);
+        if (!file) return;
+        setReraVerifying(true);
+        const check = await verifyReraQr(file);
+        setReraQrCheck(check);
+        setReraVerifying(false);
+        if (check.status !== 'ok') {
+            const m = reraQrCheckMessage(check);
+            toast.error(m.line, { description: m.detail });
+        }
     };
 
     useEffect(() => {
@@ -110,11 +123,16 @@ export default function AdminSettings() {
         try {
             const validated = settingsSchema.parse(formData);
 
-            // If the user picked a new RERA QR, upload it before updating
-            // the tenant row. The bucket's RLS lets them write into their
-            // own tenant_id folder — no extra auth check needed here.
+            // If the user picked a new RERA QR, validate then upload.
+            // The QR must decode to a dubailand.gov.ae URL — we don't
+            // accept arbitrary images.
             let nextReraQrUrl = formData.rera_qr_url || null;
+            let nextDecodedUrl: string | null = null;
+            let nextVerified: boolean | null = null;
             if (reraQrFile) {
+                if (!reraQrCheck || reraQrCheck.status !== 'ok') {
+                    throw new Error('The QR you uploaded does not link to a valid RERA verification URL. Please upload your official RERA QR.');
+                }
                 const ext = (reraQrFile.name.split('.').pop() || 'png').toLowerCase();
                 const path = `${tenant.id}/rera-${Date.now()}.${ext}`;
                 const { error: upErr } = await supabase.storage
@@ -126,7 +144,9 @@ export default function AdminSettings() {
                     });
                 if (upErr) throw new Error(`Failed to upload RERA QR: ${upErr.message}`);
                 const { data: pub } = supabase.storage.from('rera-qr-codes').getPublicUrl(path);
-                nextReraQrUrl = pub.publicUrl;
+                nextReraQrUrl  = pub.publicUrl;
+                nextDecodedUrl = reraQrCheck.decodedUrl;
+                nextVerified   = true;
             }
 
             const { error } = await supabase
@@ -150,6 +170,12 @@ export default function AdminSettings() {
                     // RERA compliance — visible on every PDF.
                     rera_number: formData.rera_number?.trim() || null,
                     rera_qr_url: nextReraQrUrl,
+                    // Only update verification fields if the user
+                    // uploaded a fresh QR — keep prior values otherwise.
+                    ...(reraQrFile ? {
+                      rera_qr_decoded_url: nextDecodedUrl,
+                      rera_verified: nextVerified,
+                    } : {}),
                 })
                 .eq('id', tenant.id);
 
@@ -387,7 +413,25 @@ export default function AdminSettings() {
                                         </div>
                                     </label>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB.</p>
+                                {reraVerifying && (
+                                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Verifying QR…
+                                    </div>
+                                )}
+                                {!reraVerifying && reraQrCheck && (() => {
+                                    const m = reraQrCheckMessage(reraQrCheck);
+                                    const cls = m.tone === 'ok'
+                                        ? 'border-emerald-400/40 bg-emerald-400/[0.06] text-emerald-300'
+                                        : 'border-red-400/40 bg-red-400/[0.06] text-red-300';
+                                    return (
+                                        <div className={`rounded-lg border px-3 py-2 text-[11px] ${cls}`}>
+                                            <p className="font-bold">{m.line}</p>
+                                            {m.detail && <p className="opacity-80 mt-0.5">{m.detail}</p>}
+                                        </div>
+                                    );
+                                })()}
+                                <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB. The QR must link to dubailand.gov.ae.</p>
                             </div>
                         </div>
                     </div>

@@ -380,12 +380,15 @@ function DealAnalyzerContent() {
 
   const agentTenantId = agentProfile?.tenantId;
 
-  // ── URL paste auto-fill ──────────────────────────────────────────────
-  // When the adviser pastes a Bayut/PF/Dubizzle URL, we hit the
-  // `extract-listing` edge function (server-side fetch + OG/JSON-LD
-  // parser) and prefill any form field that's still empty. We never
-  // overwrite something the user has already typed — auto-fill assists,
-  // it doesn't fight the user.
+  // ── URL paste → background analysis ──────────────────────────────────
+  // Founder ask (28 Apr 2026): the link path should "just work" — paste
+  // a URL, get a result. We extract server-side, and:
+  //   • If we have area + price + size → run the analysis automatically
+  //     and show the result. The form stays in sync but the user
+  //     doesn't have to click "Analyze".
+  //   • If we got partial data → fill the form, focus the missing field.
+  //   • If the scrape failed entirely → "Couldn't find the property"
+  //     toast and the manual form is the fallback.
   const tryExtract = async (url: string, source: 'bayut' | 'propertyfinder' | 'dubizzle') => {
     if (!url || !/^https?:\/\//i.test(url)) return;
     setExtracting(source);
@@ -394,39 +397,60 @@ function DealAnalyzerContent() {
       if (error) throw error;
       const r = data as {
         propertyName?: string; area?: string; propertyType?: string;
-        bedrooms?: number; size?: number; price?: number; confidence?: number;
-        error?: string;
+        bedrooms?: number; size?: number; price?: number; rent?: number;
+        confidence?: number; error?: string;
       };
       if (r?.error) {
-        toast.info(`Could not read this link automatically — please fill the form below.`);
+        toast.error(`Couldn't find the property in this ${source} link.`, {
+          description: 'Please enter the property details below to analyse manually.',
+        });
         return;
       }
-      let filled = 0;
-      if (r.propertyName && !propertyName) { setPropertyName(r.propertyName); filled++; }
-      if (r.area && !areaSearch && !selectedArea) { setAreaSearch(r.area); filled++; }
-      if (r.propertyType && (manualType === 'apartment')) {
-        const t = r.propertyType.toLowerCase();
-        if (['apartment','villa','townhouse','penthouse','land'].includes(t)) {
-          setManualType(t);
-          filled++;
-        }
-      }
-      if (typeof r.bedrooms === 'number' && manualBeds === '1') {
-        setManualBeds(String(r.bedrooms));
-        filled++;
-      }
-      if (r.size && !manualSize) { setManualSize(String(r.size)); filled++; }
-      if (r.price && !manualPrice) { setManualPrice(String(r.price)); filled++; }
 
-      if (filled > 0) {
-        toast.success(`Filled ${filled} field${filled === 1 ? '' : 's'} from ${source}`, {
-          description: 'Please verify and complete the form before analysing.',
+      // Mirror everything we got into the visible form so the adviser
+      // can see what was extracted and edit if needed.
+      const platformLabels = { bayut: 'Bayut', propertyfinder: 'Property Finder', dubizzle: 'Dubizzle' };
+      if (r.propertyName) setPropertyName(r.propertyName);
+      if (r.area) { setAreaSearch(r.area); setSelectedArea(r.area); }
+      if (r.propertyType && ['apartment','villa','townhouse','penthouse','land'].includes(r.propertyType)) {
+        setManualType(r.propertyType);
+      }
+      if (typeof r.bedrooms === 'number') setManualBeds(String(r.bedrooms));
+      if (r.size) setManualSize(String(r.size));
+      if (r.price) setManualPrice(String(r.price));
+      if (r.rent) setManualRent(String(r.rent));
+
+      // If we have everything needed for analysis, run it in the
+      // background and surface the result.
+      const hasMinimum = !!r.area && !!r.price && !!r.size;
+      if (hasMinimum) {
+        toast.success(`Reading complete — analysing your ${platformLabels[source]} listing…`);
+        await runAnalysis({
+          area: r.area!,
+          price: r.price!,
+          size: r.size!,
+          propertyName: r.propertyName,
+          propertyType: r.propertyType,
+          bedrooms: typeof r.bedrooms === 'number' ? String(r.bedrooms) : undefined,
+          rent: r.rent,
         });
       } else {
-        toast.info(`We saved your ${source} link, but couldn't extract details automatically.`);
+        // Partial — tell them what's still needed.
+        const missing = [
+          !r.area && 'Area',
+          !r.price && 'Price',
+          !r.size && 'Size',
+        ].filter(Boolean) as string[];
+        toast.info(`Couldn't find ${missing.join(', ').toLowerCase()} in the ${platformLabels[source]} listing.`, {
+          description: missing.length > 0
+            ? `Please add ${missing.join(' and ').toLowerCase()} below, then click Analyze.`
+            : 'Please review the form below and click Analyze.',
+        });
       }
     } catch (e) {
-      toast.info('Could not read this link automatically — please fill the form below.');
+      toast.error(`Couldn't find the property in this link.`, {
+        description: 'Please enter the property details below to analyse manually.',
+      });
     } finally {
       setExtracting(null);
     }
@@ -475,14 +499,30 @@ function DealAnalyzerContent() {
     return change >= 10 ? 'Strong Upward' : change >= 3 ? 'Upward' : change >= -3 ? 'Stable' : change >= -10 ? 'Downward' : 'Declining';
   };
 
-  const handleAnalyze = async () => {
-    const area = selectedArea || areaSearch;
-    const price = Number(manualPrice);
-    const size = Number(manualSize);
+  /**
+   * runAnalysis — pure analysis routine. Accepts explicit inputs so it
+   * can be called from either the form button (which reads state) or
+   * the URL extractor (which has its own values from the scrape).
+   */
+  const runAnalysis = async (inputs: {
+    area: string;
+    price: number;
+    size: number;
+    propertyName?: string;
+    propertyType?: string;
+    bedrooms?: string;
+    floor?: string;
+    rent?: number;
+    serviceCharge?: number;
+  }) => {
+    const { area, price, size } = inputs;
     if (!price || !size || !area) { toast.error('Please fill in Area, Price and Size.'); return; }
 
     setAnalyzing(true);
     setResult(null);
+
+    const propType = (inputs.propertyType || 'apartment').toLowerCase();
+    const beds = inputs.bedrooms || '1';
 
     const pps = Math.round(price / size);
     const areaData = findAreaData(area);
@@ -493,8 +533,8 @@ function DealAnalyzerContent() {
     const priceHistory = areaData?.avg_price_per_sqft_12m_ago || avgPps * 0.9;
     const yoyGrowth = ((avgPps - priceHistory) / priceHistory) * 100;
 
-    const rent = manualRent ? Number(manualRent) : undefined;
-    const serviceFee = manualServiceCharge ? Number(manualServiceCharge) : undefined;
+    const rent = inputs.rent;
+    const serviceFee = inputs.serviceCharge;
 
     const calculatedYield = rent ? (rent / price) * 100 : yieldAvg;
     const rentMid = rent || Math.round(price * (yieldAvg / 100));
@@ -518,11 +558,11 @@ function DealAnalyzerContent() {
     }
 
     const baseResult: AnalysisResult = {
-      propertyName: propertyName || `${area} ${manualType}`,
+      propertyName: inputs.propertyName || `${area} ${propType}`,
       area: areaData?.name || area,
-      unitType: `${manualBeds === '0' ? 'Studio' : manualBeds + '-Bedroom'} ${manualType.charAt(0).toUpperCase() + manualType.slice(1)}`,
+      unitType: `${beds === '0' ? 'Studio' : beds + '-Bedroom'} ${propType.charAt(0).toUpperCase() + propType.slice(1)}`,
       size,
-      floor: manualFloor || undefined,
+      floor: inputs.floor || undefined,
       askingPrice: price,
       pricePerSqft: pps,
       areaAvgPsf: avgPps,
@@ -546,6 +586,13 @@ function DealAnalyzerContent() {
     setResult(baseResult);
     setAnalyzing(false);
 
+    // Scroll into view so the user actually sees the result that just
+    // appeared (especially important for URL paste flow — they pasted
+    // at the top, the result lands further down the page).
+    setTimeout(() => {
+      document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
     try {
       const ai = await generateAIVerdict({
         propertyName: baseResult.propertyName,
@@ -556,12 +603,30 @@ function DealAnalyzerContent() {
         areaAvgPsf: avgPps,
         yoyGrowth,
         rentalYield: calculatedYield,
-        floor: manualFloor,
+        floor: inputs.floor,
       });
       setResult(prev => prev ? { ...prev, ...ai, aiVerdict: ai.verdict, aiLoading: false } : prev);
     } catch {
       setResult(prev => prev ? { ...prev, aiLoading: false } : prev);
     }
+  };
+
+  /**
+   * handleAnalyze — invoked by the Analyze Deal button. Reads form
+   * state and delegates to runAnalysis.
+   */
+  const handleAnalyze = async () => {
+    return runAnalysis({
+      area: selectedArea || areaSearch,
+      price: Number(manualPrice),
+      size: Number(manualSize),
+      propertyName: propertyName || undefined,
+      propertyType: manualType,
+      bedrooms: manualBeds,
+      floor: manualFloor || undefined,
+      rent: manualRent ? Number(manualRent) : undefined,
+      serviceCharge: manualServiceCharge ? Number(manualServiceCharge) : undefined,
+    });
   };
 
   const buildPDFData = (): DealAnalyzerPDFData | null => {
@@ -696,7 +761,7 @@ function DealAnalyzerContent() {
                 Paste your client's Bayut, Property Finder or Dubizzle link.
               </p>
               <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                We'll <span className="text-[#2effc0]/90 font-semibold">read the link automatically</span> and prefill the form below — verify the values and click <span className="text-white font-semibold">Analyze Deal</span>. The link also gets attached to your branded PDF report.
+                Paste the link and we'll <span className="text-[#2effc0]/90 font-semibold">read the listing and run the analysis automatically</span>. You'll see the full report below in seconds. If we can't read the listing, just fill the form manually below.
               </p>
             </div>
           </div>
@@ -925,7 +990,7 @@ function DealAnalyzerContent() {
 
       {/* ── Results ── */}
       {result && (
-        <div className="space-y-4 animate-slide-up">
+        <div id="analysis-results" className="space-y-4 animate-slide-up scroll-mt-24">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <span

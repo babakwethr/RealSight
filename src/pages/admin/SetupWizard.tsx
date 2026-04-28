@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, Building2, Globe, Bot, Send, Sparkles } from 'lucide-react';
+import { verifyReraQr, reraQrCheckMessage, type ReraQrCheck } from '@/lib/verifyReraQr';
 import { Logo } from '@/components/Logo';
 
 // Define preset colors
@@ -44,12 +45,24 @@ export default function SetupWizard() {
   // the tenant_id exists.
   const [reraQrFile, setReraQrFile] = useState<File | null>(null);
   const [reraQrPreview, setReraQrPreview] = useState<string | null>(null);
+  const [reraQrCheck, setReraQrCheck] = useState<ReraQrCheck | null>(null);
+  const [reraVerifying, setReraVerifying] = useState(false);
 
-  const handleReraQrPick = (file: File | null) => {
+  const handleReraQrPick = async (file: File | null) => {
     setReraQrFile(file);
+    setReraQrCheck(null);
     if (errors.rera_qr_url) setErrors(prev => ({ ...prev, rera_qr_url: '' }));
     if (reraQrPreview) URL.revokeObjectURL(reraQrPreview);
     setReraQrPreview(file ? URL.createObjectURL(file) : null);
+    if (!file) return;
+    setReraVerifying(true);
+    const check = await verifyReraQr(file);
+    setReraQrCheck(check);
+    setReraVerifying(false);
+    if (check.status !== 'ok') {
+      const msg = reraQrCheckMessage(check);
+      toast.error(msg.line, { description: msg.detail });
+    }
   };
 
   const [formData, setFormData] = useState(() => {
@@ -98,14 +111,16 @@ export default function SetupWizard() {
         newErrors.broker_name = 'Agency name is required';
       }
       // RERA compliance is mandatory for advisers — every UAE-licensed
-      // broker has a RERA-issued QR + registration number. The actual
-      // QR file is uploaded to Supabase Storage on launch (we need the
-      // tenant_id to be created first to satisfy bucket RLS).
+      // broker has a RERA-issued QR + registration number. The QR is
+      // additionally validated client-side: the QR must encode a URL on
+      // a dubailand.gov.ae host (we don't trust arbitrary uploads).
       if (!formData.rera_number || formData.rera_number.trim().length < 3) {
         newErrors.rera_number = 'Your RERA number is required';
       }
       if (!reraQrFile) {
         newErrors.rera_qr_url = 'Please upload your RERA QR code';
+      } else if (!reraQrCheck || reraQrCheck.status !== 'ok') {
+        newErrors.rera_qr_url = 'The QR you uploaded does not link to a valid RERA verification URL.';
       }
     }
     if (step === 2) {
@@ -187,6 +202,8 @@ export default function SetupWizard() {
             // is shown next to the QR for adviser verification.
             rera_number: formData.rera_number?.trim() || null,
             rera_qr_url: reraQrPublicUrl,
+            rera_qr_decoded_url: reraQrCheck?.status === 'ok' ? reraQrCheck.decodedUrl : null,
+            rera_verified: reraQrCheck?.status === 'ok',
         })
         .eq('id', rpcResult.tenant_id);
 
@@ -398,7 +415,25 @@ export default function SetupWizard() {
                         </label>
                       </div>
                       {errors.rera_qr_url && <p className="text-xs text-destructive">{errors.rera_qr_url}</p>}
-                      <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB.</p>
+                      {reraVerifying && (
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Verifying QR…
+                        </div>
+                      )}
+                      {!reraVerifying && reraQrCheck && (() => {
+                        const m = reraQrCheckMessage(reraQrCheck);
+                        const cls = m.tone === 'ok'
+                          ? 'border-emerald-400/40 bg-emerald-400/[0.06] text-emerald-300'
+                          : 'border-red-400/40 bg-red-400/[0.06] text-red-300';
+                        return (
+                          <div className={`rounded-lg border px-3 py-2 text-[11px] ${cls}`}>
+                            <p className="font-bold">{m.line}</p>
+                            {m.detail && <p className="opacity-80 mt-0.5">{m.detail}</p>}
+                          </div>
+                        );
+                      })()}
+                      <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB. The QR must link to dubailand.gov.ae.</p>
                     </div>
                   </div>
                 </div>

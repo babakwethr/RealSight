@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Logo } from '@/components/Logo';
 import { useTenant } from '@/hooks/useTenant';
+import { verifyReraQr, reraQrCheckMessage, type ReraQrCheck } from '@/lib/verifyReraQr';
 
 // Investor Schema
 const investorSchema = z.object({
@@ -102,11 +103,31 @@ export default function Onboarding() {
   // tenant_id from the setup RPC.
   const [reraQrFile, setReraQrFile] = useState<File | null>(null);
   const [reraQrPreview, setReraQrPreview] = useState<string | null>(null);
-  const handleReraQrPick = (file: File | null) => {
+  const [reraQrCheck, setReraQrCheck] = useState<ReraQrCheck | null>(null);
+  const [reraVerifying, setReraVerifying] = useState(false);
+
+  const handleReraQrPick = async (file: File | null) => {
     setReraQrFile(file);
+    setReraQrCheck(null);
     if (errors.rera_qr_url) setErrors(prev => ({ ...prev, rera_qr_url: '' }));
     if (reraQrPreview) URL.revokeObjectURL(reraQrPreview);
     setReraQrPreview(file ? URL.createObjectURL(file) : null);
+    if (!file) return;
+
+    // Decode + validate locally — block obvious abuse (uploading a
+    // random photo) without calling out to any DLD API (none exists).
+    setReraVerifying(true);
+    const check = await verifyReraQr(file);
+    setReraQrCheck(check);
+    setReraVerifying(false);
+    if (check.status !== 'ok') {
+      const msg = reraQrCheckMessage(check);
+      toast.error(msg.line, { description: msg.detail });
+    } else {
+      toast.success('RERA QR verified', {
+        description: `Linked to ${check.host} — your account will be set up with this QR.`,
+      });
+    }
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -210,6 +231,15 @@ export default function Onboarding() {
         setLoading(false);
         return;
       }
+      // The QR must decode to an official DLD URL. We don't allow random
+      // images through — the decoded URL is the regulator's verification
+      // mechanism, not an arbitrary upload.
+      if (!reraQrCheck || reraQrCheck.status !== 'ok') {
+        setErrors(prev => ({ ...prev, rera_qr_url: 'Please upload a valid RERA QR (verified against dubailand.gov.ae).' }));
+        toast.error('RERA QR not verified', { description: 'Upload your official RERA QR — the one issued by Dubai Land Department.' });
+        setLoading(false);
+        return;
+      }
 
       // Use server-side RPC to create tenant, update profile, and assign admin role
       // This bypasses RLS restrictions via SECURITY DEFINER
@@ -239,12 +269,18 @@ export default function Onboarding() {
       if (upErr) throw new Error(`Failed to upload RERA QR: ${upErr.message}`);
       const { data: pub } = supabase.storage.from('rera-qr-codes').getPublicUrl(path);
 
-      // Persist RERA number + QR URL onto the tenant record.
+      // Persist RERA fields onto the tenant record.
+      // rera_qr_decoded_url + rera_verified are the audit trail —
+      // proving (a) what URL the QR encoded and (b) that we ran the
+      // host-whitelist check at upload time.
+      const decodedUrl = reraQrCheck.status === 'ok' ? reraQrCheck.decodedUrl : null;
       const { error: updateErr } = await supabase
         .from('tenants')
         .update({
           rera_number: validated.rera_number.trim(),
           rera_qr_url: pub.publicUrl,
+          rera_qr_decoded_url: decodedUrl,
+          rera_verified: reraQrCheck.status === 'ok',
         })
         .eq('id', tenantId);
       if (updateErr) throw updateErr;
@@ -488,12 +524,32 @@ export default function Onboarding() {
                       </label>
                     </div>
                     {errors.rera_qr_url && <p className="text-sm text-destructive">{errors.rera_qr_url}</p>}
-                    <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB.</p>
+                    {/* Verification status — surfaces what the QR decoded
+                        to so the user can confirm we recognised it. */}
+                    {reraVerifying && (
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Verifying QR…
+                      </div>
+                    )}
+                    {!reraVerifying && reraQrCheck && (() => {
+                      const m = reraQrCheckMessage(reraQrCheck);
+                      const cls = m.tone === 'ok'
+                        ? 'border-emerald-400/40 bg-emerald-400/[0.06] text-emerald-300'
+                        : 'border-red-400/40 bg-red-400/[0.06] text-red-300';
+                      return (
+                        <div className={`rounded-lg border px-3 py-2 text-[11px] ${cls}`}>
+                          <p className="font-bold">{m.line}</p>
+                          {m.detail && <p className="opacity-80 mt-0.5">{m.detail}</p>}
+                        </div>
+                      );
+                    })()}
+                    <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB. The QR must link to dubailand.gov.ae.</p>
                   </div>
                 </div>
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-accent-green-dark text-black font-semibold py-6 mt-4 transition-all">
+              <Button type="submit" disabled={loading || reraVerifying} className="w-full bg-primary hover:bg-accent-green-dark text-black font-semibold py-6 mt-4 transition-all">
                 {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creating Platform...</> : 'Launch Advisor Platform'}
               </Button>
             </form>

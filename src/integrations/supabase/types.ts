@@ -982,7 +982,9 @@ export type Database = {
           custom_domain: string | null
           id: string
           rera_number: string | null
+          rera_qr_decoded_url: string | null
           rera_qr_url: string | null
+          rera_verified: boolean | null
           stripe_customer_id: string | null
           subdomain: string
           subscription_tier: string
@@ -994,7 +996,9 @@ export type Database = {
           custom_domain?: string | null
           id?: string
           rera_number?: string | null
+          rera_qr_decoded_url?: string | null
           rera_qr_url?: string | null
+          rera_verified?: boolean | null
           stripe_customer_id?: string | null
           subdomain: string
           subscription_tier?: string
@@ -1006,7 +1010,9 @@ export type Database = {
           custom_domain?: string | null
           id?: string
           rera_number?: string | null
+          rera_qr_decoded_url?: string | null
           rera_qr_url?: string | null
+          rera_verified?: boolean | null
           stripe_customer_id?: string | null
           subdomain?: string
           subscription_tier?: string
