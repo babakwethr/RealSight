@@ -191,7 +191,92 @@ function extractFromNextDataPropertyFinder(nd: any): Partial<ExtractResult> | nu
 }
 
 function extractFromNextDataDubizzle(nd: any): Partial<ExtractResult> | null {
-  // Dubizzle typical path: props.pageProps.listingData
+  // Dubizzle's current Next.js setup ships SSR redux actions in
+  // `props.pageProps.reduxWrapperActionsGIPP` — an array of dispatched
+  // actions including `listings/detailPropertyRequest/fulfilled`,
+  // whose payload is the full property record.
+  //
+  // Verified against:
+  //   https://dubai.dubizzle.com/property-for-sale/residential/apartment/2026/4/27/a-world-of-luxury-crafted-for-the-excep-2-464016/
+  //
+  // Payload fields we use:
+  //   price, size, bedrooms, bathrooms — number
+  //   name.en / name.ar              — title
+  //   categories[0].slug | .name.en  — apartment / villa / townhouse / land
+  //   breadcrumbs                    — area name lives in the
+  //                                    second-to-last `{name: url}` entry
+  //                                    (last entry is the building name)
+  //   photos[0].full / .url          — cover photo
+  const gipp = nd?.props?.pageProps?.reduxWrapperActionsGIPP;
+  if (Array.isArray(gipp)) {
+    const fulfilled = gipp.find(
+      (a: any) => a?.type === 'listings/detailPropertyRequest/fulfilled' && a?.payload && typeof a.payload === 'object',
+    );
+    if (fulfilled) {
+      const p = fulfilled.payload;
+      const out: Partial<ExtractResult> = {};
+
+      const name = p.name?.en || p.name?.ar || (typeof p.name === 'string' ? p.name : undefined);
+      if (name) out.propertyName = String(name);
+
+      const price = Number(p.price);
+      if (Number.isFinite(price) && price > 0) out.price = price;
+
+      const size = Number(p.size);
+      if (Number.isFinite(size) && size > 0) out.size = size;
+
+      const beds = Number(p.bedrooms);
+      if (Number.isFinite(beds)) out.bedrooms = beds;
+
+      // Property type — first category is the most specific (Apartment / Villa / etc.)
+      if (Array.isArray(p.categories) && p.categories.length > 0) {
+        const cat = p.categories[0];
+        const slug = cat?.slug;
+        const cname = cat?.name?.en;
+        if (typeof slug === 'string') out.propertyType = slug.toLowerCase();
+        else if (typeof cname === 'string') out.propertyType = cname.toLowerCase();
+      }
+
+      // Area — Dubizzle breadcrumbs follow a consistent pattern:
+      //   [0] root ("")
+      //   [1] listing category ("Apartments for sale in Dubai")
+      //   [2] AREA (e.g. "Meydan")          ← what we want
+      //   [3+] project / building / specific unit
+      //
+      // We want the area name (matches our dld_areas table). The
+      // building/project crumbs are too granular for the DLD match.
+      // Confirmed via index [2] match against the URL pattern
+      // `/in/<area-slug>/` — Dubizzle always uses that for area pages.
+      if (Array.isArray(p.breadcrumbs) && p.breadcrumbs.length >= 3) {
+        const crumb = p.breadcrumbs[2];
+        if (crumb && typeof crumb === 'object') {
+          const name = Object.keys(crumb)[0];
+          if (name && name.length < 60) out.area = name;
+        }
+      }
+      // Fallback: scan all breadcrumbs for a URL containing /in/<slug>/
+      if (!out.area && Array.isArray(p.breadcrumbs)) {
+        for (const crumb of p.breadcrumbs) {
+          if (crumb && typeof crumb === 'object') {
+            const [name, url] = Object.entries(crumb)[0] as [string, unknown];
+            if (typeof url === 'string' && /\/in\//.test(url) && name && name.length < 60) {
+              out.area = name;
+              break;
+            }
+          }
+        }
+      }
+
+      // Photo
+      const photo = p.photos?.[0]?.full ?? p.photos?.[0]?.url ?? p.primary_photo;
+      if (typeof photo === 'string') out.photoUrl = photo;
+
+      if (Object.keys(out).length > 1) return out;
+    }
+  }
+
+  // Legacy paths — older Dubizzle pages or different page types may
+  // still expose data under pageProps.{listingData,listing,adData,detail}.
   const candidates = [
     nd?.props?.pageProps?.listingData,
     nd?.props?.pageProps?.listing,
