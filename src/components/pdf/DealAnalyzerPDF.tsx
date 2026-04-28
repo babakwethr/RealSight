@@ -57,6 +57,14 @@ export interface DealAnalyzerPDFData {
   agentPhone?: string;
   agentEmail?: string;
   agencyName?: string;
+  /** Public URL of the adviser's headshot (tenants.branding_config.photo_url). */
+  agentPhotoUrl?: string;
+  /** Public URL of the adviser's RERA-issued QR code (tenants.rera_qr_url). */
+  reraQrUrl?: string;
+  /** RERA broker registration number — visible on every report for compliance. */
+  reraNumber?: string;
+  /** URL slug used in the upsell footer link to the adviser's branded landing page. */
+  tenantSlug?: string;
   reportDate: string;
 }
 
@@ -91,6 +99,26 @@ function PageFooter({ page, date }: { page: string; date: string }) {
     <View style={S.pageFooter}>
       <Text style={S.footerText}>Data sourced from Dubai Land Department (DLD). For informational purposes only.</Text>
       <Text style={S.footerText}>{date} · Page {page}</Text>
+    </View>
+  );
+}
+
+/**
+ * UpsellBand — discreet "Powered by RealSight" line on every page so a
+ * prospect skimming any page of a sent report sees a free marketing
+ * touchpoint. Links to the adviser's branded landing page (their slug)
+ * which itself is RealSight-branded — so the click leads back to us.
+ */
+function UpsellBand({ slug, isAdviser }: { slug?: string; isAdviser?: boolean }) {
+  // Only show when an adviser is sending — direct-investor downloads
+  // already came from us, no need to upsell-to-self.
+  if (!isAdviser) return null;
+  const link = slug ? `realsight.app/a/${slug}` : 'realsight.app';
+  return (
+    <View style={S.upsellBand} fixed>
+      <Text style={S.upsellBandText}>Powered by </Text>
+      <Text style={S.upsellBandLink}>RealSight</Text>
+      <Text style={S.upsellBandText}> · {link}</Text>
     </View>
   );
 }
@@ -303,6 +331,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </View>
           </View>
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="2" date={d.reportDate} />
       </Page>
 
@@ -367,6 +396,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="3" date={d.reportDate} />
       </Page>
 
@@ -426,6 +456,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="4" date={d.reportDate} />
       </Page>
 
@@ -473,6 +504,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="5" date={d.reportDate} />
       </Page>
 
@@ -531,6 +563,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </View>
           )}
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="6" date={d.reportDate} />
       </Page>
 
@@ -538,8 +571,28 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
       <Page size="A4" style={S.page}>
         <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
-          {/* Agent / Branding Card */}
+          {/* Agent / Branding Card.
+              Three columns when the adviser has uploaded their photo +
+              RERA QR (the launch path): photo · contact · RERA QR.
+              Falls back to a 2-column layout for direct investor reports
+              and for advisers who haven't completed RERA fields yet. */}
           <View style={S.agentCard}>
+            {/* Column 1: photo (advisers only) */}
+            {d.isAdviser && (
+              <View style={S.agentPhotoCol}>
+                {d.agentPhotoUrl ? (
+                  <Image src={d.agentPhotoUrl} style={S.agentPhoto} />
+                ) : (
+                  <View style={S.agentPhotoFallback}>
+                    <Text style={S.agentPhotoFallbackInitial}>
+                      {(d.agentName || 'A').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Column 2: contact details */}
             <View style={S.agentLeft}>
               <Text style={S.agentCardLabel}>{d.isAdviser ? 'YOUR PROPERTY ADVISER' : 'POWERED BY'}</Text>
               <Text style={S.agentCardName}>{d.isAdviser ? (d.agentName || 'RealSight') : 'RealSight'}</Text>
@@ -550,13 +603,33 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
               {!d.isAdviser && <Text style={S.agentCardDetail}>realsight.app</Text>}
               {!d.isAdviser && <Text style={S.agentCardDetail}>Dubai Real Estate Intelligence Platform</Text>}
             </View>
-            <View style={S.agentRight}>
-              <Text style={S.agentBrandName}>RealSight</Text>
-              <Text style={S.agentBrandTagline}>Dubai Real Estate Intelligence</Text>
-              <Text style={S.agentBrandItem}>DLD Registered Transaction Data</Text>
-              <Text style={S.agentBrandItem}>AI-Powered Market Analysis</Text>
-              <Text style={S.agentBrandItem}>realsight.app</Text>
-            </View>
+
+            {/* Column 3: RERA QR + number (advisers only).
+                The RERA QR is issued by Dubai's Real Estate Regulatory
+                Agency to every licensed broker — scanning it verifies
+                the adviser's authority directly with RERA. */}
+            {d.isAdviser ? (
+              <View style={S.reraCol}>
+                <Text style={S.reraLabel}>RERA VERIFIED</Text>
+                {d.reraQrUrl ? (
+                  <Image src={d.reraQrUrl} style={S.reraQrImage} />
+                ) : (
+                  <View style={S.reraQrFallback}>
+                    <Text style={S.reraQrFallbackText}>RERA QR{'\n'}pending</Text>
+                  </View>
+                )}
+                {d.reraNumber && <Text style={S.reraNumberText}>BRN {d.reraNumber}</Text>}
+                <Text style={S.reraVerifiedBadge}>VERIFIED BROKER</Text>
+              </View>
+            ) : (
+              <View style={S.agentRight}>
+                <Text style={S.agentBrandName}>RealSight</Text>
+                <Text style={S.agentBrandTagline}>Dubai Real Estate Intelligence</Text>
+                <Text style={S.agentBrandItem}>DLD Registered Transaction Data</Text>
+                <Text style={S.agentBrandItem}>AI-Powered Market Analysis</Text>
+                <Text style={S.agentBrandItem}>realsight.app</Text>
+              </View>
+            )}
           </View>
 
           {/* Next Steps */}
@@ -588,6 +661,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             Market conditions may change; past performance is not indicative of future results. All prices in AED unless stated.
           </Text>
         </View>
+        <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
         <PageFooter page="7" date={d.reportDate} />
       </Page>
 

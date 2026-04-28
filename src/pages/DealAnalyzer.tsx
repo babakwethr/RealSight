@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
 import {
-  Search, BarChart3, TrendingUp, CheckCircle2, Loader2, FileText,
-  Presentation, Building2, X, Sparkles, ExternalLink,
+  Search, BarChart3, TrendingUp, CheckCircle2, Loader2,
+  Building2, X, Sparkles, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { GuidanceCard } from '@/components/GuidanceCard';
 import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/pdf/DealAnalyzerPDF';
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
+import { SendActionsBar } from '@/components/dealanalyzer/SendActionsBar';
 
 // ── Gemini AI verdict generation ─────────────────────────────────────────
 async function generateAIVerdict(params: {
@@ -174,6 +175,7 @@ function ListingSourceField({
   logoSrc,
   fallbackColor,
   fallbackLetter,
+  isExtracting,
 }: {
   source: 'Bayut' | 'Property Finder' | 'Dubizzle';
   value: string;
@@ -183,6 +185,8 @@ function ListingSourceField({
   logoSrc: string;
   fallbackColor: string;
   fallbackLetter: string;
+  /** Show a spinner + "Reading…" badge while the URL is being scraped. */
+  isExtracting?: boolean;
 }) {
   const [logoFailed, setLogoFailed] = useState(false);
   const showLogo = !!logoSrc && !logoFailed;
@@ -231,11 +235,15 @@ function ListingSourceField({
             </div>
           )}
           <span className="text-[12px] font-bold text-white tracking-tight flex-1">{source}</span>
-          {detected && (
+          {isExtracting ? (
+            <span className="text-[10px] font-semibold text-[#7aa6ff] flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Reading…
+            </span>
+          ) : detected ? (
             <span className="text-[10px] font-semibold text-[#2effc0] flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Detected
             </span>
-          )}
+          ) : null}
         </div>
         <div className="px-3 py-2.5">
           <div className="relative">
@@ -301,12 +309,12 @@ function DealAnalyzerContent() {
   const { user } = useAuth();
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [pdfLoading, setPdfLoading] = useState<'deal' | 'presentation' | null>(null);
 
   // Listing-source URLs (all visible, all optional — for adviser reference)
   const [bayutUrl, setBayutUrl] = useState('');
   const [pfUrl, setPfUrl] = useState('');
   const [dubizzleUrl, setDubizzleUrl] = useState('');
+  const [extracting, setExtracting] = useState<'bayut' | 'propertyfinder' | 'dubizzle' | null>(null);
 
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
@@ -329,21 +337,124 @@ function DealAnalyzerContent() {
     },
   });
 
+  // Adviser context for the PDF: name + phone + email PLUS the tenant
+  // fields we render on page 7 (photo, RERA QR, RERA number, slug for
+  // the upsell footer).
   const { data: agentProfile } = useQuery({
     queryKey: ['agent-profile', user?.id],
     enabled: !!user?.id && isAdviser,
     queryFn: async () => {
       const [profileRes, investorRes] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('user_id', user!.id).maybeSingle(),
+        supabase.from('profiles').select('full_name, tenant_id').eq('user_id', user!.id).maybeSingle(),
         supabase.from('investors').select('phone').eq('user_id', user!.id).maybeSingle(),
       ]);
+
+      // Fetch tenant once we know its ID — gives us branding_config
+      // (logo, photo, contact_email, bio), rera_number, rera_qr_url,
+      // subdomain (URL slug for the upsell footer).
+      let tenantData: any = null;
+      if (profileRes.data?.tenant_id) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('subdomain, broker_name, branding_config, rera_number, rera_qr_url')
+          .eq('id', profileRes.data.tenant_id)
+          .maybeSingle();
+        tenantData = tenant;
+      }
+
+      const branding = (tenantData?.branding_config ?? {}) as Record<string, any>;
       return {
         name: profileRes.data?.full_name || user?.email || 'Agent',
         phone: investorRes.data?.phone || '',
         email: user?.email || '',
+        tenantId:      profileRes.data?.tenant_id || undefined,
+        // Tenant-level branding + compliance
+        tenantSlug:    tenantData?.subdomain || undefined,
+        agencyName:    tenantData?.broker_name || undefined,
+        agentPhotoUrl: typeof branding.photo_url === 'string' ? branding.photo_url : undefined,
+        reraNumber:    tenantData?.rera_number || undefined,
+        reraQrUrl:     tenantData?.rera_qr_url || undefined,
       };
     },
   });
+
+  const agentTenantId = agentProfile?.tenantId;
+
+  // ── URL paste auto-fill ──────────────────────────────────────────────
+  // When the adviser pastes a Bayut/PF/Dubizzle URL, we hit the
+  // `extract-listing` edge function (server-side fetch + OG/JSON-LD
+  // parser) and prefill any form field that's still empty. We never
+  // overwrite something the user has already typed — auto-fill assists,
+  // it doesn't fight the user.
+  const tryExtract = async (url: string, source: 'bayut' | 'propertyfinder' | 'dubizzle') => {
+    if (!url || !/^https?:\/\//i.test(url)) return;
+    setExtracting(source);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-listing', { body: { url } });
+      if (error) throw error;
+      const r = data as {
+        propertyName?: string; area?: string; propertyType?: string;
+        bedrooms?: number; size?: number; price?: number; confidence?: number;
+        error?: string;
+      };
+      if (r?.error) {
+        toast.info(`Could not read this link automatically — please fill the form below.`);
+        return;
+      }
+      let filled = 0;
+      if (r.propertyName && !propertyName) { setPropertyName(r.propertyName); filled++; }
+      if (r.area && !areaSearch && !selectedArea) { setAreaSearch(r.area); filled++; }
+      if (r.propertyType && (manualType === 'apartment')) {
+        const t = r.propertyType.toLowerCase();
+        if (['apartment','villa','townhouse','penthouse','land'].includes(t)) {
+          setManualType(t);
+          filled++;
+        }
+      }
+      if (typeof r.bedrooms === 'number' && manualBeds === '1') {
+        setManualBeds(String(r.bedrooms));
+        filled++;
+      }
+      if (r.size && !manualSize) { setManualSize(String(r.size)); filled++; }
+      if (r.price && !manualPrice) { setManualPrice(String(r.price)); filled++; }
+
+      if (filled > 0) {
+        toast.success(`Filled ${filled} field${filled === 1 ? '' : 's'} from ${source}`, {
+          description: 'Please verify and complete the form before analysing.',
+        });
+      } else {
+        toast.info(`We saved your ${source} link, but couldn't extract details automatically.`);
+      }
+    } catch (e) {
+      toast.info('Could not read this link automatically — please fill the form below.');
+    } finally {
+      setExtracting(null);
+    }
+  };
+
+  // Debounced auto-extraction — fires 600ms after the user stops typing.
+  // We watch each URL state independently so editing one doesn't refetch
+  // the others. Only triggers when the URL looks like a real http(s) link.
+  useEffect(() => {
+    if (!bayutUrl) return;
+    const t = setTimeout(() => tryExtract(bayutUrl, 'bayut'), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bayutUrl]);
+
+  useEffect(() => {
+    if (!pfUrl) return;
+    const t = setTimeout(() => tryExtract(pfUrl, 'propertyfinder'), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pfUrl]);
+
+  useEffect(() => {
+    if (!dubizzleUrl) return;
+    const t = setTimeout(() => tryExtract(dubizzleUrl, 'dubizzle'), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dubizzleUrl]);
 
   const findAreaData = (areaName: string) => {
     if (!dldAreas || !areaName) return null;
@@ -489,53 +600,24 @@ function DealAnalyzerContent() {
       recommendedStrategy: result.recommendedStrategy || `Proceed with due diligence and negotiate based on comparable sales. ${result.diff > 5 ? 'The asking price has room for negotiation given the market evidence.' : 'The pricing appears competitive; a prompt offer is advisable.'}`,
       aiAdvice: result.aiAdvice,
       isAdviser,
-      agentName: isAdviser ? (agentProfile?.name || user?.email) : undefined,
-      agentRole: isAdviser ? 'Property Adviser' : undefined,
-      agentPhone: isAdviser ? agentProfile?.phone : undefined,
-      agentEmail: isAdviser ? agentProfile?.email : undefined,
+      agentName:     isAdviser ? (agentProfile?.name || user?.email) : undefined,
+      agentRole:     isAdviser ? 'Property Adviser' : undefined,
+      agentPhone:    isAdviser ? agentProfile?.phone : undefined,
+      agentEmail:    isAdviser ? agentProfile?.email : undefined,
+      agencyName:    isAdviser ? agentProfile?.agencyName : undefined,
+      // Tenant-level branding + RERA compliance for the agent card on
+      // page 7. All optional — page falls back gracefully when fields
+      // aren't filled (e.g. adviser hasn't completed RERA onboarding).
+      agentPhotoUrl: isAdviser ? agentProfile?.agentPhotoUrl : undefined,
+      reraQrUrl:     isAdviser ? agentProfile?.reraQrUrl : undefined,
+      reraNumber:    isAdviser ? agentProfile?.reraNumber : undefined,
+      tenantSlug:    isAdviser ? agentProfile?.tenantSlug : undefined,
       reportDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
     };
   };
 
-  const handleDownloadDeal = async () => {
-    const data = buildPDFData();
-    if (!data) return;
-    setPdfLoading('deal');
-    try {
-      const blob = await generateDealAnalyzerPDF(data);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RealSight_Deal_Analysis_${data.propertyName.replace(/\s+/g, '_')}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success('Deal Analysis Report downloaded!');
-    } catch {
-      toast.error('Failed to generate PDF. Please try again.');
-    } finally {
-      setPdfLoading(null);
-    }
-  };
-
-  const handleDownloadPresentation = async () => {
-    const data = buildPDFData();
-    if (!data) return;
-    setPdfLoading('presentation');
-    try {
-      const blob = await generateInvestorPresentationPDF(data);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RealSight_Investor_Presentation_${data.propertyName.replace(/\s+/g, '_')}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success('AI Investor Presentation downloaded!');
-    } catch {
-      toast.error('Failed to generate PDF. Please try again.');
-    } finally {
-      setPdfLoading(null);
-    }
-  };
+  // Legacy download handlers were replaced by <SendActionsBar/> below —
+  // it owns Download / Email / WhatsApp via a single generatePdf prop.
 
   const canAnalyze = !!manualPrice && !!manualSize && (!!selectedArea || !!areaSearch);
 
@@ -614,8 +696,7 @@ function DealAnalyzerContent() {
                 Paste your client's Bayut, Property Finder or Dubizzle link.
               </p>
               <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                Today the link is attached to your branded PDF report.{' '}
-                <span className="text-[#2effc0]/90 font-semibold">Coming soon</span> — we'll read the link and auto-fill the property details for you.
+                We'll <span className="text-[#2effc0]/90 font-semibold">read the link automatically</span> and prefill the form below — verify the values and click <span className="text-white font-semibold">Analyze Deal</span>. The link also gets attached to your branded PDF report.
               </p>
             </div>
           </div>
@@ -630,6 +711,7 @@ function DealAnalyzerContent() {
               logoSrc="/brand/bayut.png"
               fallbackColor="#16a34a"
               fallbackLetter="B"
+              isExtracting={extracting === 'bayut'}
             />
             <ListingSourceField
               source="Property Finder"
@@ -638,6 +720,7 @@ function DealAnalyzerContent() {
               logoSrc="/brand/propertyfinder.png"
               fallbackColor="#ef4135"
               fallbackLetter="P"
+              isExtracting={extracting === 'propertyfinder'}
             />
             <ListingSourceField
               source="Dubizzle"
@@ -646,6 +729,7 @@ function DealAnalyzerContent() {
               logoSrc="/brand/dubizzle.png"
               fallbackColor="#ed3a47"
               fallbackLetter="D"
+              isExtracting={extracting === 'dubizzle'}
             />
           </div>
         </div>
@@ -850,53 +934,24 @@ function DealAnalyzerContent() {
               />
               Analysis Results
             </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              {isPro ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleDownloadDeal}
-                  disabled={!!pdfLoading || result.aiLoading}
-                  className="gap-1.5 text-xs"
-                >
-                  {pdfLoading === 'deal' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                  Deal Report PDF
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => document.getElementById('pdf-upgrade-nudge')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="gap-1.5 text-xs opacity-60"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Deal Report PDF
-                  <span className="text-[9px] font-bold text-amber-400 border border-amber-400/30 bg-amber-400/10 px-1 rounded">PRO</span>
-                </Button>
-              )}
-              {isAdviserPro ? (
-                <Button
-                  size="sm"
-                  onClick={handleDownloadPresentation}
-                  disabled={!!pdfLoading || result.aiLoading}
-                  className="gap-1.5 text-xs bg-primary text-primary-foreground"
-                >
-                  {pdfLoading === 'presentation' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Presentation className="h-3.5 w-3.5" />}
-                  Investor Presentation PDF
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => document.getElementById('pdf-upgrade-nudge')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="gap-1.5 text-xs opacity-60"
-                >
-                  <Presentation className="h-3.5 w-3.5" />
-                  AI Investor Presentation
-                  <span className="text-[9px] font-bold text-amber-400 border border-amber-400/30 bg-amber-400/10 px-1 rounded">ADVISER PRO</span>
-                </Button>
-              )}
-            </div>
+            {/* Send actions — Download · Email · WhatsApp.
+                The PDF generator picks the richer Investor Presentation
+                template for advisers (8 pages, branded), and the Deal
+                Analyzer template for direct investors (7 pages). */}
+            <SendActionsBar
+              generatePdf={async () => {
+                const data = buildPDFData();
+                if (!data) throw new Error('No analysis data yet');
+                return isAdviser
+                  ? await generateInvestorPresentationPDF(data)
+                  : await generateDealAnalyzerPDF(data);
+              }}
+              propertyName={result.propertyName}
+              tenantId={agentTenantId}
+              brandName={agentProfile?.agencyName || agentProfile?.name}
+              tenantSlug={agentProfile?.tenantSlug}
+              disabled={result.aiLoading}
+            />
           </div>
 
           {/* AI verdict card */}

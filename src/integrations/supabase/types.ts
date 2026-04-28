@@ -363,9 +363,13 @@ export type Database = {
       dld_transactions: {
         Row: {
           area_id: string
+          bathrooms: number | null
+          bedrooms: number | null
+          building_name: string | null
           buyer_nationality: string | null
           created_at: string
           developer_id: string | null
+          floor: number | null
           id: string
           price: number
           price_per_sqft: number
@@ -376,12 +380,18 @@ export type Database = {
           transaction_date: string
           transaction_number: string
           transaction_type: string
+          unit_number: string | null
+          view: string | null
         }
         Insert: {
           area_id: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_name?: string | null
           buyer_nationality?: string | null
           created_at?: string
           developer_id?: string | null
+          floor?: number | null
           id?: string
           price: number
           price_per_sqft: number
@@ -392,12 +402,18 @@ export type Database = {
           transaction_date: string
           transaction_number: string
           transaction_type: string
+          unit_number?: string | null
+          view?: string | null
         }
         Update: {
           area_id?: string
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_name?: string | null
           buyer_nationality?: string | null
           created_at?: string
           developer_id?: string | null
+          floor?: number | null
           id?: string
           price?: number
           price_per_sqft?: number
@@ -408,6 +424,8 @@ export type Database = {
           transaction_date?: string
           transaction_number?: string
           transaction_type?: string
+          unit_number?: string | null
+          view?: string | null
         }
         Relationships: [
           {
@@ -796,6 +814,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_founder: boolean
           preferred_language: string | null
           tenant_id: string
           updated_at: string
@@ -808,6 +827,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          is_founder?: boolean
           preferred_language?: string | null
           tenant_id: string
           updated_at?: string
@@ -820,6 +840,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_founder?: boolean
           preferred_language?: string | null
           tenant_id?: string
           updated_at?: string
@@ -837,6 +858,8 @@ export type Database = {
       }
       projects: {
         Row: {
+          bedrooms_max: number | null
+          bedrooms_min: number | null
           created_at: string
           description: string | null
           developer: string
@@ -846,9 +869,12 @@ export type Database = {
           name: string
           starting_price: number
           tenant_id: string
+          units_total: number | null
           updated_at: string
         }
         Insert: {
+          bedrooms_max?: number | null
+          bedrooms_min?: number | null
           created_at?: string
           description?: string | null
           developer: string
@@ -858,9 +884,12 @@ export type Database = {
           name: string
           starting_price: number
           tenant_id: string
+          units_total?: number | null
           updated_at?: string
         }
         Update: {
+          bedrooms_max?: number | null
+          bedrooms_min?: number | null
           created_at?: string
           description?: string | null
           developer?: string
@@ -870,6 +899,7 @@ export type Database = {
           name?: string
           starting_price?: number
           tenant_id?: string
+          units_total?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -885,27 +915,54 @@ export type Database = {
       tenant_inventory: {
         Row: {
           added_by: string | null
+          bathrooms: number | null
+          bedrooms: number | null
           created_at: string
+          floor: number | null
           id: string
+          notes: string | null
+          price_aed: number | null
           project_id: string
           project_source: string
+          size_sqft: number | null
+          status: string | null
           tenant_id: string
+          unit_ref: string | null
+          view: string | null
         }
         Insert: {
           added_by?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           created_at?: string
+          floor?: number | null
           id?: string
+          notes?: string | null
+          price_aed?: number | null
           project_id: string
           project_source?: string
+          size_sqft?: number | null
+          status?: string | null
           tenant_id: string
+          unit_ref?: string | null
+          view?: string | null
         }
         Update: {
           added_by?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           created_at?: string
+          floor?: number | null
           id?: string
+          notes?: string | null
+          price_aed?: number | null
           project_id?: string
           project_source?: string
+          size_sqft?: number | null
+          status?: string | null
           tenant_id?: string
+          unit_ref?: string | null
+          view?: string | null
         }
         Relationships: [
           {
@@ -924,6 +981,8 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           id: string
+          rera_number: string | null
+          rera_qr_url: string | null
           stripe_customer_id: string | null
           subdomain: string
           subscription_tier: string
@@ -934,6 +993,8 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           id?: string
+          rera_number?: string | null
+          rera_qr_url?: string | null
           stripe_customer_id?: string | null
           subdomain: string
           subscription_tier?: string
@@ -944,6 +1005,8 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           id?: string
+          rera_number?: string | null
+          rera_qr_url?: string | null
           stripe_customer_id?: string | null
           subdomain?: string
           subscription_tier?: string
@@ -1175,3 +1238,4 @@ export const Constants = {
     },
   },
 } as const
+

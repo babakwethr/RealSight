@@ -620,6 +620,112 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: 2,
   },
 
+  // ── Photo / RERA additions for the agent card (28 Apr 2026) ──
+  // Three-column layout: avatar | contact | RERA QR + number.
+  agentPhotoCol: {
+    width: 78,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingRight: 12,
+    borderRightWidth: 1,
+    borderRightColor: RS.navyLight,
+  },
+  agentPhoto: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    objectFit: 'cover',
+    borderWidth: 2,
+    borderColor: RS.gold,
+  },
+  agentPhotoFallback: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: RS.navyLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agentPhotoFallbackInitial: {
+    fontSize: 22,
+    fontFamily: 'Helvetica-Bold',
+    color: RS.gold,
+  },
+  reraCol: {
+    width: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: RS.navyLight,
+    paddingLeft: 12,
+  },
+  reraLabel: {
+    color: RS.gray400,
+    fontSize: 6.5,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  reraQrImage: {
+    width: 74,
+    height: 74,
+    backgroundColor: RS.white,
+    padding: 3,
+    borderRadius: 4,
+  },
+  reraQrFallback: {
+    width: 74,
+    height: 74,
+    backgroundColor: RS.navyLight,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reraQrFallbackText: {
+    fontSize: 6.5,
+    color: RS.gray400,
+    textAlign: 'center',
+  },
+  reraNumberText: {
+    fontSize: 8,
+    color: RS.white,
+    fontFamily: 'Helvetica-Bold',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  reraVerifiedBadge: {
+    fontSize: 6,
+    color: RS.gold,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  // ── Upsell footer band (every page) ──
+  // Subtle "Powered by RealSight" line so any page of a sent report
+  // becomes a marketing touchpoint. Sits above the existing pageFooter.
+  upsellBand: {
+    position: 'absolute',
+    bottom: 28,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 36,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  upsellBandText: {
+    color: RS.gray400,
+    fontSize: 6.5,
+    letterSpacing: 0.5,
+  },
+  upsellBandLink: {
+    color: RS.gold,
+    fontSize: 6.5,
+    letterSpacing: 0.5,
+    fontFamily: 'Helvetica-Bold',
+  },
+
   // Disclaimer
   disclaimer: {
     fontSize: 6.5,

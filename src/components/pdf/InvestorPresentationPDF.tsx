@@ -109,10 +109,17 @@ function SlideHeader({ title, subtitle, page, brandLabel }: { title: string; sub
   );
 }
 
-function SlideFooter({ page, date }: { page: string; date: string }) {
+function SlideFooter({ page, date, isAdviser, slug }: { page: string; date: string; isAdviser?: boolean; slug?: string }) {
+  // Adviser-sent reports show the upsell line first ("Powered by
+  // RealSight · realsight.app/a/{slug}") so any prospect skimming the
+  // PDF sees a free marketing touchpoint. Direct investor downloads
+  // keep the existing confidentiality line.
+  const leftLine = isAdviser
+    ? `Powered by RealSight · realsight.app${slug ? `/a/${slug}` : ''}`
+    : 'Confidential · RealSight Dubai Real Estate Intelligence · realsight.app';
   return (
     <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 36, paddingVertical: 8, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: RS.gray200 }}>
-      <Text style={{ fontSize: 6.5, color: RS.gray400 }}>Confidential · RealSight Dubai Real Estate Intelligence · realsight.app</Text>
+      <Text style={{ fontSize: 6.5, color: RS.gray400 }}>{leftLine}</Text>
       <Text style={{ fontSize: 6.5, color: RS.gray400 }}>{date} · {page}</Text>
     </View>
   );
@@ -199,7 +206,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="02 / 08" date={d.reportDate} />
+        <SlideFooter page="02 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 3: Dubai Market Snapshot */}
@@ -251,7 +258,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="03 / 08" date={d.reportDate} />
+        <SlideFooter page="03 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 4: Price Benchmarks + Comparables */}
@@ -308,7 +315,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="04 / 08" date={d.reportDate} />
+        <SlideFooter page="04 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 5: Investment Metrics */}
@@ -360,7 +367,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             ))}
           </View>
         </View>
-        <SlideFooter page="05 / 08" date={d.reportDate} />
+        <SlideFooter page="05 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 6: AI Investment Verdict */}
@@ -408,7 +415,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             <Text style={{ fontSize: 8.5, color: RS.gray800, lineHeight: 1.5 }}>{d.recommendedStrategy}</Text>
           </View>
         </View>
-        <SlideFooter page="06 / 08" date={d.reportDate} />
+        <SlideFooter page="06 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 7: AI Advice + Next Steps */}
@@ -442,15 +449,33 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </View>
           ))}
         </View>
-        <SlideFooter page="07 / 08" date={d.reportDate} />
+        <SlideFooter page="07 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 8: About + Disclaimer */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
         <SlideHeader title="About & Disclaimer" page="08" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
-          {/* Agent / brand card */}
+          {/* Agent / brand card — three columns when adviser has photo +
+              RERA QR (the launch path): photo · contact · RERA QR/number.
+              Falls back to a 2-column layout for direct investors. */}
           <View style={{ backgroundColor: RS.navy, borderRadius: 8, padding: 20, flexDirection: 'row', gap: 20, marginBottom: 20 }}>
+            {/* Column 1: photo (advisers only) */}
+            {d.isAdviser && (
+              <View style={S.agentPhotoCol}>
+                {d.agentPhotoUrl ? (
+                  <Image src={d.agentPhotoUrl} style={S.agentPhoto} />
+                ) : (
+                  <View style={S.agentPhotoFallback}>
+                    <Text style={S.agentPhotoFallbackInitial}>
+                      {(d.agentName || 'A').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Column 2: contact details */}
             <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: RS.navyLight, paddingRight: 20 }}>
               <Text style={{ color: RS.gray400, fontSize: 7, marginBottom: 6 }}>{d.isAdviser ? 'YOUR PROPERTY ADVISER' : 'REPORT PREPARED BY'}</Text>
               <Text style={{ color: RS.white, fontSize: 15, fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
@@ -462,13 +487,30 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
               {d.isAdviser && d.agentEmail && <Text style={{ color: RS.gray400, fontSize: 8 }}>{d.agentEmail}</Text>}
               {!d.isAdviser && <Text style={{ color: RS.gray400, fontSize: 8 }}>realsight.app · Dubai Real Estate Intelligence</Text>}
             </View>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: RS.white, fontSize: 14, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 4 }}>RealSight</Text>
-              <Text style={{ color: RS.gold, fontSize: 8, textAlign: 'center', marginBottom: 12 }}>Dubai Real Estate Intelligence</Text>
-              <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>DLD Registered Transaction Data</Text>
-              <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>AI-Powered Market Analysis</Text>
-              <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center' }}>realsight.app</Text>
-            </View>
+
+            {/* Column 3: RERA QR + number for advisers; RealSight badge for direct investors */}
+            {d.isAdviser ? (
+              <View style={S.reraCol}>
+                <Text style={S.reraLabel}>RERA VERIFIED</Text>
+                {d.reraQrUrl ? (
+                  <Image src={d.reraQrUrl} style={S.reraQrImage} />
+                ) : (
+                  <View style={S.reraQrFallback}>
+                    <Text style={S.reraQrFallbackText}>RERA QR{'\n'}pending</Text>
+                  </View>
+                )}
+                {d.reraNumber && <Text style={S.reraNumberText}>BRN {d.reraNumber}</Text>}
+                <Text style={S.reraVerifiedBadge}>VERIFIED BROKER</Text>
+              </View>
+            ) : (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: RS.white, fontSize: 14, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 4 }}>RealSight</Text>
+                <Text style={{ color: RS.gold, fontSize: 8, textAlign: 'center', marginBottom: 12 }}>Dubai Real Estate Intelligence</Text>
+                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>DLD Registered Transaction Data</Text>
+                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>AI-Powered Market Analysis</Text>
+                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center' }}>realsight.app</Text>
+              </View>
+            )}
           </View>
 
           <Text style={{ fontSize: 6.5, color: RS.gray400, lineHeight: 1.5, fontStyle: 'italic', textAlign: 'center' }}>
@@ -481,7 +523,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             RealSight is not a licensed financial advisory service.
           </Text>
         </View>
-        <SlideFooter page="08 / 08" date={d.reportDate} />
+        <SlideFooter page="08 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
     </Document>

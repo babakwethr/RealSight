@@ -35,9 +35,21 @@ export default function AdminSettings() {
         bio: '',
         photo_url: '',
         contact_email: '',
+        // RERA compliance — text + storage URL of the uploaded QR.
+        rera_number: '',
+        rera_qr_url: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // RERA QR file pick (component state — doesn't persist).
+    const [reraQrFile, setReraQrFile] = useState<File | null>(null);
+    const [reraQrPreview, setReraQrPreview] = useState<string | null>(null);
+    const handleReraQrPick = (file: File | null) => {
+        setReraQrFile(file);
+        if (reraQrPreview) URL.revokeObjectURL(reraQrPreview);
+        setReraQrPreview(file ? URL.createObjectURL(file) : null);
+    };
 
     useEffect(() => {
         async function loadTenantSettings() {
@@ -65,7 +77,10 @@ export default function AdminSettings() {
                             bio: config?.bio || '',
                             photo_url: config?.photo_url || '',
                             contact_email: config?.contact_email || '',
+                            rera_number: data.rera_number || '',
+                            rera_qr_url: data.rera_qr_url || '',
                         });
+                        if (data.rera_qr_url) setReraQrPreview(data.rera_qr_url);
                     }
                 }
             } catch (err) {
@@ -95,6 +110,25 @@ export default function AdminSettings() {
         try {
             const validated = settingsSchema.parse(formData);
 
+            // If the user picked a new RERA QR, upload it before updating
+            // the tenant row. The bucket's RLS lets them write into their
+            // own tenant_id folder — no extra auth check needed here.
+            let nextReraQrUrl = formData.rera_qr_url || null;
+            if (reraQrFile) {
+                const ext = (reraQrFile.name.split('.').pop() || 'png').toLowerCase();
+                const path = `${tenant.id}/rera-${Date.now()}.${ext}`;
+                const { error: upErr } = await supabase.storage
+                    .from('rera-qr-codes')
+                    .upload(path, reraQrFile, {
+                        contentType: reraQrFile.type || 'image/png',
+                        cacheControl: '31536000',
+                        upsert: false,
+                    });
+                if (upErr) throw new Error(`Failed to upload RERA QR: ${upErr.message}`);
+                const { data: pub } = supabase.storage.from('rera-qr-codes').getPublicUrl(path);
+                nextReraQrUrl = pub.publicUrl;
+            }
+
             const { error } = await supabase
                 .from('tenants')
                 .update({
@@ -113,6 +147,9 @@ export default function AdminSettings() {
                         photo_url: formData.photo_url || null,
                         contact_email: formData.contact_email || null,
                     },
+                    // RERA compliance — visible on every PDF.
+                    rera_number: formData.rera_number?.trim() || null,
+                    rera_qr_url: nextReraQrUrl,
                 })
                 .eq('id', tenant.id);
 
@@ -292,6 +329,65 @@ export default function AdminSettings() {
                                         className="glass-input"
                                     />
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── RERA Compliance ─────────────────────────────────
+                        Every PDF the adviser generates renders the RERA
+                        QR + number on page 7, so clients can verify the
+                        broker directly with the regulator. */}
+                    <div className="bg-card glass-panel p-6 sm:p-8 rounded-xl border border-amber-300/30">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+                            <div className="p-2 bg-amber-300/15 rounded-lg border border-amber-300/30">
+                                <span className="text-amber-300 font-black text-xs tracking-wider px-1">RERA</span>
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="text-xl font-semibold">RERA Verification</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    Required for adviser accounts — surfaced on every generated PDF report so clients can verify your authority with RERA.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="rera_number">RERA / BRN number</Label>
+                                <Input
+                                    id="rera_number"
+                                    value={formData.rera_number}
+                                    onChange={(e) => handleChange('rera_number', e.target.value)}
+                                    placeholder="e.g. 12345"
+                                    className="glass-input"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="rera_qr_settings">RERA QR code</Label>
+                                <div className="flex items-center gap-3">
+                                    {reraQrPreview && (
+                                        <img
+                                            src={reraQrPreview}
+                                            alt="RERA QR preview"
+                                            className="w-12 h-12 rounded-lg object-contain bg-white border border-border shrink-0"
+                                        />
+                                    )}
+                                    <label className="flex-1 cursor-pointer">
+                                        <input
+                                            id="rera_qr_settings"
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp"
+                                            onChange={(e) => handleReraQrPick(e.target.files?.[0] ?? null)}
+                                            className="sr-only"
+                                        />
+                                        <div className="glass-input h-11 flex items-center justify-center gap-2 text-xs cursor-pointer hover:bg-white/[0.04] transition-colors">
+                                            {reraQrFile
+                                                ? `Change · ${reraQrFile.name.slice(0, 24)}`
+                                                : reraQrPreview ? 'Replace image' : 'Choose image…'}
+                                        </div>
+                                    </label>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB.</p>
                             </div>
                         </div>
                     </div>

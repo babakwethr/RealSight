@@ -39,6 +39,19 @@ export default function SetupWizard() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // RERA QR file — kept out of formData/localStorage because File can't
+  // be serialised. Uploaded to Supabase Storage in handleLaunch once
+  // the tenant_id exists.
+  const [reraQrFile, setReraQrFile] = useState<File | null>(null);
+  const [reraQrPreview, setReraQrPreview] = useState<string | null>(null);
+
+  const handleReraQrPick = (file: File | null) => {
+    setReraQrFile(file);
+    if (errors.rera_qr_url) setErrors(prev => ({ ...prev, rera_qr_url: '' }));
+    if (reraQrPreview) URL.revokeObjectURL(reraQrPreview);
+    setReraQrPreview(file ? URL.createObjectURL(file) : null);
+  };
+
   const [formData, setFormData] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -54,6 +67,10 @@ export default function SetupWizard() {
       photo_url: '',
       bio: '',
       contact_email: user?.email || '',
+      // RERA compliance — required for adviser tenants. The number is
+      // typed; the QR is a Supabase Storage URL after upload.
+      rera_number: '',
+      rera_qr_url: '',
       // ──────────────────────────────────────────────────────────────────
       subdomain: '',
       concierge_name: 'Alex',
@@ -76,8 +93,20 @@ export default function SetupWizard() {
 
   const handleNext = () => {
     const newErrors: Record<string, string> = {};
-    if (step === 1 && formData.broker_name.trim().length < 2) {
-      newErrors.broker_name = 'Agency name is required';
+    if (step === 1) {
+      if (formData.broker_name.trim().length < 2) {
+        newErrors.broker_name = 'Agency name is required';
+      }
+      // RERA compliance is mandatory for advisers — every UAE-licensed
+      // broker has a RERA-issued QR + registration number. The actual
+      // QR file is uploaded to Supabase Storage on launch (we need the
+      // tenant_id to be created first to satisfy bucket RLS).
+      if (!formData.rera_number || formData.rera_number.trim().length < 3) {
+        newErrors.rera_number = 'Your RERA number is required';
+      }
+      if (!reraQrFile) {
+        newErrors.rera_qr_url = 'Please upload your RERA QR code';
+      }
     }
     if (step === 2) {
       if (formData.subdomain.trim().length < 3) {
@@ -123,6 +152,25 @@ export default function SetupWizard() {
       // 2. Update the tenant record with the remaining config details
       const aiInstructions = `You are ${formData.concierge_name}, the AI concierge. Tone: ${formData.concierge_tone}. Assist the user based on these parameters.`;
       
+      // Upload the RERA QR image to Supabase Storage now that we have
+      // a tenant_id (the bucket's RLS policy requires the first folder
+      // segment to match the user's tenant_id from profiles).
+      let reraQrPublicUrl: string | null = formData.rera_qr_url || null;
+      if (reraQrFile) {
+        const ext = (reraQrFile.name.split('.').pop() || 'png').toLowerCase();
+        const path = `${rpcResult.tenant_id}/rera-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('rera-qr-codes')
+          .upload(path, reraQrFile, {
+            contentType: reraQrFile.type || 'image/png',
+            cacheControl: '31536000',
+            upsert: false,
+          });
+        if (upErr) throw new Error(`Failed to upload RERA QR: ${upErr.message}`);
+        const { data: pub } = supabase.storage.from('rera-qr-codes').getPublicUrl(path);
+        reraQrPublicUrl = pub.publicUrl;
+      }
+
       const { error: updateError } = await supabase
         .from('tenants')
         .update({
@@ -135,6 +183,10 @@ export default function SetupWizard() {
                 ai_instructions: aiInstructions,
                 welcome_text: formData.welcome_message,
             },
+            // RERA compliance — surfaces on every PDF agent card and
+            // is shown next to the QR for adviser verification.
+            rera_number: formData.rera_number?.trim() || null,
+            rera_qr_url: reraQrPublicUrl,
         })
         .eq('id', rpcResult.tenant_id);
 
@@ -290,6 +342,64 @@ export default function SetupWizard() {
                       placeholder="hello@yourbrand.com"
                       className="glass-input h-11"
                     />
+                  </div>
+                </div>
+
+                {/* ── RERA compliance — required for adviser tenants ── */}
+                <div className="mt-8 rounded-xl border border-amber-300/25 bg-amber-300/[0.04] p-5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-300/15 border border-amber-300/30 flex items-center justify-center shrink-0">
+                      <span className="text-amber-300 font-black text-xs tracking-wider">RERA</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold text-foreground leading-tight">
+                        RERA verification <span className="text-red-400">*</span>
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Required for every UAE-licensed broker. Your RERA QR code and registration number appear on every PDF report you generate, so clients can verify you directly with the Real Estate Regulatory Agency.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rera_number">RERA / BRN number <span className="text-red-400">*</span></Label>
+                      <Input
+                        id="rera_number"
+                        value={formData.rera_number}
+                        onChange={(e) => handleChange('rera_number', e.target.value)}
+                        placeholder="e.g. 12345"
+                        className={`glass-input h-11 ${errors.rera_number ? 'border-destructive' : ''}`}
+                      />
+                      {errors.rera_number && <p className="text-xs text-destructive">{errors.rera_number}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rera_qr">RERA QR code <span className="text-red-400">*</span></Label>
+                      <div className="flex items-center gap-3">
+                        {reraQrPreview && (
+                          <img
+                            src={reraQrPreview}
+                            alt="RERA QR preview"
+                            className="w-12 h-12 rounded-lg object-contain bg-white border border-white/10"
+                          />
+                        )}
+                        <label className="flex-1 cursor-pointer">
+                          <input
+                            id="rera_qr"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={(e) => handleReraQrPick(e.target.files?.[0] ?? null)}
+                            className="sr-only"
+                          />
+                          <div className={`glass-input h-11 flex items-center justify-center gap-2 text-xs cursor-pointer hover:bg-white/[0.04] transition-colors ${errors.rera_qr_url ? 'border-destructive' : ''}`}>
+                            {reraQrFile ? `Change · ${reraQrFile.name.slice(0, 24)}` : 'Choose image…'}
+                          </div>
+                        </label>
+                      </div>
+                      {errors.rera_qr_url && <p className="text-xs text-destructive">{errors.rera_qr_url}</p>}
+                      <p className="text-[10px] text-muted-foreground">PNG / JPEG / WebP, square, ≤ 5 MB.</p>
+                    </div>
                   </div>
                 </div>
               </div>
