@@ -126,10 +126,6 @@ export default {
           "0%":   { transform: "scale(0.9)", opacity: "0.7" },
           "100%": { transform: "scale(1.3)", opacity: "0" },
         },
-        "ticker-scroll": {
-          "0%":   { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
         "fade-up": {
           from: { opacity: "0", transform: "translateY(10px)" },
           to:   { opacity: "1", transform: "translateY(0)" },
@@ -156,7 +152,6 @@ export default {
         "gradient-shift": "gradient-shift 8s ease infinite",
         "gradient-flow":  "gradient-flow 6s ease infinite",
         "pulse-ring":     "pulse-ring 2s ease-out infinite",
-        "ticker-scroll":  "ticker-scroll 40s linear infinite",
         "fade-up":        "fade-up 420ms cubic-bezier(0.22, 0.61, 0.36, 1.00)",
         "ambient-drift":  "ambient-drift 20s ease-in-out infinite alternate",
         marquee: "marquee var(--duration) linear infinite",

@@ -897,15 +897,6 @@
     100% { transform: scale(1.3); opacity: 0;   }
   }
 
-  /* ============================================
-     DESIGN PACKAGE — Ticker scroll (market band)
-     ============================================ */
-  @keyframes ticker-scroll {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  .ticker-track { animation: ticker-scroll 40s linear infinite; }
-
   /* Scroll fade mask (area pills etc.) */
   .scroll-fade-x {
     mask-image: linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);

@@ -3,6 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { MobileNav } from './MobileNav';
 import { MobileDrawer } from './MobileDrawer';
+import { MarketTickerSlot } from '@/components/ticker/MarketTickerSlot';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -135,6 +136,12 @@ export function AppLayout() {
             </div>
           );
         })()}
+
+        {/* Live market ticker — page-aware Bloomberg-style scroller.
+            Renders only on data pages (Markets, Heatmap, Deal Analyzer,
+            etc.) and stays hidden on personal pages (Portfolio, Account,
+            Billing, …). Source map: src/components/ticker/MarketTickerSlot.tsx */}
+        <MarketTickerSlot />
 
         {/* Content area — extra bottom padding on mobile to clear the curved nav */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-[120px] lg:pb-6 custom-scrollbar mobile-scroll-pad">
