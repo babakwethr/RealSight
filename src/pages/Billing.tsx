@@ -1,7 +1,7 @@
 /**
  * Billing / Pricing page — the canonical 3-plan view per LAUNCH_PLAN.md §2.
  *
- *   Free Investor    $0 forever
+ *   Free User    $0 forever
  *   Investor Pro     $9 / mo  (launch $4 + 1st month free)
  *   Adviser Pro      $199 / mo (launch $99 first 6 months · 30-day trial)
  *
@@ -70,7 +70,7 @@ const PLANS: PlanDef[] = [
   {
     key: 'free',
     icon: User,
-    name: 'Free Investor',
+    name: 'Free User',
     tagline: 'Everything you need to track and grow your portfolio.',
     price: '$0',
     priceSuffix: 'forever',

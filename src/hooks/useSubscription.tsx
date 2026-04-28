@@ -39,7 +39,7 @@ const TIER_RANK: Record<PlanTier, number> = {
 };
 
 export const PLAN_LABELS: Record<PlanTier, string> = {
-  free:          'Free Investor',
+  free:          'Free User',
   investor_pro:  'Investor Pro',
   adviser_pro:   'Adviser Pro',
   adviser_trial: 'Adviser Pro (Trial)',

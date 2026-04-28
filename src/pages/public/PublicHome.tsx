@@ -57,7 +57,7 @@ const advisorFeatures = [
 // 3-plan launch model — see LAUNCH_PLAN.md §2
 const pricingPlans = [
   {
-    name: 'Free Investor',
+    name: 'Free User',
     tier: 'free',
     price: '$0',
     period: 'forever',
@@ -80,7 +80,7 @@ const pricingPlans = [
     period: '/ mo',
     desc: 'Free shows the project. Pro shows you which units you can still buy.',
     features: [
-      'Everything in Free Investor',
+      'Everything in Free, plus',
       'Live unit availability for every off-plan project',
       'Floor, view, real-time price per unit',
       'New unit alerts',
