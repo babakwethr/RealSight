@@ -34,6 +34,11 @@ const SUPPRESS_PATHS = [
   '/login',
   '/reset-password',
   '/auth/callback',
+  // Founder feedback (28 Apr 2026): Deal Analyzer is a focused tool —
+  // the user is mid-task entering numbers; a moving ticker pulls
+  // attention away. Watchlist is a personal list, not a market view.
+  '/deal-analyzer',
+  '/watchlist',
 ];
 
 function isSuppressed(pathname: string): boolean {
@@ -70,14 +75,9 @@ function resolveTickerSource(pathname: string, search: string): Resolved | null 
   // New launches — recent deals (off-plan context).
   if (pathname === '/projects' || pathname.startsWith('/projects/')) return { source: 'recent-deals' };
 
-  // Deal Analyzer — area heartbeats give the investor market context
-  // while they fill the form.
-  if (pathname === '/deal-analyzer') return { source: 'area-heartbeats' };
-
-  // Watchlist — only the user's saved areas.
-  if (pathname === '/watchlist') return { source: 'watched-updates' };
-
-  // Anything else (data-page-wise) — no ticker.
+  // Anything else — no ticker.
+  // (Deal Analyzer and Watchlist are intentionally suppressed; see
+  // SUPPRESS_PATHS above.)
   return null;
 }
 
