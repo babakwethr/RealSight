@@ -171,15 +171,22 @@ function ListingSourceField({
   source,
   value,
   onChange,
-  brandColor,
-  logoLetter,
+  logoSrc,
+  fallbackColor,
+  fallbackLetter,
 }: {
   source: 'Bayut' | 'Property Finder' | 'Dubizzle';
   value: string;
   onChange: (v: string) => void;
-  brandColor: string;
-  logoLetter: string;
+  /** Path to the official brand logo (e.g. "/brand/bayut.png").
+   *  When the file is missing, we fall back to a colored letter mark. */
+  logoSrc: string;
+  fallbackColor: string;
+  fallbackLetter: string;
 }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const showLogo = !!logoSrc && !logoFailed;
+
   const detected = value.toLowerCase().includes(source.toLowerCase().split(' ')[0]);
   const placeholder = source === 'Bayut'
     ? 'https://bayut.com/property/...'
@@ -201,12 +208,28 @@ function ListingSourceField({
         }}
       >
         <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[0.06]">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white shrink-0"
-            style={{ background: brandColor }}
-          >
-            {logoLetter}
-          </div>
+          {showLogo ? (
+            // Square brand mark — shipped at /public/brand/<source>.png.
+            // We render it in a 28px tile with `object-contain` so the
+            // logo's own padding/silhouette stays intact (no zooming or
+            // bleeding past the rounded corners).
+            <img
+              src={logoSrc}
+              alt={`${source} logo`}
+              onError={() => setLogoFailed(true)}
+              className="w-7 h-7 rounded-lg object-contain bg-white shrink-0"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white shrink-0"
+              style={{ background: fallbackColor }}
+              aria-label={`${source} logo`}
+            >
+              {fallbackLetter}
+            </div>
+          )}
           <span className="text-[12px] font-bold text-white tracking-tight flex-1">{source}</span>
           {detected && (
             <span className="text-[10px] font-semibold text-[#2effc0] flex items-center gap-1">
@@ -600,26 +623,32 @@ function DealAnalyzerContent() {
             </span>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
+            {/* Logos live at /public/brand/. The component falls back
+                to a colored letter mark if the image fails to load —
+                so deploys don't break if an asset is missing. */}
             <ListingSourceField
               source="Bayut"
               value={bayutUrl}
               onChange={setBayutUrl}
-              brandColor="#7d2ae8"
-              logoLetter="B"
+              logoSrc="/brand/bayut.png"
+              fallbackColor="#16a34a"
+              fallbackLetter="B"
             />
             <ListingSourceField
               source="Property Finder"
               value={pfUrl}
               onChange={setPfUrl}
-              brandColor="#ef4135"
-              logoLetter="P"
+              logoSrc="/brand/propertyfinder.png"
+              fallbackColor="#ef4135"
+              fallbackLetter="P"
             />
             <ListingSourceField
               source="Dubizzle"
               value={dubizzleUrl}
               onChange={setDubizzleUrl}
-              brandColor="#ed3a47"
-              logoLetter="D"
+              logoSrc="/brand/dubizzle.png"
+              fallbackColor="#ed3a47"
+              fallbackLetter="D"
             />
           </div>
         </div>
