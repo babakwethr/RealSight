@@ -3,6 +3,7 @@ import {
 } from '@react-pdf/renderer';
 import { pdfStyles as S, RS } from './pdfStyles';
 import type { DealAnalyzerPDFData } from './DealAnalyzerPDF';
+import { imageToDataUrl, imagesToDataUrls } from '@/lib/imageToDataUrl';
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-US').format(Math.round(n));
@@ -531,6 +532,23 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 }
 
 export async function generateInvestorPresentationPDF(data: DealAnalyzerPDFData): Promise<Blob> {
-  const blob = await pdf(<InvestorPresentationPDFDoc d={data} />).toBlob();
+  // Same pre-fetch trick as generateDealAnalyzerPDF — @react-pdf's
+  // worker fetcher silently fails for many image URLs. Pre-loading on
+  // the main thread guarantees the headshot + RERA QR + any future
+  // listing photos embed correctly.
+  const [agentPhotoDataUrl, reraQrDataUrl, galleryDataUrls] = await Promise.all([
+    data.agentPhotoUrl ? imageToDataUrl(data.agentPhotoUrl) : Promise.resolve(null),
+    data.reraQrUrl     ? imageToDataUrl(data.reraQrUrl)     : Promise.resolve(null),
+    imagesToDataUrls(data.photos ?? []),
+  ]);
+
+  const enriched: DealAnalyzerPDFData = {
+    ...data,
+    agentPhotoUrl: agentPhotoDataUrl ?? data.agentPhotoUrl,
+    reraQrUrl:     reraQrDataUrl     ?? data.reraQrUrl,
+    photos:        galleryDataUrls.length > 0 ? galleryDataUrls : data.photos,
+  };
+
+  const blob = await pdf(<InvestorPresentationPDFDoc d={enriched} />).toBlob();
   return blob;
 }

@@ -2,18 +2,29 @@ import {
   Document, Page, Text, View, Image, pdf,
 } from '@react-pdf/renderer';
 import { pdfStyles as S, RS } from './pdfStyles';
+import { imageToDataUrl, imagesToDataUrls } from '@/lib/imageToDataUrl';
 
-// @react-pdf/renderer fetches Image src via the worker's fetch impl,
-// which does NOT resolve relative URLs against window.location the
-// way the main thread does. Static assets in /public must therefore
-// be addressed by absolute URL or the Image silently renders blank.
-// This helper resolves the runtime origin (browser) and falls back
-// to the canonical domain in any non-browser context.
+// @react-pdf/renderer's Image component refuses to embed via URL in
+// many real-world cases (relative paths, CORS, certain Vercel-served
+// static assets). Founder QA 29 Apr 2026 confirmed: PDFs were
+// rendering with NO images at all even with absolute URLs. The
+// reliable path is pre-fetching every image on the main thread,
+// converting to a base64 data URI, and passing that into the PDF
+// renderer — which handles data: URIs without any fetch.
+//
+// `generateDealAnalyzerPDF` below pre-loads:
+//   - both Dubai banner stills (cover + agent page)
+//   - the adviser headshot (tenants.branding_config.photo_url)
+//   - the RERA QR code (tenants.rera_qr_url)
+//   - up to 6 listing gallery photos (extracted from Bayut/PF/Dubizzle)
+//
+// Any image that fails to fetch (e.g. CORS-blocked CDN) is dropped
+// and the corresponding Image component renders a fallback block.
 const ORIGIN = typeof window !== 'undefined' && window.location?.origin
   ? window.location.origin
   : 'https://www.realsight.app';
-const DUBAI_SKYLINE_URL = `${ORIGIN}/pdf-bg/dubai-skyline.jpg`;
-const DUBAI_MARINA_URL  = `${ORIGIN}/pdf-bg/dubai-marina.jpg`;
+const DUBAI_SKYLINE_SRC_URL = `${ORIGIN}/pdf-bg/dubai-skyline.jpg`;
+const DUBAI_MARINA_SRC_URL  = `${ORIGIN}/pdf-bg/dubai-marina.jpg`;
 
 export interface DealAnalyzerPDFData {
   // Property
@@ -27,7 +38,10 @@ export interface DealAnalyzerPDFData {
   pricePerSqft: number;
   /** Listing photos extracted from Bayut / Property Finder / Dubizzle.
    *  When present (≥ 1) and the user is an adviser, the PDF inserts a
-   *  Listing Gallery page between the AI Verdict and the Agent Card. */
+   *  Listing Gallery page between the AI Verdict and the Agent Card.
+   *  These can be either remote URLs OR data: URIs — the PDF generator
+   *  pre-fetches each one to a data URI before rendering so the Image
+   *  components don't have to do any cross-origin work. */
   photos?: string[];   // image URLs
 
   // Market
@@ -76,6 +90,11 @@ export interface DealAnalyzerPDFData {
   agentPhotoUrl?: string;
   /** Public URL of the adviser's RERA-issued QR code (tenants.rera_qr_url). */
   reraQrUrl?: string;
+  /** Pre-loaded data: URIs for the static Dubai banners. Optional
+   *  because we tolerate them being absent — generateDealAnalyzerPDF
+   *  fills these in. */
+  _dubaiSkyline?: string;
+  _dubaiMarina?: string;
   /** RERA broker registration number — visible on every report for compliance. */
   reraNumber?: string;
   /** URL slug used in the upsell footer link to the adviser's branded landing page. */
@@ -225,7 +244,9 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             without distracting from the property data below. The
             overlay tints it navy so the gold badge stays legible. */}
         <View style={{ position: 'relative', height: 140 }}>
-          <Image src={DUBAI_SKYLINE_URL} style={S.coverBannerImage} />
+          {d._dubaiSkyline && (
+            <Image src={d._dubaiSkyline} style={S.coverBannerImage} />
+          )}
           <View style={S.coverBannerOverlay} />
           <View style={S.coverBannerBadgeWrap}>
             <View style={S.coverBadge}>
@@ -711,7 +732,9 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             space on the bottom half of the page. The overlay tints it
             navy so the disclaimer underneath stays readable. */}
         <View style={{ position: 'relative', marginTop: 8 }}>
-          <Image src={DUBAI_MARINA_URL} style={S.agentPageBanner} />
+          {d._dubaiMarina && (
+            <Image src={d._dubaiMarina} style={S.agentPageBanner} />
+          )}
           <View style={S.agentPageBannerOverlay} />
         </View>
 
@@ -732,7 +755,54 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
   );
 }
 
+/**
+ * generateDealAnalyzerPDF — pre-fetches every image URL referenced by
+ * the doc into base64 data URIs (on the main thread, where fetch
+ * works correctly), then renders the PDF.
+ *
+ * @react-pdf's worker-context fetcher silently fails for both
+ * relative paths and many cross-origin URLs (gallery photos from
+ * Dubizzle CDN, even Vercel-served public/ assets). Doing the fetch
+ * here removes that whole failure surface.
+ *
+ * Anything that fails to fetch is dropped — the corresponding Image
+ * component renders nothing rather than crashing the PDF.
+ */
 export async function generateDealAnalyzerPDF(data: DealAnalyzerPDFData): Promise<Blob> {
-  const blob = await pdf(<DealAnalyzerPDFDoc d={data} />).toBlob();
+  // Fan out every image fetch in parallel.
+  const [
+    skylineDataUrl,
+    marinaDataUrl,
+    agentPhotoDataUrl,
+    reraQrDataUrl,
+    galleryDataUrls,
+  ] = await Promise.all([
+    imageToDataUrl(DUBAI_SKYLINE_SRC_URL),
+    imageToDataUrl(DUBAI_MARINA_SRC_URL),
+    data.agentPhotoUrl ? imageToDataUrl(data.agentPhotoUrl) : Promise.resolve(null),
+    data.reraQrUrl     ? imageToDataUrl(data.reraQrUrl)     : Promise.resolve(null),
+    imagesToDataUrls(data.photos ?? []),
+  ]);
+
+  const enriched: DealAnalyzerPDFData = {
+    ...data,
+    _dubaiSkyline:  skylineDataUrl ?? undefined,
+    _dubaiMarina:   marinaDataUrl  ?? undefined,
+    agentPhotoUrl:  agentPhotoDataUrl ?? data.agentPhotoUrl,
+    reraQrUrl:      reraQrDataUrl     ?? data.reraQrUrl,
+    photos:         galleryDataUrls.length > 0 ? galleryDataUrls : data.photos,
+  };
+
+  // Diagnostic for QA: which images made it through?
+  console.info('[generateDealAnalyzerPDF] images prepared', {
+    skyline:    !!skylineDataUrl,
+    marina:     !!marinaDataUrl,
+    agentPhoto: !!agentPhotoDataUrl,
+    reraQr:     !!reraQrDataUrl,
+    gallery:    galleryDataUrls.length,
+    galleryRequested: data.photos?.length ?? 0,
+  });
+
+  const blob = await pdf(<DealAnalyzerPDFDoc d={enriched} />).toBlob();
   return blob;
 }
