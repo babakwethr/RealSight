@@ -413,20 +413,61 @@
      Light: white surfaces with subtle shadows
      ============================================ */
 
-  /* Glass panel — primary container (V3) */
+  /* ============================================
+     Glass panel — primary container (V3)
+     Upgraded 29 Apr 2026 (founder QA: borders too faint).
+       • Brighter default border (12% vs 8%)
+       • CSS-var-driven accent: pair with `.accent-emerald`,
+         `.accent-violet`, `.accent-blue` etc. (defined below)
+         to colour the border + halo for that card.
+       • Soft hover halo via ::before pseudo (matches the
+         Workspace shortcut tile pattern).
+       • -translate-y-1px lift, focus-visible mirror for keyboard
+         and touch parity.
+     ============================================ */
   .glass-panel {
+    position: relative;
+    overflow: hidden;
+    /* Default accent = white; modifier classes (.accent-*) override
+       this with RGB triplets that drive border + halo colour. */
+    --accent: 255, 255, 255;
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(22px) saturate(1.2);
     -webkit-backdrop-filter: blur(22px) saturate(1.2);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(var(--accent), 0.12);
     border-radius: calc(var(--radius) + 4px);
     box-shadow:
       0 20px 60px -20px rgba(0, 0, 0, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .glass-panel:hover {
-    border-color: rgba(255, 255, 255, 0.14);
+  /* Hover halo — soft radial blur in the top-right. Hidden until
+     hover/focus, then fades in. Same pattern as AdminWorkspace. */
+  .glass-panel::before {
+    content: '';
+    position: absolute;
+    top: -3rem;
+    right: -2.5rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 50%;
+    background: rgba(var(--accent), 0.30);
+    filter: blur(50px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .glass-panel:hover,
+  .glass-panel:focus-within {
+    border-color: rgba(var(--accent), 0.35);
+    transform: translateY(-1px);
+  }
+
+  .glass-panel:hover::before,
+  .glass-panel:focus-within::before {
+    opacity: 1;
   }
 
   .light .glass-panel,
@@ -441,25 +482,51 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.70);
   }
 
-  /* Glass card — lighter container for grid items (V3) */
+  /* Glass card — lighter container for grid items (V3).
+     Same upgrade as .glass-panel, scaled down: smaller halo, lighter
+     lift since cards are smaller and tile in grids. */
   .glass-card {
+    position: relative;
+    overflow: hidden;
+    --accent: 74, 168, 255;  /* default = blue (matches old hover tint) */
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(22px) saturate(1.2);
     -webkit-backdrop-filter: blur(22px) saturate(1.2);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(var(--accent), 0.18);
     border-radius: calc(var(--radius) + 4px);
     box-shadow:
       0 18px 50px -20px rgba(0, 0, 0, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .glass-card:hover {
-    border-color: rgba(74, 168, 255, 0.30);
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: -2.5rem;
+    right: -2rem;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 50%;
+    background: rgba(var(--accent), 0.28);
+    filter: blur(40px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .glass-card:hover,
+  .glass-card:focus-within {
+    border-color: rgba(var(--accent), 0.40);
     transform: translateY(-2px);
     box-shadow:
-      0 22px 60px -20px rgba(74, 168, 255, 0.25),
+      0 22px 60px -20px rgba(var(--accent), 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card:hover::before,
+  .glass-card:focus-within::before {
+    opacity: 1;
   }
 
   .light .glass-card,
@@ -487,6 +554,42 @@
   /* ============================================
      ACCENT UTILITIES
      ============================================ */
+
+  /* Accent modifiers — set the --accent CSS var to drive border +
+     halo colour on .glass-panel and .glass-card. RGB triplets are
+     used so the same value works at multiple alphas. Pair with any
+     glass utility:
+       <div class="glass-panel accent-emerald">…</div>
+     */
+  .accent-emerald { --accent: 24, 214, 164; }
+  .accent-violet  { --accent: 123, 92, 255; }
+  .accent-blue    { --accent: 74, 168, 255; }
+  .accent-amber   { --accent: 255, 176, 32; }
+  .accent-rose    { --accent: 255, 107, 138; }
+  .accent-teal    { --accent: 46, 255, 192; }
+
+  /* Glow-on-view — opt-in entrance animation that fires once when the
+     card scrolls into the viewport. Driven by useGlowOnView() which
+     adds .is-visible to the element. Reserved for hero / above-the-fold
+     cards — overusing it makes the page feel chaotic. */
+  @keyframes cardIntroGlow {
+    0%   { box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5), 0 0 0 rgba(var(--accent), 0); }
+    35%  { box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5), 0 0 36px rgba(var(--accent), 0.45); }
+    100% { box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+  }
+  .glow-on-view.is-visible {
+    animation: cardIntroGlow 1.4s ease-out both;
+  }
+
+  /* Mobile performance guard — heavy backdrop blur is GPU-expensive
+     on phones. Drop to blur(12px) below the md breakpoint. */
+  @media (max-width: 767px) {
+    .glass-panel,
+    .glass-card {
+      backdrop-filter: blur(12px) saturate(1.2);
+      -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    }
+  }
 
   /* Accent gradient text: #10E3B0 → #4AA8FF → #7B5CFF */
   .text-accent-gradient {

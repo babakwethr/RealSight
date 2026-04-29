@@ -146,8 +146,15 @@ export default function AdminDLDAnalytics() {
                     {(selectedArea === 'all' ? areas.slice(0, 4) : areas.filter(a => a.id === selectedArea)).map((area) => {
                         const yoy = calculateYoYGrowth(area.avg_price_per_sqft_current, area.avg_price_per_sqft_12m_ago);
                         const isPositive = parseFloat(yoy) > 0;
+                        // Accent picked by demand score so each card's colour
+                        // matches the badge intensity already in the header.
+                        const accentClass = area.demand_score > 85
+                          ? 'accent-rose'
+                          : area.demand_score > 60
+                            ? 'accent-amber'
+                            : 'accent-emerald';
                         return (
-                            <Card key={area.id} className="glass-panel border-border/50 bg-background/50">
+                            <Card key={area.id} className={`glass-panel ${accentClass}`}>
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg">{area.name}</CardTitle>
@@ -194,7 +201,7 @@ export default function AdminDLDAnalytics() {
                         <ShieldAlert className="h-5 w-5 text-amber-500" />
                         Developer Risk Matrix
                     </h2>
-                    <Card className="glass-panel border-border/50 bg-background/50">
+                    <Card className="glass-panel accent-amber">
                         <CardHeader>
                             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                                 Watchlist (Lowest Reliability)
@@ -232,7 +239,7 @@ export default function AdminDLDAnalytics() {
                         <Building2 className="h-5 w-5 text-emerald-500" />
                         Raw Transaction Ledger
                     </h2>
-                    <div className="glass-panel border-border/50 bg-background/50 rounded-xl overflow-hidden">
+                    <div className="glass-panel accent-blue rounded-xl overflow-hidden">
                         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                             <table className="w-full text-sm">
                                 <thead className="sticky top-0 bg-background/95 backdrop-blur z-10">

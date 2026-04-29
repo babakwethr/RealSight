@@ -23,10 +23,21 @@ function CoverPage({ d }: { d: DealAnalyzerPDFData }) {
   const brandLabel = (d.isAdviser && d.agencyName ? d.agencyName : 'RealSight').toUpperCase();
   return (
     <Page size="A4" style={{ backgroundColor: RS.white, padding: 0 }}>
-      {/* Top bar */}
-      <View style={{ backgroundColor: RS.navy, paddingHorizontal: 40, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: RS.gold, fontSize: 13, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>{brandLabel}</Text>
-        <Text style={{ color: RS.gray400, fontSize: 8 }}>AI INVESTOR PRESENTATION</Text>
+      {/* Cinematic Dubai banner — replaces the flat navy bar that
+          used to sit at the top. The skyline image is pre-fetched
+          to a base64 data URI in generateInvestorPresentationPDF
+          so @react-pdf can embed it without any runtime fetch.
+          The navy overlay keeps the brand label + gold/gray text
+          fully legible, same pattern as DealAnalyzerPDF cover. */}
+      <View style={{ position: 'relative', height: 100 }}>
+        {d._dubaiSkyline && (
+          <Image src={d._dubaiSkyline} style={{ width: '100%', height: 100, objectFit: 'cover' }} />
+        )}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 100, backgroundColor: 'rgba(7,4,15,0.78)' }} />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 100, paddingHorizontal: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ color: RS.gold, fontSize: 13, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>{brandLabel}</Text>
+          <Text style={{ color: RS.gray400, fontSize: 8 }}>AI INVESTOR PRESENTATION</Text>
+        </View>
       </View>
 
       {/* Big title block */}
@@ -149,6 +160,14 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
   // intentionally invisible — that's the deal advisers pay for.
   const brandLabel = d.isAdviser && d.agencyName ? d.agencyName : 'RealSight';
 
+  // Gallery slide is conditional on photos being available (URL paste flow only).
+  // When present, total slide count becomes 09 instead of 08, and slides 07-08
+  // shift to 08-09. Compute footer labels once so each slide stays in sync.
+  const hasGallery = !!(d.photos && d.photos.length > 0);
+  const total       = hasGallery ? '09' : '08';
+  const pageStepsLabel = `${hasGallery ? '08' : '07'} / ${total}`;
+  const pageAboutLabel = `${hasGallery ? '09' : '08'} / ${total}`;
+
   return (
     <Document title={`${brandLabel} — Investor Presentation · ${d.propertyName}`} author={brandLabel}>
 
@@ -207,7 +226,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="02 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`02 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 3: Dubai Market Snapshot */}
@@ -259,7 +278,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="03 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`03 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 4: Price Benchmarks + Comparables */}
@@ -316,7 +335,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page="04 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`04 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 5: Investment Metrics */}
@@ -368,7 +387,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             ))}
           </View>
         </View>
-        <SlideFooter page="05 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`05 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 6: AI Investment Verdict */}
@@ -416,10 +435,47 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             <Text style={{ fontSize: 8.5, color: RS.gray800, lineHeight: 1.5 }}>{d.recommendedStrategy}</Text>
           </View>
         </View>
-        <SlideFooter page="06 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`06 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
-      {/* SLIDE 7: AI Advice + Next Steps */}
+      {/* SLIDE 7 (CONDITIONAL): Listing Gallery
+          Renders only when the URL extractor returned at least one
+          property photo from the listing source. Pre-fetched to base64
+          in generateInvestorPresentationPDF so each Image component
+          embeds without any runtime fetch. Single hero photo if only
+          one is available, 2-column grid (cap 6) otherwise. */}
+      {hasGallery && (
+        <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
+          <SlideHeader title="Listing Gallery" subtitle="Photos from the original listing" page="07" brandLabel={brandLabel} />
+          <View style={{ paddingHorizontal: 36 }}>
+            <Text style={{ fontSize: 9, color: RS.gray600, marginBottom: 12, lineHeight: 1.5 }}>
+              The original listing imagery — useful for visualising layout, finishes and natural light alongside the price + yield analysis on the previous slides.
+            </Text>
+            {d.photos!.length === 1 ? (
+              <Image
+                src={d.photos![0]}
+                style={{ width: '100%', height: 360, objectFit: 'cover', borderRadius: 6, backgroundColor: RS.gray200 }}
+              />
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {d.photos!.slice(0, 6).map((url, i) => (
+                  <Image
+                    key={i}
+                    src={url}
+                    style={{ width: '49%', height: 175, objectFit: 'cover', borderRadius: 6, backgroundColor: RS.gray200 }}
+                  />
+                ))}
+              </View>
+            )}
+            <Text style={{ fontSize: 7, color: RS.gray400, fontStyle: 'italic', textAlign: 'center', marginTop: 10 }}>
+              Source: original listing · Photos remain the property of their respective owners.
+            </Text>
+          </View>
+          <SlideFooter page={`07 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        </Page>
+      )}
+
+      {/* SLIDE 7 / 8: AI Advice + Next Steps */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
         <SlideHeader title="AI Advice & Next Steps" subtitle="Actionable guidance from RealSight AI" page="07" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
@@ -450,7 +506,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </View>
           ))}
         </View>
-        <SlideFooter page="07 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={pageStepsLabel} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
       {/* SLIDE 8: About + Disclaimer */}
@@ -514,6 +570,20 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             )}
           </View>
 
+        </View>
+
+        {/* Cinematic Dubai marina banner — fills the otherwise-empty
+            space below the agent card and above the disclaimer block.
+            Tinted navy via overlay so the page composition stays
+            cohesive with the white editorial slide background. */}
+        <View style={{ position: 'relative', marginTop: 4, marginHorizontal: 36, height: 100, borderRadius: 6, overflow: 'hidden' }}>
+          {d._dubaiMarina && (
+            <Image src={d._dubaiMarina} style={{ width: '100%', height: 100, objectFit: 'cover' }} />
+          )}
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 100, backgroundColor: 'rgba(7,4,15,0.45)' }} />
+        </View>
+
+        <View style={{ paddingHorizontal: 36, paddingTop: 14 }}>
           <Text style={{ fontSize: 6.5, color: RS.gray400, lineHeight: 1.5, fontStyle: 'italic', textAlign: 'center' }}>
             This presentation has been prepared by {d.isAdviser ? (d.agencyName || 'RealSight') : 'RealSight'} for informational purposes only.
             It is based on data sourced from the Dubai Land Department (DLD) and RealSight Analytics.
@@ -524,7 +594,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             RealSight is not a licensed financial advisory service.
           </Text>
         </View>
-        <SlideFooter page="08 / 08" date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={pageAboutLabel} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
     </Document>
@@ -534,9 +604,24 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 export async function generateInvestorPresentationPDF(data: DealAnalyzerPDFData): Promise<Blob> {
   // Same pre-fetch trick as generateDealAnalyzerPDF — @react-pdf's
   // worker fetcher silently fails for many image URLs. Pre-loading on
-  // the main thread guarantees the headshot + RERA QR + any future
-  // listing photos embed correctly.
-  const [agentPhotoDataUrl, reraQrDataUrl, galleryDataUrls] = await Promise.all([
+  // the main thread guarantees every image embeds: the two Dubai
+  // banners (cover + closing slide), the headshot, the RERA QR, and
+  // up to 6 listing gallery photos.
+  const ORIGIN = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://www.realsight.app';
+  const SKYLINE_URL = `${ORIGIN}/pdf-bg/dubai-skyline.jpg`;
+  const MARINA_URL  = `${ORIGIN}/pdf-bg/dubai-marina.jpg`;
+
+  const [
+    skylineDataUrl,
+    marinaDataUrl,
+    agentPhotoDataUrl,
+    reraQrDataUrl,
+    galleryDataUrls,
+  ] = await Promise.all([
+    imageToDataUrl(SKYLINE_URL),
+    imageToDataUrl(MARINA_URL),
     data.agentPhotoUrl ? imageToDataUrl(data.agentPhotoUrl) : Promise.resolve(null),
     data.reraQrUrl     ? imageToDataUrl(data.reraQrUrl)     : Promise.resolve(null),
     imagesToDataUrls(data.photos ?? []),
@@ -544,10 +629,24 @@ export async function generateInvestorPresentationPDF(data: DealAnalyzerPDFData)
 
   const enriched: DealAnalyzerPDFData = {
     ...data,
+    _dubaiSkyline: skylineDataUrl ?? undefined,
+    _dubaiMarina:  marinaDataUrl  ?? undefined,
     agentPhotoUrl: agentPhotoDataUrl ?? data.agentPhotoUrl,
     reraQrUrl:     reraQrDataUrl     ?? data.reraQrUrl,
     photos:        galleryDataUrls.length > 0 ? galleryDataUrls : data.photos,
   };
+
+  // Diagnostic — surfaces in browser console for QA. Same shape as
+  // generateDealAnalyzerPDF so the founder can read either log the
+  // same way.
+  console.info('[generateInvestorPresentationPDF] images prepared', {
+    skyline:    !!skylineDataUrl,
+    marina:     !!marinaDataUrl,
+    agentPhoto: !!agentPhotoDataUrl,
+    reraQr:     !!reraQrDataUrl,
+    gallery:    galleryDataUrls.length,
+    galleryRequested: data.photos?.length ?? 0,
+  });
 
   const blob = await pdf(<InvestorPresentationPDFDoc d={enriched} />).toBlob();
   return blob;

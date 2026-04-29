@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { GuidanceCard } from '@/components/GuidanceCard';
+import { useGlowOnView } from '@/hooks/useGlowOnView';
 import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/pdf/DealAnalyzerPDF';
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
 import { SendActionsBar } from '@/components/dealanalyzer/SendActionsBar';
@@ -203,7 +204,7 @@ function ListingSourceField({
       <div
         className={cn(
           'rounded-2xl ring-1 transition-all overflow-hidden',
-          detected ? 'ring-[#18d6a4]/45' : 'ring-white/[0.08] hover:ring-white/[0.18]',
+          detected ? 'ring-[#18d6a4]/45' : 'ring-white/[0.18] hover:ring-white/[0.30]',
         )}
         style={{
           background: 'rgba(7, 4, 15, 0.45)',
@@ -326,6 +327,12 @@ function DealAnalyzerContent() {
   // to reopen and edit.
   const [linksOpen, setLinksOpen] = useState(true);
   const [manualOpen, setManualOpen] = useState(true);
+
+  // Refs for the cards that should fire the entrance glow when they
+  // scroll into view. Reserved for hero / above-the-fold cards so the
+  // page doesn't feel busy.
+  const quickStartRef = useGlowOnView<HTMLElement>();
+  const verdictRef    = useGlowOnView<HTMLDivElement>();
 
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
@@ -791,20 +798,12 @@ function DealAnalyzerContent() {
           Per founder design (28 Apr 2026): URLs are a quick-fill
           shortcut. Auto-collapses when an analysis result is on
           screen so the result panel sits near the top; click the
-          header to reopen. */}
+          header to reopen. Uses the new accent-emerald + glow-on-view
+          treatment so the section reads as the primary CTA. */}
       <section
-        className="relative rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
-        style={{
-          background: 'rgba(7, 4, 15, 0.45)',
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-        }}
+        ref={quickStartRef}
+        className="glass-panel accent-emerald glow-on-view"
       >
-        <div
-          aria-hidden="true"
-          className="absolute -top-16 -left-12 w-[14rem] h-[14rem] rounded-full pointer-events-none"
-          style={{ background: 'rgba(46,255,192,0.10)', filter: 'blur(70px)' }}
-        />
         <div className="relative px-5 sm:px-6 py-5">
           <button
             type="button"
@@ -931,14 +930,7 @@ function DealAnalyzerContent() {
         </button>
         {manualOpen && (<>
 
-        <div
-          className="rounded-2xl ring-1 ring-white/[0.08] overflow-hidden"
-          style={{
-            background: 'rgba(7, 4, 15, 0.55)',
-            backdropFilter: 'blur(28px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          }}
-        >
+        <div className="glass-panel accent-blue">
           <div className="p-5 sm:p-6">
             <div className="grid sm:grid-cols-2 gap-x-5 gap-y-4">
               {/* Property name */}
@@ -1125,8 +1117,10 @@ function DealAnalyzerContent() {
             />
           </div>
 
-          {/* AI verdict card */}
-          <div className="glass-panel p-5 border-l-4 border-l-primary">
+          {/* AI verdict card — primary hero of the result section.
+              Emerald accent + glow-on-view so it announces itself when
+              the user scrolls down to the verdict. */}
+          <div ref={verdictRef} className="glass-panel accent-emerald glow-on-view p-5 border-l-4 border-l-primary">
             <div className="flex items-start gap-3">
               {result.aiLoading ? (
                 <Loader2 className="h-5 w-5 text-primary mt-0.5 animate-spin shrink-0" />
@@ -1174,7 +1168,7 @@ function DealAnalyzerContent() {
 
           {/* Recommended strategy */}
           {result.recommendedStrategy && (
-            <div className="glass-card p-4 border-l-4 border-l-amber-500/60">
+            <div className="glass-card accent-amber p-4 border-l-4 border-l-amber-500/60">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-4 w-4 text-amber-500" />
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recommended Strategy</p>
@@ -1185,7 +1179,7 @@ function DealAnalyzerContent() {
 
           {/* Cash flow */}
           {result.cashFlow && (
-            <div className="glass-card p-4">
+            <div className="glass-card accent-emerald p-4">
               <div className="flex items-center gap-3">
                 <TrendingUp className="h-5 w-5 text-emerald-400" />
                 <div>
@@ -1198,7 +1192,7 @@ function DealAnalyzerContent() {
 
           {/* PDF CTA if not adviser pro */}
           {!isAdviserPro && (
-            <div id="pdf-upgrade-nudge" className="glass-panel p-4 flex items-center justify-between flex-wrap gap-3">
+            <div id="pdf-upgrade-nudge" className="glass-panel accent-amber p-4 flex items-center justify-between flex-wrap gap-3">
               <div>
                 <p className="text-sm font-medium text-foreground">AI Investor Presentation PDF</p>
                 <p className="text-xs text-muted-foreground">8-page branded presentation to share with your clients — Adviser Pro only</p>
