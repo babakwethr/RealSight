@@ -295,6 +295,10 @@ interface AnalysisResult {
   verdictColor: string;
   cashFlow?: string;
   irr?: string;
+  /** Listing photos from the URL extractor (URL paste flow only). Surfaced
+   *  on the PDF Gallery page when present. Empty when the user used the
+   *  manual form. */
+  photos?: string[];
   aiVerdict?: DealAnalyzerPDFData['investmentVerdict'];
   strengths?: string[];
   weaknesses?: string[];
@@ -405,6 +409,7 @@ function DealAnalyzerContent() {
       const r = data as {
         propertyName?: string; area?: string; propertyType?: string;
         bedrooms?: number; size?: number; price?: number; rent?: number;
+        photoUrl?: string; photos?: string[];
         confidence?: number; error?: string;
       };
       if (r?.error) {
@@ -440,6 +445,7 @@ function DealAnalyzerContent() {
           propertyType: r.propertyType,
           bedrooms: typeof r.bedrooms === 'number' ? String(r.bedrooms) : undefined,
           rent: r.rent,
+          photos: r.photos,
         });
       } else {
         // Partial — tell them what's still needed.
@@ -530,6 +536,8 @@ function DealAnalyzerContent() {
     floor?: string;
     rent?: number;
     serviceCharge?: number;
+    /** Listing photos from URL extractor — surfaced on the PDF Gallery page. */
+    photos?: string[];
   }) => {
     const { area, price, size } = inputs;
     if (!price || !size || !area) { toast.error('Please fill in Area, Price and Size.'); return; }
@@ -596,6 +604,7 @@ function DealAnalyzerContent() {
       verdictColor,
       cashFlow: cashFlow || undefined,
       irr: `${(calculatedYield + Math.max(0, yoyGrowth)).toFixed(1)}%`,
+      photos: inputs.photos && inputs.photos.length > 0 ? inputs.photos.slice(0, 8) : undefined,
       aiLoading: true,
     };
 
@@ -693,6 +702,8 @@ function DealAnalyzerContent() {
       reraQrUrl:     isAdviser ? agentProfile?.reraQrUrl : undefined,
       reraNumber:    isAdviser ? agentProfile?.reraNumber : undefined,
       tenantSlug:    isAdviser ? agentProfile?.tenantSlug : undefined,
+      // Listing photos for the Gallery page (URL paste flow only).
+      photos: result.photos,
       reportDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
     };
   };

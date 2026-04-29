@@ -85,6 +85,33 @@ export const pdfStyles = StyleSheet.create({
     backgroundColor: RS.navy,
     minHeight: '100%',
   },
+  // Dubai skyline banner image — sits at the top of the cover page,
+  // tinted navy via the overlay below so the gold badge + report date
+  // stay legible. 595 × 140 (A4 width × banner height); chosen to add
+  // visual presence without pushing other cover content past the
+  // bottom of the page.
+  coverBannerImage: {
+    width: '100%',
+    height: 140,
+    objectFit: 'cover',
+  },
+  coverBannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    backgroundColor: 'rgba(7, 4, 15, 0.55)',
+  },
+  coverBannerBadgeWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    paddingHorizontal: 36,
+    paddingTop: 28,
+  },
   coverHeroArea: {
     backgroundColor: RS.navyMid,
     height: 220,
@@ -699,6 +726,57 @@ export const pdfStyles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: 'center',
     marginTop: 2,
+  },
+
+  // ── Gallery page ─────────────────────────────────────────────
+  // Listing photos extracted from Bayut / Property Finder / Dubizzle
+  // when the URL paste flow is used. Renders as a 2-column grid (3
+  // rows = up to 6 photos visible on a single A4 sheet).
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  galleryPhoto: {
+    width: '49%',
+    height: 170,
+    objectFit: 'cover',
+    borderRadius: 6,
+    backgroundColor: RS.gray200,
+  },
+  gallerySinglePhoto: {
+    width: '100%',
+    height: 280,
+    objectFit: 'cover',
+    borderRadius: 6,
+    backgroundColor: RS.gray200,
+  },
+  galleryNote: {
+    fontSize: 7.5,
+    color: RS.gray400,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  // ── Last-page Dubai banner ──
+  // Adds a tinted Dubai cityscape image at the top of the agent card
+  // page so the otherwise-empty bottom half of the page reads as
+  // intentional cinematic design rather than blank space.
+  agentPageBanner: {
+    width: '100%',
+    height: 140,
+    objectFit: 'cover',
+  },
+  agentPageBannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+    backgroundColor: 'rgba(7, 4, 15, 0.45)',
   },
 
   // ── Upsell footer band (every page) ──

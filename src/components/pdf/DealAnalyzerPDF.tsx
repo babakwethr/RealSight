@@ -13,6 +13,9 @@ export interface DealAnalyzerPDFData {
   status?: string;
   askingPrice: number;
   pricePerSqft: number;
+  /** Listing photos extracted from Bayut / Property Finder / Dubizzle.
+   *  When present (≥ 1) and the user is an adviser, the PDF inserts a
+   *  Listing Gallery page between the AI Verdict and the Agent Card. */
   photos?: string[];   // image URLs
 
   // Market
@@ -206,10 +209,16 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
 
       {/* ── PAGE 1: COVER ── */}
       <Page size="A4" style={S.coverPage}>
-        {/* Top badge */}
-        <View style={{ paddingHorizontal: 36, paddingTop: 28, paddingBottom: 10 }}>
-          <View style={S.coverBadge}>
-            <Text style={S.coverBadgeText}>INVESTMENT ANALYSIS REPORT · {d.reportDate.toUpperCase()}</Text>
+        {/* Dubai skyline banner — gives the cover a cinematic feel
+            without distracting from the property data below. The
+            overlay tints it navy so the gold badge stays legible. */}
+        <View style={{ position: 'relative', height: 140 }}>
+          <Image src="/pdf-bg/dubai-skyline.jpg" style={S.coverBannerImage} />
+          <View style={S.coverBannerOverlay} />
+          <View style={S.coverBannerBadgeWrap}>
+            <View style={S.coverBadge}>
+              <Text style={S.coverBadgeText}>INVESTMENT ANALYSIS REPORT · {d.reportDate.toUpperCase()}</Text>
+            </View>
           </View>
         </View>
 
@@ -567,7 +576,39 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
         <PageFooter page="6" date={d.reportDate} />
       </Page>
 
-      {/* ── PAGE 7: AGENT CARD + NEXT STEPS + DISCLAIMER ── */}
+      {/* ── PAGE 7 (CONDITIONAL): LISTING GALLERY ──
+          Only renders when the URL extractor returned ≥ 1 photo from the
+          source platform. For manual-entry analyses there are no photos
+          to show, so we skip this page and the next-page agent card just
+          becomes page 7. We keep the page count flexible across the rest
+          of the document via the `fixed` PageFooter mode below. */}
+      {d.photos && d.photos.length > 0 && (
+        <Page size="A4" style={S.page}>
+          <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
+          <View style={S.contentPadding}>
+            <SectionHeader title="Listing Gallery" />
+            <Text style={S.bodyText}>
+              Photos of {d.propertyName} from the original listing. Use these alongside the price and yield analysis to assess condition, finishes and natural light.
+            </Text>
+            <View style={S.galleryGrid}>
+              {d.photos.length === 1 ? (
+                <Image src={d.photos[0]} style={S.gallerySinglePhoto} />
+              ) : (
+                d.photos.slice(0, 6).map((url, i) => (
+                  <Image key={i} src={url} style={S.galleryPhoto} />
+                ))
+              )}
+            </View>
+            <Text style={S.galleryNote}>
+              Source: original listing · Photos remain the property of their respective owners.
+            </Text>
+          </View>
+          <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
+          <PageFooter page="7" date={d.reportDate} />
+        </Page>
+      )}
+
+      {/* ── PAGE 7 / 8: AGENT CARD + NEXT STEPS + DISCLAIMER ── */}
       <Page size="A4" style={S.page}>
         <PageHeader reportType="INVESTMENT ANALYSIS REPORT" brandName={d.isAdviser ? d.agencyName : undefined} />
         <View style={S.contentPadding}>
@@ -652,7 +693,17 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
               </View>
             ))}
           </View>
+        </View>
 
+        {/* Cinematic Dubai marina banner — fills what used to be empty
+            space on the bottom half of the page. The overlay tints it
+            navy so the disclaimer underneath stays readable. */}
+        <View style={{ position: 'relative', marginTop: 8 }}>
+          <Image src="/pdf-bg/dubai-marina.jpg" style={S.agentPageBanner} />
+          <View style={S.agentPageBannerOverlay} />
+        </View>
+
+        <View style={[S.contentPadding, { paddingTop: 14 }]}>
           <Text style={S.disclaimer}>
             This report has been prepared by {d.isAdviser ? (d.agencyName || 'RealSight') : 'RealSight'} for informational purposes only.
             It is based on data sourced from the Dubai Land Department (DLD) and RealSight Analytics.
@@ -662,7 +713,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
           </Text>
         </View>
         <UpsellBand slug={d.tenantSlug} isAdviser={d.isAdviser} />
-        <PageFooter page="7" date={d.reportDate} />
+        <PageFooter page={d.photos && d.photos.length > 0 ? "8" : "7"} date={d.reportDate} />
       </Page>
 
     </Document>

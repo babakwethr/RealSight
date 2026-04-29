@@ -47,11 +47,32 @@ interface ExtractResult {
   size?: number;            // sqft
   price?: number;           // AED
   rent?: number;            // AED/year
-  photoUrl?: string;
+  photoUrl?: string;        // primary cover photo (first of `photos`)
+  /** Full set of listing photos for the PDF gallery page (cap ~8). */
+  photos?: string[];
   /** 0–100 — proportion of fields we managed to fill. */
   confidence: number;
   /** Which parser stage the data came from — useful for debugging. */
   source?: 'next_data' | 'json_ld' | 'og_title' | 'mixed';
+}
+
+// Helper: collect up to N photos from a list of candidates with type-coercion.
+function collectPhotos(arr: unknown, max = 8): string[] {
+  if (!Array.isArray(arr)) return [];
+  const out: string[] = [];
+  for (const item of arr) {
+    if (out.length >= max) break;
+    let url: string | undefined;
+    if (typeof item === 'string') url = item;
+    else if (item && typeof item === 'object') {
+      const o = item as Record<string, any>;
+      url = o.full ?? o.original ?? o.large ?? o.url ?? o.medium ?? o.src ?? o.image_url;
+    }
+    if (typeof url === 'string' && /^https?:\/\//i.test(url) && !out.includes(url)) {
+      out.push(url);
+    }
+  }
+  return out;
 }
 
 // ── Allowlist + platform detection ────────────────────────────────────────
@@ -150,8 +171,14 @@ function extractFromNextDataBayut(nd: any): Partial<ExtractResult> | null {
     if (Number.isFinite(size) && size > 0) out.size = size;
     const price = Number(p.price ?? p.priceValue);
     if (Number.isFinite(price) && price > 0) out.price = price;
-    const photo = p.coverPhoto?.url ?? p.photos?.[0]?.url ?? p.cover_photo_url;
-    if (typeof photo === 'string') out.photoUrl = photo;
+    const photos = collectPhotos(p.photos ?? p.images);
+    if (photos.length) {
+      out.photos = photos;
+      out.photoUrl = photos[0];
+    } else {
+      const photo = p.coverPhoto?.url ?? p.cover_photo_url;
+      if (typeof photo === 'string') out.photoUrl = photo;
+    }
     if (Object.keys(out).length > 1) return out;
   }
   return null;
@@ -183,8 +210,13 @@ function extractFromNextDataPropertyFinder(nd: any): Partial<ExtractResult> | nu
     if (Number.isFinite(size) && size > 0) out.size = size;
     const price = Number(p.price?.value ?? p.price);
     if (Number.isFinite(price) && price > 0) out.price = price;
-    const photo = p.images?.[0]?.full ?? p.images?.[0]?.medium ?? p.cover_photo;
-    if (typeof photo === 'string') out.photoUrl = photo;
+    const photos = collectPhotos(p.images ?? p.photos);
+    if (photos.length) {
+      out.photos = photos;
+      out.photoUrl = photos[0];
+    } else if (typeof p.cover_photo === 'string') {
+      out.photoUrl = p.cover_photo;
+    }
     if (Object.keys(out).length > 1) return out;
   }
   return null;
@@ -267,9 +299,15 @@ function extractFromNextDataDubizzle(nd: any): Partial<ExtractResult> | null {
         }
       }
 
-      // Photo
-      const photo = p.photos?.[0]?.full ?? p.photos?.[0]?.url ?? p.primary_photo;
-      if (typeof photo === 'string') out.photoUrl = photo;
+      // Photos — collect the full set for the PDF gallery, then take
+      // the first as the cover (existing photoUrl contract).
+      const photos = collectPhotos(p.photos);
+      if (photos.length) {
+        out.photos = photos;
+        out.photoUrl = photos[0];
+      } else if (typeof p.primary_photo === 'string') {
+        out.photoUrl = p.primary_photo;
+      }
 
       if (Object.keys(out).length > 1) return out;
     }
@@ -296,8 +334,11 @@ function extractFromNextDataDubizzle(nd: any): Partial<ExtractResult> | null {
     if (Number.isFinite(size) && size > 0) out.size = size;
     const price = Number(p.price ?? p.amount);
     if (Number.isFinite(price) && price > 0) out.price = price;
-    const photo = p.images?.[0] ?? p.photos?.[0]?.url;
-    if (typeof photo === 'string') out.photoUrl = photo;
+    const photos = collectPhotos(p.images ?? p.photos);
+    if (photos.length) {
+      out.photos = photos;
+      out.photoUrl = photos[0];
+    }
     if (Object.keys(out).length > 1) return out;
   }
   return null;
@@ -338,8 +379,16 @@ function extractFromJsonLd(ld: unknown[]): Partial<ExtractResult> | null {
     const locality = addr.addressLocality || addr.addressRegion || addr.streetAddress;
     if (typeof locality === 'string') out.area = locality;
   }
-  if (typeof o.image === 'string') out.photoUrl = o.image;
-  else if (Array.isArray(o.image) && typeof o.image[0] === 'string') out.photoUrl = o.image[0];
+  if (Array.isArray(o.image)) {
+    const photos = collectPhotos(o.image);
+    if (photos.length) {
+      out.photos = photos;
+      out.photoUrl = photos[0];
+    }
+  } else if (typeof o.image === 'string') {
+    out.photoUrl = o.image;
+    out.photos = [o.image];
+  }
   return Object.keys(out).length > 0 ? out : null;
 }
 
@@ -562,6 +611,7 @@ Deno.serve(async (req) => {
     const ogDesc   = meta(html, 'og:description') ?? meta(html, 'description');
     const ogImage  = meta(html, 'og:image');
     if (ogImage && !result.photoUrl) result.photoUrl = ogImage;
+    if (ogImage && (!result.photos || result.photos.length === 0)) result.photos = [ogImage];
     if (ogTitle) {
       if (!result.propertyName) result.propertyName = ogTitle.split(/[|·•]/)[0].trim();
       const titleOut = extractFromTitleRegex(ogTitle);
