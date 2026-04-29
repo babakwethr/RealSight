@@ -20,6 +20,8 @@ import { useGlowOnView } from '@/hooks/useGlowOnView';
 import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/pdf/DealAnalyzerPDF';
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
 import { SendActionsBar } from '@/components/dealanalyzer/SendActionsBar';
+import { ListingAgentCard, type ListingAgent } from '@/components/dealanalyzer/ListingAgentCard';
+import { DldVerifyModal } from '@/components/dealanalyzer/DldVerifyModal';
 
 // ── Gemini AI verdict generation ─────────────────────────────────────────
 async function generateAIVerdict(params: {
@@ -334,6 +336,13 @@ function DealAnalyzerContent() {
   const quickStartRef = useGlowOnView<HTMLElement>();
   const verdictRef    = useGlowOnView<HTMLDivElement>();
 
+  // Listing agent — populated when extract-listing returns agent
+  // contact info (Dubizzle exposes this; Bayut/PF blocked on trial
+  // ScraperAPI for now). Cleared whenever the URL changes.
+  const [extractedAgent, setExtractedAgent] = useState<ListingAgent | null>(null);
+  // DLD verify-owner modal toggle.
+  const [dldModalOpen, setDldModalOpen] = useState(false);
+
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
   const [areaSearch, setAreaSearch] = useState('');
@@ -410,6 +419,9 @@ function DealAnalyzerContent() {
   const tryExtract = async (url: string, source: 'bayut' | 'propertyfinder' | 'dubizzle') => {
     if (!url || !/^https?:\/\//i.test(url)) return;
     setExtracting(source);
+    // Reset the previous agent card immediately — user has typed a
+    // new URL so the old agent should not linger while we're fetching.
+    setExtractedAgent(null);
     const platformLabels = { bayut: 'Bayut', propertyfinder: 'Property Finder', dubizzle: 'Dubizzle' };
     // Sticky progress toast — Sonner returns a numeric id we can update
     // through the pipeline so the user sees stages instead of one
@@ -423,6 +435,7 @@ function DealAnalyzerContent() {
         propertyName?: string; area?: string; propertyType?: string;
         bedrooms?: number; size?: number; price?: number; rent?: number;
         photoUrl?: string; photos?: string[];
+        agent?: ListingAgent;
         confidence?: number; error?: string; _cache?: 'hit' | 'miss';
       };
       if (r?.error) {
@@ -455,6 +468,13 @@ function DealAnalyzerContent() {
       if (r.size) setManualSize(String(r.size));
       if (r.price) setManualPrice(String(r.price));
       if (r.rent) setManualRent(String(r.rent));
+      // Listing agent — only set when the extractor exposed it
+      // (Dubizzle today). Card renders below the URL section.
+      if (r.agent && (r.agent.name || r.agent.mobile || r.agent.email)) {
+        setExtractedAgent(r.agent);
+      } else {
+        setExtractedAgent(null);
+      }
 
       // If we have everything needed for analysis, run it in the
       // background and surface the result.
@@ -875,6 +895,16 @@ function DealAnalyzerContent() {
         </div>
       </section>
 
+      {/* Listing agent card — surfaces the broker who posted the
+          listing on Dubizzle (name, photo, agency, RERA BRN, contact).
+          Renders only when extract-listing returned agent data. */}
+      {extractedAgent && (
+        <ListingAgentCard
+          agent={extractedAgent}
+          onVerifyOwnership={() => setDldModalOpen(true)}
+        />
+      )}
+
       {/* OR divider — only meaningful when both input sections are
           expanded (i.e. the user is actively choosing between paths).
           Hide whenever either is collapsed to avoid a dangling row. */}
@@ -1203,6 +1233,22 @@ function DealAnalyzerContent() {
           )}
         </div>
       )}
+
+      {/* DLD owner-verification modal — opens when the user hits
+          "Verify owner with DLD" on the listing-agent card. Modal
+          surfaces our extracted property fields with copy buttons +
+          a primary action that opens DLD's title-deed inquiry in a
+          new tab. The page itself doesn't accept URL params, so the
+          adviser pastes the values one-by-one (~30s end-to-end). */}
+      <DldVerifyModal
+        open={dldModalOpen}
+        onClose={() => setDldModalOpen(false)}
+        context={{
+          area:        selectedArea || areaSearch || result?.area,
+          propertyName: propertyName || result?.propertyName,
+          unitType:    result?.unitType,
+        }}
+      />
     </div>
   );
 }

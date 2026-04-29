@@ -109,6 +109,22 @@ interface ExtractResult {
   photoUrl?: string;        // primary cover photo (first of `photos`)
   /** Full set of listing photos for the PDF gallery page (cap ~8). */
   photos?: string[];
+  /** Listing agent / broker contact, when the platform exposes it.
+   *  Surfaced as a per-property card so the adviser can call/WhatsApp
+   *  the listing's broker. NEVER aggregated or bulk-exported — that
+   *  crosses into PDPL territory we explicitly avoid. */
+  agent?: {
+    name?: string;
+    mobile?: string;
+    whatsapp?: string;
+    email?: string;
+    photo?: string;
+    agencyName?: string;
+    agencyLogo?: string;
+    brn?: string;          // RERA Broker Registration Number
+    bio?: string;          // truncated client-side, but server caps at 240
+    sourceUrl?: string;    // original listing URL — useful for "view source"
+  };
   /** 0–100 — proportion of fields we managed to fill. */
   confidence: number;
   /** Which parser stage the data came from — useful for debugging. */
@@ -281,7 +297,7 @@ function extractFromNextDataPropertyFinder(nd: any): Partial<ExtractResult> | nu
   return null;
 }
 
-function extractFromNextDataDubizzle(nd: any): Partial<ExtractResult> | null {
+function extractFromNextDataDubizzle(nd: any, url?: string): Partial<ExtractResult> | null {
   // Dubizzle's current Next.js setup ships SSR redux actions in
   // `props.pageProps.reduxWrapperActionsGIPP` — an array of dispatched
   // actions including `listings/detailPropertyRequest/fulfilled`,
@@ -366,6 +382,43 @@ function extractFromNextDataDubizzle(nd: any): Partial<ExtractResult> | null {
         out.photoUrl = photos[0];
       } else if (typeof p.primary_photo === 'string') {
         out.photoUrl = p.primary_photo;
+      }
+
+      // Agent / broker contact — Dubizzle exposes this on every
+      // listing page (the broker who posted it, not the property's
+      // owner). Names, mobile, agency, RERA BRN, photo all live in
+      // `payload.agent_profile`. Falls back to the top-level
+      // `agent_name` string when the rich profile isn't present.
+      const ap = p.agent_profile;
+      if (ap && typeof ap === 'object') {
+        const agentName =
+          (typeof ap.name === 'object' && (ap.name.en || ap.name.ar))
+            ? String(ap.name.en || ap.name.ar)
+            : (typeof p.agent_name === 'string' ? p.agent_name : undefined);
+        const brn =
+          (typeof ap.brn === 'string' || typeof ap.brn === 'number') ? String(ap.brn)
+          : (Array.isArray(ap.license_numbers) && ap.license_numbers[0]?.value)
+            ? String(ap.license_numbers[0].value)
+            : undefined;
+        const bio =
+          (typeof ap.bio === 'object' && typeof ap.bio.en === 'string')
+            ? ap.bio.en.slice(0, 240)
+            : undefined;
+        const agent: NonNullable<ExtractResult['agent']> = {};
+        if (agentName)                            agent.name        = agentName;
+        if (typeof ap.mobile_number === 'string') agent.mobile      = ap.mobile_number;
+        if (typeof ap.whatsapp_number === 'string') agent.whatsapp  = ap.whatsapp_number;
+        if (typeof ap.email === 'string')         agent.email       = ap.email;
+        if (typeof ap.profile_pic === 'string')   agent.photo       = ap.profile_pic;
+        if (typeof ap.agency_name === 'string')   agent.agencyName  = ap.agency_name;
+        if (typeof ap.agency_logo === 'string')   agent.agencyLogo  = ap.agency_logo;
+        if (brn)                                  agent.brn         = brn;
+        if (bio)                                  agent.bio         = bio;
+        agent.sourceUrl = url;
+        if (Object.keys(agent).length > 1) out.agent = agent;
+      } else if (typeof p.agent_name === 'string') {
+        // Bare-bones fallback when only the name is exposed.
+        out.agent = { name: p.agent_name, sourceUrl: url };
       }
 
       if (Object.keys(out).length > 1) return out;
@@ -656,7 +709,7 @@ Deno.serve(async (req) => {
     if (nd) {
       if (platform === 'bayut')           ndOut = extractFromNextDataBayut(nd);
       else if (platform === 'propertyfinder') ndOut = extractFromNextDataPropertyFinder(nd);
-      else if (platform === 'dubizzle')   ndOut = extractFromNextDataDubizzle(nd);
+      else if (platform === 'dubizzle')   ndOut = extractFromNextDataDubizzle(nd, url);
     }
     if (ndOut) {
       Object.assign(result, ndOut);
