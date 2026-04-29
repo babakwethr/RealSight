@@ -27,8 +27,67 @@
 //   "couldn't read this listing — fill the form manually").
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SCRAPER_API_KEY = Deno.env.get('SCRAPER_API_KEY') ?? '';
+const SCRAPER_API_KEY       = Deno.env.get('SCRAPER_API_KEY') ?? '';
+const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// 24h cache: ScraperAPI render mode takes ~45s on the trial tier, so
+// repeat pastes of the same URL are punishingly slow. The cache turns
+// hits into ~50ms responses and saves a credit each time. Keyed by
+// SHA-256(url) so we do not store the raw URL as a primary key with
+// query-string variations.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const hash  = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function svc() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function readFromCache(urlHash: string): Promise<unknown | null> {
+  try {
+    const { data } = await svc()
+      .from('extracted_listings')
+      .select('result, expires_at')
+      .eq('url_hash', urlHash)
+      .maybeSingle();
+    if (!data) return null;
+    if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) return null;
+    // Bump hit_count fire-and-forget — never blocks.
+    svc()
+      .from('extracted_listings')
+      .update({ hit_count: (data as any).hit_count != null ? (data as any).hit_count + 1 : 1 })
+      .eq('url_hash', urlHash)
+      .then(() => {}, () => {});
+    return data.result;
+  } catch { return null; }
+}
+
+async function writeToCache(urlHash: string, url: string, platform: string, result: unknown) {
+  try {
+    await svc()
+      .from('extracted_listings')
+      .upsert({
+        url_hash:    urlHash,
+        url,
+        platform,
+        result,
+        expires_at:  new Date(Date.now() + CACHE_TTL_MS).toISOString(),
+      });
+  } catch (e) {
+    console.warn('[extract-listing] cache write failed (non-fatal):', e);
+  }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -565,6 +624,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cache lookup — repeat pastes of the same URL skip the 45s
+    // ScraperAPI render and return immediately. Keyed by SHA-256 of
+    // the full URL so query-string variations stay distinct.
+    const urlHash = await sha256Hex(url);
+    const cached = await readFromCache(urlHash);
+    if (cached) {
+      const annotated = { ...(cached as Record<string, unknown>), _cache: 'hit' };
+      return new Response(JSON.stringify(annotated), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch with direct → ScraperAPI fallback.
     const fetched = await fetchHtml(url);
     if ('error' in fetched) {
@@ -647,7 +718,13 @@ Deno.serve(async (req) => {
       (reqFilled / required.length) * 70 + (optFilled / optional.length) * 30
     );
 
-    return new Response(JSON.stringify(result), {
+    // Write to cache only when we got something useful (avoid caching
+    // failure responses — those would lock in a bad result for 24h).
+    if ((result.confidence ?? 0) >= 50) {
+      writeToCache(urlHash, url, platform, result).catch(() => {});
+    }
+
+    return new Response(JSON.stringify({ ...result, _cache: 'miss' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {

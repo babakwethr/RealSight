@@ -403,6 +403,12 @@ function DealAnalyzerContent() {
   const tryExtract = async (url: string, source: 'bayut' | 'propertyfinder' | 'dubizzle') => {
     if (!url || !/^https?:\/\//i.test(url)) return;
     setExtracting(source);
+    const platformLabels = { bayut: 'Bayut', propertyfinder: 'Property Finder', dubizzle: 'Dubizzle' };
+    // Sticky progress toast — Sonner returns a numeric id we can update
+    // through the pipeline so the user sees stages instead of one
+    // static "Reading…" line during the ~45s render.
+    const progressId = toast.loading(`Connecting to ${platformLabels[source]}…`);
+
     try {
       const { data, error } = await supabase.functions.invoke('extract-listing', { body: { url } });
       if (error) throw error;
@@ -410,20 +416,21 @@ function DealAnalyzerContent() {
         propertyName?: string; area?: string; propertyType?: string;
         bedrooms?: number; size?: number; price?: number; rent?: number;
         photoUrl?: string; photos?: string[];
-        confidence?: number; error?: string;
+        confidence?: number; error?: string; _cache?: 'hit' | 'miss';
       };
       if (r?.error) {
         toast.error(`Couldn't find the property in this ${source} link.`, {
+          id: progressId,
           description: 'Please enter the property details below to analyse manually.',
         });
         return;
       }
 
       // Diagnostic — surfaces in browser console so QA can see what
-      // came back from the extractor (helped debug PDF gallery missing
-      // photos when the photos[] field wasn't propagating).
+      // came back from the extractor (and whether it was a cache hit).
       console.info('[DealAnalyzer] extract-listing returned', {
         source,
+        cache: r._cache,
         confidence: r.confidence,
         photos: Array.isArray(r.photos) ? r.photos.length : 0,
         firstPhoto: r.photos?.[0]?.slice(0, 80),
@@ -432,7 +439,6 @@ function DealAnalyzerContent() {
 
       // Mirror everything we got into the visible form so the adviser
       // can see what was extracted and edit if needed.
-      const platformLabels = { bayut: 'Bayut', propertyfinder: 'Property Finder', dubizzle: 'Dubizzle' };
       if (r.propertyName) setPropertyName(r.propertyName);
       if (r.area) { setAreaSearch(r.area); setSelectedArea(r.area); }
       if (r.propertyType && ['apartment','villa','townhouse','penthouse','land'].includes(r.propertyType)) {
@@ -447,7 +453,12 @@ function DealAnalyzerContent() {
       // background and surface the result.
       const hasMinimum = !!r.area && !!r.price && !!r.size;
       if (hasMinimum) {
-        toast.success(`Reading complete — analysing your ${platformLabels[source]} listing…`);
+        toast.loading(
+          r._cache === 'hit'
+            ? `Loaded from cache — running analysis…`
+            : `Reading complete — running analysis…`,
+          { id: progressId },
+        );
         await runAnalysis({
           area: r.area!,
           price: r.price!,
@@ -458,6 +469,10 @@ function DealAnalyzerContent() {
           rent: r.rent,
           photos: r.photos,
         });
+        toast.success(`Analysis ready` + (r._cache === 'hit' ? ' (cached)' : ''), {
+          id: progressId,
+          description: `${platformLabels[source]} listing analysed against live DLD data.`,
+        });
       } else {
         // Partial — tell them what's still needed.
         const missing = [
@@ -466,6 +481,7 @@ function DealAnalyzerContent() {
           !r.size && 'Size',
         ].filter(Boolean) as string[];
         toast.info(`Couldn't find ${missing.join(', ').toLowerCase()} in the ${platformLabels[source]} listing.`, {
+          id: progressId,
           description: missing.length > 0
             ? `Please add ${missing.join(' and ').toLowerCase()} below, then click Analyze.`
             : 'Please review the form below and click Analyze.',
@@ -473,6 +489,7 @@ function DealAnalyzerContent() {
       }
     } catch (e) {
       toast.error(`Couldn't find the property in this link.`, {
+        id: progressId,
         description: 'Please enter the property details below to analyse manually.',
       });
     } finally {
@@ -485,21 +502,21 @@ function DealAnalyzerContent() {
   // the others. Only triggers when the URL looks like a real http(s) link.
   useEffect(() => {
     if (!bayutUrl) return;
-    const t = setTimeout(() => tryExtract(bayutUrl, 'bayut'), 600);
+    const t = setTimeout(() => tryExtract(bayutUrl, 'bayut'), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bayutUrl]);
 
   useEffect(() => {
     if (!pfUrl) return;
-    const t = setTimeout(() => tryExtract(pfUrl, 'propertyfinder'), 600);
+    const t = setTimeout(() => tryExtract(pfUrl, 'propertyfinder'), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pfUrl]);
 
   useEffect(() => {
     if (!dubizzleUrl) return;
-    const t = setTimeout(() => tryExtract(dubizzleUrl, 'dubizzle'), 600);
+    const t = setTimeout(() => tryExtract(dubizzleUrl, 'dubizzle'), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dubizzleUrl]);
