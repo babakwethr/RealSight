@@ -1099,15 +1099,16 @@ function DealAnalyzerContent() {
             </h2>
             {/* Send actions — Download · Email · WhatsApp.
                 The PDF generator picks the richer Investor Presentation
-                template for advisers (8 pages, branded), and the Deal
-                Analyzer template for direct investors (7 pages). */}
+                template for everyone — founder QA decision (29 Apr
+                2026): one branded template across the board, no more
+                two-track. Free users get the same layout as Adviser
+                Pro; the difference is only in the branding (RealSight
+                vs adviser brand) handled inside the doc itself. */}
             <SendActionsBar
               generatePdf={async () => {
                 const data = buildPDFData();
                 if (!data) throw new Error('No analysis data yet');
-                return isAdviser
-                  ? await generateInvestorPresentationPDF(data)
-                  : await generateDealAnalyzerPDF(data);
+                return await generateInvestorPresentationPDF(data);
               }}
               propertyName={result.propertyName}
               tenantId={agentTenantId}

@@ -3,7 +3,43 @@ import {
 } from '@react-pdf/renderer';
 import { pdfStyles as S, RS } from './pdfStyles';
 import type { DealAnalyzerPDFData } from './DealAnalyzerPDF';
-import { imageToDataUrl, imagesToDataUrls } from '@/lib/imageToDataUrl';
+import { imageToDataUrl } from '@/lib/imageToDataUrl';
+
+/**
+ * fetchProxiedImageAsDataUrl — pulls a listing photo through our
+ * proxy-image edge function (which adds permissive CORS headers) and
+ * returns it as a base64 data URI.
+ *
+ * Why a separate helper from imageToDataUrl: the Supabase function
+ * gateway requires the anon `apikey` header on every call (even for
+ * public functions). Plain fetch without the header gets a 401.
+ * imageToDataUrl is a generic helper so it doesn't know about that.
+ */
+async function fetchProxiedImageAsDataUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
+  const supaUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const supaAnon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!supaUrl || !supaAnon) return null;
+  try {
+    const proxyUrl = `${supaUrl}/functions/v1/proxy-image?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxyUrl, { headers: { apikey: supaAnon } });
+    if (!r.ok) {
+      console.warn('[fetchProxiedImageAsDataUrl] proxy returned', r.status);
+      return null;
+    }
+    const blob = await r.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('[fetchProxiedImageAsDataUrl] fetch failed', e);
+    return null;
+  }
+}
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-US').format(Math.round(n));
@@ -160,13 +196,19 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
   // intentionally invisible — that's the deal advisers pay for.
   const brandLabel = d.isAdviser && d.agencyName ? d.agencyName : 'RealSight';
 
-  // Gallery slide is conditional on photos being available (URL paste flow only).
-  // When present, total slide count becomes 09 instead of 08, and slides 07-08
-  // shift to 08-09. Compute footer labels once so each slide stays in sync.
-  const hasGallery = !!(d.photos && d.photos.length > 0);
-  const total       = hasGallery ? '09' : '08';
-  const pageStepsLabel = `${hasGallery ? '08' : '07'} / ${total}`;
-  const pageAboutLabel = `${hasGallery ? '09' : '08'} / ${total}`;
+  // Slide layout (refactor 29 Apr 2026 per founder feedback — pages
+  // 2-5 had too much empty space, combine into denser slides):
+  //   01  Cover
+  //   02  Property Overview + Dubai Market Snapshot (was 02 + 03)
+  //   03  Pricing & Investment Analysis (was 04 + 05)
+  //   04  AI Investment Verdict (was 06)
+  //   05  Listing Gallery (conditional)
+  //   05/06  AI Advice & Next Steps
+  //   06/07  About + Disclaimer (full-page redesign)
+  const hasGallery     = !!(d.photos && d.photos.length > 0);
+  const total          = hasGallery ? '07' : '06';
+  const pageStepsLabel = `${hasGallery ? '06' : '05'} / ${total}`;
+  const pageAboutLabel = `${hasGallery ? '07' : '06'} / ${total}`;
 
   return (
     <Document title={`${brandLabel} — Investor Presentation · ${d.propertyName}`} author={brandLabel}>
@@ -174,33 +216,38 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
       {/* SLIDE 1: Cover */}
       <CoverPage d={d} />
 
-      {/* SLIDE 2: Property Overview */}
+      {/* SLIDE 2 (combined): Property + Dubai Market Snapshot.
+          Was two slides; founder QA flagged each as half-empty. The
+          property attribute grid is two compact columns, then a 4-up
+          KPI row mixes property metrics (yield) with Dubai-wide
+          context (YoY, MoM, area yield), then a 3-row DLD index
+          mini-table closes the slide. */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Property Overview" subtitle={`${d.propertyName} · ${d.area}, Dubai`} page="02" brandLabel={brandLabel} />
+        <SlideHeader title="Property & Market Snapshot" subtitle={`${d.propertyName} · ${d.area}, Dubai · ${d.reportDate}`} page="02" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
-          {/* Overview grid */}
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-            <View style={{ flex: 1, gap: 6 }}>
+          {/* Two-column attribute grid */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+            <View style={{ flex: 1, gap: 4 }}>
               {[
                 ['Development', d.propertyName],
                 ['Location', `${d.area}, Dubai`],
                 ['Unit Type', d.unitType],
                 ['Built-up Area', `${fmt(d.size)} sq ft`],
               ].map(([k, v], i) => (
-                <View key={i} style={{ flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: RS.gray100 }}>
+                <View key={i} style={{ flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: RS.gray100 }}>
                   <Text style={{ flex: 1, fontSize: 8, color: RS.gray400 }}>{k}</Text>
                   <Text style={{ flex: 1, fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.navy }}>{v}</Text>
                 </View>
               ))}
             </View>
-            <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ flex: 1, gap: 4 }}>
               {[
                 ['Floor / Level', d.floor || '—'],
                 ['Status', d.status || 'Ready'],
                 ['Asking Price', `AED ${fmt(d.askingPrice)}`],
                 ['Price per sq ft', `AED ${fmt(d.pricePerSqft)}`],
               ].map(([k, v], i) => (
-                <View key={i} style={{ flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: RS.gray100 }}>
+                <View key={i} style={{ flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: RS.gray100 }}>
                   <Text style={{ flex: 1, fontSize: 8, color: RS.gray400 }}>{k}</Text>
                   <Text style={{ flex: 1, fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.navy }}>{v}</Text>
                 </View>
@@ -208,56 +255,26 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </View>
           </View>
 
-          {/* Key metrics */}
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-            <StatCard label="Gross Yield" value={`${yieldBase.toFixed(1)}%`} gold />
+          {/* Dubai-wide KPI row — pulls in market context. */}
+          <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.gray400, letterSpacing: 0.5, marginTop: 4, marginBottom: 6 }}>DUBAI MARKET CONTEXT</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <StatCard label="Gross Yield (subject)" value={`${yieldBase.toFixed(1)}%`} gold />
             <StatCard label="vs Area Avg PSF" value={`${diffPct > 0 ? '+' : ''}${diffPct.toFixed(1)}%`} />
-            <StatCard label="Dubai YoY Growth" value={fmtPct(d.yoyGrowth)} />
-            <StatCard label="Area Avg PSF" value={`AED ${fmt(d.areaAvgPsf)}`} />
+            <StatCard label="YoY Growth" value={fmtPct(d.yoyGrowth)} sub="Dubai-wide" />
+            <StatCard label="Area Yield (avg)" value={`${d.rentalYieldArea.toFixed(1)}%`} sub={d.area} />
           </View>
 
-          {/* Description */}
-          <View style={{ backgroundColor: RS.gray50, borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: RS.gold }}>
-            <Text style={{ fontSize: 8.5, color: RS.gray600, lineHeight: 1.5 }}>
-              {d.area} is one of Dubai's established freehold communities with strong rental demand and excellent
-              connectivity. The area offers accessible price points relative to the broader Dubai market while
-              maintaining competitive rental yields, making it attractive for both end-users and investors.
-              {d.status === 'Ready' || !d.status ? ' This unit is ready for immediate occupation or rental.' : ''}
-            </Text>
-          </View>
-        </View>
-        <SlideFooter page={`02 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
-      </Page>
-
-      {/* SLIDE 3: Dubai Market Snapshot */}
-      <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Dubai Market Snapshot" subtitle={`Current market conditions · ${d.reportDate}`} page="03" brandLabel={brandLabel} />
-        <View style={{ paddingHorizontal: 36 }}>
-          {/* Large KPI row */}
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-            {[
-              { label: 'YoY Change', value: fmtPct(d.yoyGrowth), sub: 'Dubai-wide', gold: true },
-              { label: 'MoM Change', value: d.momChange ? fmtPct(d.momChange) : '+0.59%', sub: 'March 2026' },
-              { label: 'Avg Price / sq ft', value: `AED ${fmt(d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683)}`, sub: 'Dubai-wide' },
-              { label: 'Area Rental Yield', value: `${d.rentalYieldArea.toFixed(1)}%`, sub: `${d.area} avg` },
-            ].map((k, i) => (
-              <StatCard key={i} label={k.label} value={k.value} sub={k.sub} gold={k.gold} />
-            ))}
-          </View>
-
-          {/* Price history table */}
-          <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RS.navy, marginBottom: 8 }}>DLD Price Index Overview</Text>
+          {/* Compact DLD price index — current + 12m ago for context */}
           <View style={S.dataTable}>
             <View style={S.dataTableHeader}>
-              {['Period', 'MoM', 'QoQ', 'YoY', 'Avg Price / sq ft'].map((h, i) => (
+              {['Period', 'MoM', 'YoY', 'Avg Price / sq ft'].map((h, i) => (
                 <Text key={i} style={S.dataTableHeaderCell}>{h}</Text>
               ))}
             </View>
             {[
-              ['Current', d.momChange ? fmtPct(d.momChange) : '+0.59%', '+0.6%', fmtPct(d.yoyGrowth), `AED ${fmt(d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683)}`],
-              ['3 Months Ago', '+1.71%', '+4.87%', '+16.63%', `AED ${fmt((d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683) * 0.96)}`],
-              ['6 Months Ago', '+1.0%', '+4.45%', '+16.12%', `AED ${fmt((d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683) * 0.94)}`],
-              ['12 Months Ago', '+1.95%', '+2.8%', '+15.83%', `AED ${fmt(d.area12mAgoPsf > 1300 ? d.area12mAgoPsf : 1535)}`],
+              ['Current', d.momChange ? fmtPct(d.momChange) : '+0.59%', fmtPct(d.yoyGrowth), `AED ${fmt(d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683)}`],
+              ['6 Months Ago', '+1.0%', '+16.12%', `AED ${fmt((d.areaAvgPsf > 1500 ? d.areaAvgPsf : 1683) * 0.94)}`],
+              ['12 Months Ago', '+1.95%', '+15.83%', `AED ${fmt(d.area12mAgoPsf > 1300 ? d.area12mAgoPsf : 1535)}`],
             ].map((row, ri) => (
               <View key={ri} style={ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
                 {row.map((cell, ci) => (
@@ -267,35 +284,39 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             ))}
           </View>
 
-          {/* Context box */}
-          <View style={{ backgroundColor: RS.navy, borderRadius: 6, padding: 14, marginTop: 12 }}>
-            <Text style={{ color: RS.gold, fontSize: 7.5, fontFamily: 'Helvetica-Bold', marginBottom: 6 }}>MARKET CONTEXT</Text>
+          {/* Combined context box: area + Dubai macro */}
+          <View style={{ backgroundColor: RS.navy, borderRadius: 6, padding: 12, marginTop: 10 }}>
+            <Text style={{ color: RS.gold, fontSize: 7.5, fontFamily: 'Helvetica-Bold', marginBottom: 5 }}>WHY {d.area.toUpperCase()}</Text>
             <Text style={{ color: RS.white, fontSize: 8.5, lineHeight: 1.5 }}>
-              Dubai property continues to attract global capital, with sustained YoY growth driven by
-              population growth, tourism, and investor-friendly policies including long-term visas and
-              freehold ownership rights for foreigners. {d.area} benefits from this macro tailwind while
-              offering price points {d.pricePerSqft < 1500 ? 'below' : 'competitive with'} the Dubai-wide average.
+              {d.area} is one of Dubai's established freehold communities — strong rental demand,
+              competitive yields, accessible price points relative to the wider city. Dubai's macro story
+              (long-term visas, freehold for foreigners, sustained population + tourism growth) supports
+              continued capital appreciation; this area benefits while offering pricing
+              {d.pricePerSqft < 1500 ? ' below' : ' competitive with'} the Dubai-wide average.
             </Text>
           </View>
         </View>
-        <SlideFooter page={`03 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`02 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
-      {/* SLIDE 4: Price Benchmarks + Comparables */}
+      {/* SLIDE 3 (combined): Pricing & Investment Analysis.
+          Was two slides; founder QA flagged each as half-empty.
+          One benchmark bar chart anchors the page; investment + yield
+          tables sit side by side; verdict callout closes the slide. */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Price Analysis & Comparables" subtitle="DLD transaction data and market benchmarks" page="04" brandLabel={brandLabel} />
+        <SlideHeader title="Pricing & Investment Analysis" subtitle="DLD benchmarks · Yield scenarios · Negotiation guidance" page="03" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
-          {/* Benchmark bar chart */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RS.navy, marginBottom: 8 }}>Price per sq ft — Benchmark Comparison</Text>
+          {/* Compact benchmark bar chart */}
+          <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.gray400, letterSpacing: 0.5, marginBottom: 6 }}>PRICE PER SQ FT BENCHMARK</Text>
+          <View style={{ marginBottom: 12 }}>
             {[
               { label: `${d.area} — 12m ago`, value: d.area12mAgoPsf, max: maxPsf, gold: false },
               { label: `${d.area} — current avg`, value: d.areaAvgPsf, max: maxPsf, gold: true },
               { label: 'Subject unit (asking)', value: d.pricePerSqft, max: maxPsf, gold: false },
             ].map((b, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={{ width: 130, fontSize: 7.5, color: RS.gray600 }}>{b.label}</Text>
-                <View style={{ flex: 1, height: 14, backgroundColor: RS.gray100, borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ flex: 1, height: 12, backgroundColor: RS.gray100, borderRadius: 3, overflow: 'hidden' }}>
                   <View style={{ width: `${Math.min(100, (b.value / b.max) * 100)}%`, height: '100%', backgroundColor: b.gold ? RS.gold : RS.navy, borderRadius: 3 }} />
                 </View>
                 <Text style={{ width: 70, fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.navy, textAlign: 'right' }}>AED {fmt(b.value)}</Text>
@@ -303,29 +324,52 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             ))}
           </View>
 
-          {/* Benchmark table */}
-          <View style={S.dataTable}>
-            <View style={S.dataTableHeader}>
-              {['Benchmark', 'Price / sq ft (AED)', 'Notes'].map((h, i) => (
-                <Text key={i} style={[S.dataTableHeaderCell, i === 0 ? { flex: 1.6 } : {}]}>{h}</Text>
-              ))}
-            </View>
-            {[
-              [`${d.area} — 12 Months Ago`, fmt(d.area12mAgoPsf), 'DLD historical avg'],
-              [`${d.area} — Current Avg`, fmt(d.areaAvgPsf), 'Latest DLD data'],
-              [`${d.area} — Range`, `${fmt(d.areaAvgPsf - 150)} – ${fmt(d.areaAvgPsf + 200)}`, 'All floor levels'],
-              ['Subject Unit (asking)', fmt(d.pricePerSqft), `${diffPct > 0 ? 'Above' : 'Below'} area avg by ${Math.abs(diffPct).toFixed(1)}%`],
-            ].map((row, ri) => (
-              <View key={ri} style={ri === 3 ? S.dataTableRowHighlight : ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
-                {row.map((cell, ci) => (
-                  <Text key={ci} style={[ri === 3 || ci === 0 ? S.dataTableCellBold : S.dataTableCell, ci === 0 ? { flex: 1.6 } : {}]}>{cell}</Text>
+          {/* Two-column tables: investment metrics + yield scenarios */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.gray400, letterSpacing: 0.5, marginBottom: 6 }}>INVESTMENT METRICS</Text>
+              <View style={S.dataTable}>
+                {[
+                  ['Asking Price', `AED ${fmt(d.askingPrice)}`],
+                  ['Price / sq ft', `AED ${fmt(d.pricePerSqft)}`],
+                  ['Expected Rent', `AED ${fmt(d.annualRentMid)}/y`],
+                  ['Gross Yield', `~${yieldBase.toFixed(1)}%`],
+                  ...(d.suggestedEntryLow ? [['Suggested Entry', `AED ${fmt(d.suggestedEntryLow)}`]] : []),
+                ].map((row, ri) => (
+                  <View key={ri} style={ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
+                    {row.map((cell, ci) => (
+                      <Text key={ci} style={ci === 0 ? S.dataTableCellBold : S.dataTableCell}>{cell}</Text>
+                    ))}
+                  </View>
                 ))}
               </View>
-            ))}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: RS.gray400, letterSpacing: 0.5, marginBottom: 6 }}>YIELD SCENARIOS</Text>
+              <View style={S.dataTable}>
+                <View style={S.dataTableHeader}>
+                  {['Scenario', 'Yield'].map((h, i) => (
+                    <Text key={i} style={S.dataTableHeaderCell}>{h}</Text>
+                  ))}
+                </View>
+                {[
+                  ['Conservative', `${yieldLow.toFixed(1)}%`],
+                  ['Base Case', `${yieldBase.toFixed(1)}%`],
+                  ['Optimistic', `${yieldHigh.toFixed(1)}%`],
+                  ...(yieldNeg ? [['Negotiated ★', `${yieldNeg.toFixed(1)}%`]] : []),
+                ].map((row, ri) => (
+                  <View key={ri} style={ri === (yieldNeg ? 3 : -1) ? S.dataTableRowHighlight : ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
+                    {row.map((cell, ci) => (
+                      <Text key={ci} style={ci === 0 ? S.dataTableCellBold : S.dataTableCell}>{cell}</Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
 
-          {/* Callout */}
-          <View style={{ backgroundColor: diffPct < -5 ? RS.greenLight : diffPct > 10 ? RS.redLight : RS.amberLight, borderRadius: 5, padding: 10, marginTop: 10 }}>
+          {/* Price verdict callout */}
+          <View style={{ backgroundColor: diffPct < -5 ? RS.greenLight : diffPct > 10 ? RS.redLight : RS.amberLight, borderRadius: 5, padding: 10 }}>
             <Text style={{ fontSize: 8.5, color: RS.gray800, lineHeight: 1.4 }}>
               <Text style={{ fontFamily: 'Helvetica-Bold' }}>Price Verdict: </Text>
               {diffPct < -10 ? `At AED ${fmt(d.pricePerSqft)}/sq ft, the subject unit trades ${Math.abs(diffPct).toFixed(1)}% below the area average — a notable value opportunity.`
@@ -335,64 +379,12 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             </Text>
           </View>
         </View>
-        <SlideFooter page={`04 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`03 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
-      {/* SLIDE 5: Investment Metrics */}
+      {/* SLIDE 4: AI Investment Verdict */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="Investment Metrics & Yield Analysis" subtitle="Income projections and return scenarios" page="05" brandLabel={brandLabel} />
-        <View style={{ paddingHorizontal: 36 }}>
-          {/* Investment metrics */}
-          <View style={S.dataTable}>
-            <View style={S.dataTableHeader}>
-              {['Metric', 'Details', 'Value'].map((h, i) => (
-                <Text key={i} style={[S.dataTableHeaderCell, i === 0 ? { flex: 1.4 } : i === 1 ? { flex: 1.8 } : {}]}>{h}</Text>
-              ))}
-            </View>
-            {[
-              ['Asking Price', 'Current listing', `AED ${fmt(d.askingPrice)}`],
-              ['Price per sq ft', `Area avg: AED ${fmt(d.areaAvgPsf)}`, `AED ${fmt(d.pricePerSqft)}`],
-              ['Expected Annual Rent', `${d.unitType} in ${d.area}`, `AED ${fmt(d.annualRentLow)} – ${fmt(d.annualRentHigh)}`],
-              ['Gross Rental Yield', `AED ${fmt(d.annualRentMid)} / year`, `~${yieldBase.toFixed(1)}%`],
-              ['Area Market Yield', 'Benchmark', `${(d.rentalYieldArea * 0.85).toFixed(1)}% – ${d.rentalYieldArea.toFixed(1)}%`],
-              ...(d.suggestedEntryLow ? [['Suggested Entry', 'Stronger ROI case', `AED ${fmt(d.suggestedEntryLow)} – ${fmt(d.suggestedEntryHigh || d.suggestedEntryLow * 1.04)}`]] : []),
-            ].map((row, ri) => (
-              <View key={ri} style={ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
-                {row.map((cell, ci) => (
-                  <Text key={ci} style={[ci === 0 ? S.dataTableCellBold : S.dataTableCell, ci === 0 ? { flex: 1.4 } : ci === 1 ? { flex: 1.8 } : {}]}>{cell}</Text>
-                ))}
-              </View>
-            ))}
-          </View>
-
-          {/* Yield scenarios */}
-          <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RS.navy, marginTop: 14, marginBottom: 8 }}>Rental Yield Scenarios</Text>
-          <View style={S.dataTable}>
-            <View style={S.dataTableHeader}>
-              {['Scenario', 'Annual Rent', 'Purchase Price', 'Gross Yield', 'Assessment'].map(h => (
-                <Text key={h} style={S.dataTableHeaderCell}>{h}</Text>
-              ))}
-            </View>
-            {[
-              ['Conservative', `AED ${fmt(d.annualRentLow)}`, `AED ${fmt(d.askingPrice)}`, `${yieldLow.toFixed(1)}%`, 'Minimum case'],
-              ['Base Case', `AED ${fmt(d.annualRentMid)}`, `AED ${fmt(d.askingPrice)}`, `${yieldBase.toFixed(1)}%`, 'Most likely'],
-              ['Optimistic', `AED ${fmt(d.annualRentHigh)}`, `AED ${fmt(d.askingPrice)}`, `${yieldHigh.toFixed(1)}%`, 'Strong demand'],
-              ...(yieldNeg ? [['Negotiated ★', `AED ${fmt(d.annualRentMid)}`, `AED ${fmt(d.suggestedEntryLow!)}`, `${yieldNeg.toFixed(1)}%`, 'Recommended']] : []),
-            ].map((row, ri) => (
-              <View key={ri} style={ri === (yieldNeg ? 3 : -1) ? S.dataTableRowHighlight : ri % 2 === 0 ? S.dataTableRow : S.dataTableRowAlt}>
-                {row.map((cell, ci) => (
-                  <Text key={ci} style={ci === 0 ? S.dataTableCellBold : S.dataTableCell}>{cell}</Text>
-                ))}
-              </View>
-            ))}
-          </View>
-        </View>
-        <SlideFooter page={`05 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
-      </Page>
-
-      {/* SLIDE 6: AI Investment Verdict */}
-      <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="AI Investment Verdict" subtitle="Powered by RealSight AI · Based on DLD market data" page="06" brandLabel={brandLabel} />
+        <SlideHeader title="AI Investment Verdict" subtitle="Powered by RealSight AI · Based on DLD market data" page="04" brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* Verdict badge */}
           <View style={{ backgroundColor: verdictBg(d.investmentVerdict), borderRadius: 8, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -435,10 +427,10 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             <Text style={{ fontSize: 8.5, color: RS.gray800, lineHeight: 1.5 }}>{d.recommendedStrategy}</Text>
           </View>
         </View>
-        <SlideFooter page={`06 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+        <SlideFooter page={`04 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
-      {/* SLIDE 7 (CONDITIONAL): Listing Gallery
+      {/* SLIDE 5 (CONDITIONAL): Listing Gallery
           Renders only when the URL extractor returned at least one
           property photo from the listing source. Pre-fetched to base64
           in generateInvestorPresentationPDF so each Image component
@@ -446,7 +438,7 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
           one is available, 2-column grid (cap 6) otherwise. */}
       {hasGallery && (
         <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-          <SlideHeader title="Listing Gallery" subtitle="Photos from the original listing" page="07" brandLabel={brandLabel} />
+          <SlideHeader title="Listing Gallery" subtitle="Photos from the original listing" page="05" brandLabel={brandLabel} />
           <View style={{ paddingHorizontal: 36 }}>
             <Text style={{ fontSize: 9, color: RS.gray600, marginBottom: 12, lineHeight: 1.5 }}>
               The original listing imagery — useful for visualising layout, finishes and natural light alongside the price + yield analysis on the previous slides.
@@ -471,13 +463,13 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
               Source: original listing · Photos remain the property of their respective owners.
             </Text>
           </View>
-          <SlideFooter page={`07 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
+          <SlideFooter page={`05 / ${total}`} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
         </Page>
       )}
 
-      {/* SLIDE 7 / 8: AI Advice + Next Steps */}
+      {/* SLIDE 5 / 6: AI Advice + Next Steps */}
       <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="AI Advice & Next Steps" subtitle="Actionable guidance from RealSight AI" page="07" brandLabel={brandLabel} />
+        <SlideHeader title="AI Advice & Next Steps" subtitle="Actionable guidance from RealSight AI" page={hasGallery ? '06' : '05'} brandLabel={brandLabel} />
         <View style={{ paddingHorizontal: 36 }}>
           {/* AI Advice box */}
           {d.aiAdvice && (
@@ -509,89 +501,143 @@ export function InvestorPresentationPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
         <SlideFooter page={pageStepsLabel} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
       </Page>
 
-      {/* SLIDE 8: About + Disclaimer */}
-      <Page size="A4" style={[S.page, { paddingBottom: 36 }]}>
-        <SlideHeader title="About & Disclaimer" page="08" brandLabel={brandLabel} />
-        <View style={{ paddingHorizontal: 36 }}>
-          {/* Agent / brand card — three columns when adviser has photo +
-              RERA QR (the launch path): photo · contact · RERA QR/number.
-              Falls back to a 2-column layout for direct investors. */}
-          <View style={{ backgroundColor: RS.navy, borderRadius: 8, padding: 20, flexDirection: 'row', gap: 20, marginBottom: 20 }}>
-            {/* Column 1: photo (advisers only) */}
-            {d.isAdviser && (
-              <View style={S.agentPhotoCol}>
-                {d.agentPhotoUrl ? (
-                  <Image src={d.agentPhotoUrl} style={S.agentPhoto} />
-                ) : (
-                  <View style={S.agentPhotoFallback}>
-                    <Text style={S.agentPhotoFallbackInitial}>
-                      {(d.agentName || 'A').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
+      {/* CLOSING SLIDE — full-page redesign 29 Apr 2026 per founder QA.
+          Replaces the previous "About & Disclaimer" layout (which was
+          just an agent card + a banner + a disclaimer block) with a
+          proper closing page:
+            ① Dubai marina hero (~240px) with overlaid brand mark and
+               personal "prepared for you" framing
+            ② Adviser identity panel — photo + name + role + agency
+            ③ RERA verification strip — QR + BRN + verified-broker text
+            ④ "Let's continue the conversation" CTA card with contact lines
+            ⑤ Subtle disclaimer + "Powered by RealSight" footer line
+          No SlideHeader at the top — the hero replaces it. */}
+      <Page size="A4" style={[S.page, { padding: 0, paddingBottom: 36 }]}>
+        {/* ① Hero banner */}
+        <View style={{ position: 'relative', height: 220, backgroundColor: RS.navy }}>
+          {d._dubaiMarina && (
+            <Image src={d._dubaiMarina} style={{ width: '100%', height: 220, objectFit: 'cover' }} />
+          )}
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7,4,15,0.65)' }} />
+          {/* Brand strip top */}
+          <View style={{ position: 'absolute', top: 18, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: RS.gold, fontSize: 11, fontFamily: 'Helvetica-Bold', letterSpacing: 2 }}>{brandLabel.toUpperCase()}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 8, letterSpacing: 1 }}>THANK YOU</Text>
+          </View>
+          {/* Hero copy bottom */}
+          <View style={{ position: 'absolute', bottom: 28, left: 36, right: 36 }}>
+            <Text style={{ color: RS.gold, fontSize: 8, letterSpacing: 1.5, marginBottom: 6 }}>PREPARED EXCLUSIVELY FOR YOU</Text>
+            <Text style={{ color: RS.white, fontSize: 24, fontFamily: 'Helvetica-Bold', lineHeight: 1.15, marginBottom: 4 }}>
+              Your next move in Dubai.
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 9.5, lineHeight: 1.4, maxWidth: 380 }}>
+              {d.propertyName} · {d.area} · Analysis dated {d.reportDate}
+            </Text>
+          </View>
+        </View>
+
+        {/* ② Adviser identity panel */}
+        <View style={{ paddingHorizontal: 36, paddingTop: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 18 }}>
+            {d.isAdviser ? (
+              d.agentPhotoUrl ? (
+                <Image src={d.agentPhotoUrl} style={{ width: 72, height: 72, borderRadius: 36, objectFit: 'cover', borderWidth: 3, borderColor: RS.gold }} />
+              ) : (
+                <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: RS.gray100, borderWidth: 3, borderColor: RS.gold, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 26, fontFamily: 'Helvetica-Bold', color: RS.gold }}>
+                    {(d.agentName || 'A').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )
+            ) : (
+              <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: RS.navy, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: RS.gold }}>RS</Text>
               </View>
             )}
-
-            {/* Column 2: contact details */}
-            <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: RS.navyLight, paddingRight: 20 }}>
-              <Text style={{ color: RS.gray400, fontSize: 7, marginBottom: 6 }}>{d.isAdviser ? 'YOUR PROPERTY ADVISER' : 'REPORT PREPARED BY'}</Text>
-              <Text style={{ color: RS.white, fontSize: 15, fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 8, color: RS.gray400, letterSpacing: 1, marginBottom: 4 }}>{d.isAdviser ? 'YOUR PROPERTY ADVISER' : 'REPORT PREPARED BY'}</Text>
+              <Text style={{ fontSize: 19, fontFamily: 'Helvetica-Bold', color: RS.navy, marginBottom: 2 }}>
                 {d.isAdviser ? (d.agentName || 'RealSight') : 'RealSight'}
               </Text>
-              {d.isAdviser && d.agentRole && <Text style={{ color: RS.gold, fontSize: 8, marginBottom: 4 }}>{d.agentRole}</Text>}
-              {d.isAdviser && d.agencyName && <Text style={{ color: RS.gray400, fontSize: 8 }}>{d.agencyName}</Text>}
-              {d.isAdviser && d.agentPhone && <Text style={{ color: RS.gray400, fontSize: 8 }}>{d.agentPhone}</Text>}
-              {d.isAdviser && d.agentEmail && <Text style={{ color: RS.gray400, fontSize: 8 }}>{d.agentEmail}</Text>}
-              {!d.isAdviser && <Text style={{ color: RS.gray400, fontSize: 8 }}>realsight.app · Dubai Real Estate Intelligence</Text>}
+              {d.isAdviser && d.agentRole && (
+                <Text style={{ fontSize: 9, color: RS.gold, fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
+                  {d.agentRole}{d.agencyName ? ` · ${d.agencyName}` : ''}
+                </Text>
+              )}
+              {!d.isAdviser && (
+                <Text style={{ fontSize: 9, color: RS.gold, fontFamily: 'Helvetica-Bold' }}>Dubai Real Estate Intelligence</Text>
+              )}
             </View>
+          </View>
 
-            {/* Column 3: RERA QR + number for advisers; RealSight badge for direct investors */}
-            {d.isAdviser ? (
-              <View style={S.reraCol}>
-                <Text style={S.reraLabel}>RERA VERIFIED</Text>
-                {d.reraQrUrl ? (
-                  <Image src={d.reraQrUrl} style={S.reraQrImage} />
-                ) : (
-                  <View style={S.reraQrFallback}>
-                    <Text style={S.reraQrFallbackText}>RERA QR{'\n'}pending</Text>
-                  </View>
-                )}
-                {d.reraNumber && <Text style={S.reraNumberText}>BRN {d.reraNumber}</Text>}
-                <Text style={S.reraVerifiedBadge}>VERIFIED BROKER</Text>
+          {/* Contact rows — phone / email / web. Only render lines we have. */}
+          <View style={{ backgroundColor: RS.gray50, borderRadius: 6, padding: 14, marginBottom: 14, gap: 6 }}>
+            {d.isAdviser && d.agentPhone && (
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ width: 70, fontSize: 8, color: RS.gray400, letterSpacing: 0.5 }}>PHONE</Text>
+                <Text style={{ flex: 1, fontSize: 10, color: RS.navy, fontFamily: 'Helvetica-Bold' }}>{d.agentPhone}</Text>
               </View>
-            ) : (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: RS.white, fontSize: 14, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 4 }}>RealSight</Text>
-                <Text style={{ color: RS.gold, fontSize: 8, textAlign: 'center', marginBottom: 12 }}>Dubai Real Estate Intelligence</Text>
-                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>DLD Registered Transaction Data</Text>
-                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center', marginBottom: 2 }}>AI-Powered Market Analysis</Text>
-                <Text style={{ color: RS.gray400, fontSize: 7.5, textAlign: 'center' }}>realsight.app</Text>
+            )}
+            {d.isAdviser && d.agentEmail && (
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ width: 70, fontSize: 8, color: RS.gray400, letterSpacing: 0.5 }}>EMAIL</Text>
+                <Text style={{ flex: 1, fontSize: 10, color: RS.navy, fontFamily: 'Helvetica-Bold' }}>{d.agentEmail}</Text>
+              </View>
+            )}
+            {d.isAdviser && d.tenantSlug && (
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ width: 70, fontSize: 8, color: RS.gray400, letterSpacing: 0.5 }}>WEB</Text>
+                <Text style={{ flex: 1, fontSize: 10, color: RS.navy, fontFamily: 'Helvetica-Bold' }}>realsight.app/a/{d.tenantSlug}</Text>
+              </View>
+            )}
+            {!d.isAdviser && (
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={{ width: 70, fontSize: 8, color: RS.gray400, letterSpacing: 0.5 }}>WEB</Text>
+                <Text style={{ flex: 1, fontSize: 10, color: RS.navy, fontFamily: 'Helvetica-Bold' }}>realsight.app</Text>
               </View>
             )}
           </View>
 
-        </View>
-
-        {/* Cinematic Dubai marina banner — fills the otherwise-empty
-            space below the agent card and above the disclaimer block.
-            Tinted navy via overlay so the page composition stays
-            cohesive with the white editorial slide background. */}
-        <View style={{ position: 'relative', marginTop: 4, marginHorizontal: 36, height: 100, borderRadius: 6, overflow: 'hidden' }}>
-          {d._dubaiMarina && (
-            <Image src={d._dubaiMarina} style={{ width: '100%', height: 100, objectFit: 'cover' }} />
+          {/* ③ RERA verification strip — adviser only */}
+          {d.isAdviser && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginBottom: 14, backgroundColor: RS.navy, borderRadius: 6 }}>
+              {d.reraQrUrl ? (
+                <Image src={d.reraQrUrl} style={{ width: 60, height: 60, backgroundColor: RS.white, padding: 3, borderRadius: 4 }} />
+              ) : (
+                <View style={{ width: 60, height: 60, backgroundColor: RS.navyLight, borderRadius: 4, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 6.5, color: RS.gray400, textAlign: 'center' }}>RERA QR{'\n'}pending</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: RS.gold, fontSize: 8, fontFamily: 'Helvetica-Bold', letterSpacing: 1, marginBottom: 4 }}>RERA VERIFIED BROKER</Text>
+                {d.reraNumber && (
+                  <Text style={{ color: RS.white, fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>BRN {d.reraNumber}</Text>
+                )}
+                <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 8, lineHeight: 1.4 }}>
+                  Scan the QR to verify this broker directly with the Dubai Real Estate Regulatory Agency.
+                </Text>
+              </View>
+            </View>
           )}
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 100, backgroundColor: 'rgba(7,4,15,0.45)' }} />
-        </View>
 
-        <View style={{ paddingHorizontal: 36, paddingTop: 14 }}>
-          <Text style={{ fontSize: 6.5, color: RS.gray400, lineHeight: 1.5, fontStyle: 'italic', textAlign: 'center' }}>
+          {/* ④ "Let's continue" CTA */}
+          <View style={{ borderLeftWidth: 3, borderLeftColor: RS.gold, paddingLeft: 14, paddingVertical: 4, marginBottom: 14 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: RS.navy, marginBottom: 3 }}>Let's continue the conversation.</Text>
+            <Text style={{ fontSize: 8.5, color: RS.gray600, lineHeight: 1.5 }}>
+              {d.isAdviser
+                ? `Have questions about this property, want to negotiate, or ready to view it in person? Reply to the email this came in or use any of the contact methods above — happy to take this further whenever suits.`
+                : `Want to track this property in your portfolio, set price alerts, or run a deeper analysis? Open RealSight at realsight.app — your free account includes the Deal Analyzer, Dubai Heatmap, and unlimited AI Concierge.`}
+            </Text>
+          </View>
+
+          {/* ⑤ Disclaimer */}
+          <Text style={{ fontSize: 6.5, color: RS.gray400, lineHeight: 1.5, fontStyle: 'italic' }}>
             This presentation has been prepared by {d.isAdviser ? (d.agencyName || 'RealSight') : 'RealSight'} for informational purposes only.
-            It is based on data sourced from the Dubai Land Department (DLD) and RealSight Analytics.
-            It does not constitute financial, legal, or investment advice. AI-generated analysis reflects market patterns
-            and should not replace independent professional due diligence. Prospective purchasers should seek independent
-            financial and legal advice before making any investment decision. Market conditions may change;
-            past performance is not indicative of future results. All prices in AED unless stated.
-            RealSight is not a licensed financial advisory service.
+            Data sourced from the Dubai Land Department (DLD) and RealSight Analytics. It does not constitute financial,
+            legal, or investment advice; AI-generated analysis reflects market patterns and should not replace
+            independent due diligence. Prospective purchasers should seek independent financial and legal advice
+            before making any investment decision. Market conditions may change; past performance is not indicative
+            of future results. All prices in AED unless stated. RealSight is not a licensed financial advisory service.
           </Text>
         </View>
         <SlideFooter page={pageAboutLabel} date={d.reportDate} isAdviser={d.isAdviser} slug={d.tenantSlug} />
@@ -613,18 +659,26 @@ export async function generateInvestorPresentationPDF(data: DealAnalyzerPDFData)
   const SKYLINE_URL = `${ORIGIN}/pdf-bg/dubai-skyline.jpg`;
   const MARINA_URL  = `${ORIGIN}/pdf-bg/dubai-marina.jpg`;
 
+  // Gallery photos go through our proxy-image edge function — Bayut /
+  // Property Finder / Dubizzle CDNs reject cross-origin fetches from
+  // realsight.app, leaving Image components rendering grey
+  // placeholders. Proxy fetches server-side (no CORS), returns bytes
+  // with permissive headers, browser is happy.
+  const galleryProxyResults = await Promise.all(
+    (data.photos ?? []).map(p => fetchProxiedImageAsDataUrl(p)),
+  );
+  const galleryDataUrls = galleryProxyResults.filter((s): s is string => typeof s === 'string');
+
   const [
     skylineDataUrl,
     marinaDataUrl,
     agentPhotoDataUrl,
     reraQrDataUrl,
-    galleryDataUrls,
   ] = await Promise.all([
     imageToDataUrl(SKYLINE_URL),
     imageToDataUrl(MARINA_URL),
     data.agentPhotoUrl ? imageToDataUrl(data.agentPhotoUrl) : Promise.resolve(null),
     data.reraQrUrl     ? imageToDataUrl(data.reraQrUrl)     : Promise.resolve(null),
-    imagesToDataUrls(data.photos ?? []),
   ]);
 
   const enriched: DealAnalyzerPDFData = {
