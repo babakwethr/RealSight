@@ -3,6 +3,18 @@ import {
 } from '@react-pdf/renderer';
 import { pdfStyles as S, RS } from './pdfStyles';
 
+// @react-pdf/renderer fetches Image src via the worker's fetch impl,
+// which does NOT resolve relative URLs against window.location the
+// way the main thread does. Static assets in /public must therefore
+// be addressed by absolute URL or the Image silently renders blank.
+// This helper resolves the runtime origin (browser) and falls back
+// to the canonical domain in any non-browser context.
+const ORIGIN = typeof window !== 'undefined' && window.location?.origin
+  ? window.location.origin
+  : 'https://www.realsight.app';
+const DUBAI_SKYLINE_URL = `${ORIGIN}/pdf-bg/dubai-skyline.jpg`;
+const DUBAI_MARINA_URL  = `${ORIGIN}/pdf-bg/dubai-marina.jpg`;
+
 export interface DealAnalyzerPDFData {
   // Property
   propertyName: string;
@@ -213,7 +225,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             without distracting from the property data below. The
             overlay tints it navy so the gold badge stays legible. */}
         <View style={{ position: 'relative', height: 140 }}>
-          <Image src="/pdf-bg/dubai-skyline.jpg" style={S.coverBannerImage} />
+          <Image src={DUBAI_SKYLINE_URL} style={S.coverBannerImage} />
           <View style={S.coverBannerOverlay} />
           <View style={S.coverBannerBadgeWrap}>
             <View style={S.coverBadge}>
@@ -699,7 +711,7 @@ export function DealAnalyzerPDFDoc({ d }: { d: DealAnalyzerPDFData }) {
             space on the bottom half of the page. The overlay tints it
             navy so the disclaimer underneath stays readable. */}
         <View style={{ position: 'relative', marginTop: 8 }}>
-          <Image src="/pdf-bg/dubai-marina.jpg" style={S.agentPageBanner} />
+          <Image src={DUBAI_MARINA_URL} style={S.agentPageBanner} />
           <View style={S.agentPageBannerOverlay} />
         </View>
 

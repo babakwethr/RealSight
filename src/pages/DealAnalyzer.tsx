@@ -419,6 +419,17 @@ function DealAnalyzerContent() {
         return;
       }
 
+      // Diagnostic — surfaces in browser console so QA can see what
+      // came back from the extractor (helped debug PDF gallery missing
+      // photos when the photos[] field wasn't propagating).
+      console.info('[DealAnalyzer] extract-listing returned', {
+        source,
+        confidence: r.confidence,
+        photos: Array.isArray(r.photos) ? r.photos.length : 0,
+        firstPhoto: r.photos?.[0]?.slice(0, 80),
+        propertyName: r.propertyName,
+      });
+
       // Mirror everything we got into the visible form so the adviser
       // can see what was extracted and edit if needed.
       const platformLabels = { bayut: 'Bayut', propertyfinder: 'Property Finder', dubizzle: 'Dubizzle' };
