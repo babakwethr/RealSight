@@ -4,10 +4,15 @@
  * phone/WhatsApp/email links.
  *
  * Important: this is the *agent* on the listing, NOT the property's
- * registered owner. Owner verification happens separately via the
- * DLD Title Deed inquiry — see <DldVerifyModal> next door. The
- * attribution line in the card states this explicitly so the user
- * never confuses the two.
+ * registered owner. Per-property owner data sits behind DLD's Title
+ * Deed inquiry, which requires the certificate number — something
+ * a public Dubizzle URL doesn't carry. So we don't pretend we can
+ * fetch the owner here; we surface the *agent* (the human you'd
+ * actually call to ask about this listing) and leave registered-owner
+ * verification for the SPA stage of the deal.
+ *
+ * Comparable comps from DLD live in the sibling
+ * <RecentTransactionsCard> via the `dld-proxy` edge function.
  *
  * Renders only when extract-listing populated `agent` (currently
  * Dubizzle only — Bayut and Property Finder need ScraperAPI Hobby
@@ -32,7 +37,6 @@ export interface ListingAgent {
 
 interface Props {
   agent: ListingAgent;
-  onVerifyOwnership?: () => void;
 }
 
 /** Strip the leading + then any non-digit, then tack the + back on for tel:/wa.me. */
@@ -48,7 +52,7 @@ function waLink(raw: string | undefined): string | undefined {
   return `https://wa.me/${n.replace(/^\+/, '')}`;
 }
 
-export function ListingAgentCard({ agent, onVerifyOwnership }: Props) {
+export function ListingAgentCard({ agent }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const initials = (agent.name || 'A').split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase()).join('') || 'A';
   const tel = normalisePhone(agent.mobile);
@@ -145,33 +149,24 @@ export function ListingAgentCard({ agent, onVerifyOwnership }: Props) {
           </div>
         )}
 
-        {/* Verify ownership CTA + view-source link */}
+        {/* Source attribution. Owner verification deliberately not
+            offered here — it requires the title-deed certificate
+            number which a public Dubizzle URL doesn't expose. We
+            surface comps via <RecentTransactionsCard> instead. */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/[0.06]">
           <p className="text-[10px] text-white/40 leading-relaxed flex-1 min-w-[180px]">
             Listing agent details from the public Dubizzle profile. For inquiries about this specific property.
           </p>
-          <div className="flex items-center gap-2">
-            {agent.sourceUrl && (
-              <a
-                href={agent.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-white/45 hover:text-white transition-colors"
-              >
-                Source <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-            {onVerifyOwnership && (
-              <button
-                type="button"
-                onClick={onVerifyOwnership}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-300/15 border border-amber-300/30 hover:bg-amber-300/25 transition-colors text-[11px] font-bold text-amber-300"
-              >
-                <ShieldCheck className="h-3 w-3" />
-                Verify owner with DLD
-              </button>
-            )}
-          </div>
+          {agent.sourceUrl && (
+            <a
+              href={agent.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-white/45 hover:text-white transition-colors"
+            >
+              Source <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
         </div>
       </div>
     </section>

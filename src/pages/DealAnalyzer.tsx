@@ -21,7 +21,7 @@ import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
 import { SendActionsBar } from '@/components/dealanalyzer/SendActionsBar';
 import { ListingAgentCard, type ListingAgent } from '@/components/dealanalyzer/ListingAgentCard';
-import { DldVerifyModal } from '@/components/dealanalyzer/DldVerifyModal';
+import { RecentTransactionsCard } from '@/components/dealanalyzer/RecentTransactionsCard';
 
 // ── Gemini AI verdict generation ─────────────────────────────────────────
 async function generateAIVerdict(params: {
@@ -340,8 +340,6 @@ function DealAnalyzerContent() {
   // contact info (Dubizzle exposes this; Bayut/PF blocked on trial
   // ScraperAPI for now). Cleared whenever the URL changes.
   const [extractedAgent, setExtractedAgent] = useState<ListingAgent | null>(null);
-  // DLD verify-owner modal toggle.
-  const [dldModalOpen, setDldModalOpen] = useState(false);
 
   // Form entry state
   const [propertyName, setPropertyName] = useState('');
@@ -899,9 +897,20 @@ function DealAnalyzerContent() {
           listing on Dubizzle (name, photo, agency, RERA BRN, contact).
           Renders only when extract-listing returned agent data. */}
       {extractedAgent && (
-        <ListingAgentCard
-          agent={extractedAgent}
-          onVerifyOwnership={() => setDldModalOpen(true)}
+        <ListingAgentCard agent={extractedAgent} />
+      )}
+
+      {/* Recent DLD-registered transactions — pulls the last 10
+          comparable sales from DLD's DDA Open API via dld-proxy.
+          Renders a graceful "awaiting DLD allowlist" placeholder
+          while DDA's IP allowlist is still pending; the moment
+          DDA_ENABLED=true flips and the gateway returns rows, this
+          card auto-populates without redeploy. See LAUNCH_PLAN §14. */}
+      {(extractedAgent || result?.area || selectedArea || areaSearch) && (
+        <RecentTransactionsCard
+          area={selectedArea || areaSearch || result?.area}
+          propertyName={propertyName || result?.propertyName}
+          unitType={result?.unitType}
         />
       )}
 
@@ -1234,21 +1243,6 @@ function DealAnalyzerContent() {
         </div>
       )}
 
-      {/* DLD owner-verification modal — opens when the user hits
-          "Verify owner with DLD" on the listing-agent card. Modal
-          surfaces our extracted property fields with copy buttons +
-          a primary action that opens DLD's title-deed inquiry in a
-          new tab. The page itself doesn't accept URL params, so the
-          adviser pastes the values one-by-one (~30s end-to-end). */}
-      <DldVerifyModal
-        open={dldModalOpen}
-        onClose={() => setDldModalOpen(false)}
-        context={{
-          area:        selectedArea || areaSearch || result?.area,
-          propertyName: propertyName || result?.propertyName,
-          unitType:    result?.unitType,
-        }}
-      />
     </div>
   );
 }
