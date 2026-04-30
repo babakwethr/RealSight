@@ -1128,34 +1128,34 @@ function DealAnalyzerContent() {
       {/* ── Results ── */}
       {result && (
         <div id="analysis-results" className="space-y-4 animate-slide-up scroll-mt-24">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <span
-                className="w-1.5 h-5 rounded-full"
-                style={{ background: 'linear-gradient(180deg, #2effc0, #2d5cff)' }}
-              />
-              Analysis Results
-            </h2>
-            {/* Send actions — Download · Email · WhatsApp.
-                The PDF generator picks the richer Investor Presentation
-                template for everyone — founder QA decision (29 Apr
-                2026): one branded template across the board, no more
-                two-track. Free users get the same layout as Adviser
-                Pro; the difference is only in the branding (RealSight
-                vs adviser brand) handled inside the doc itself. */}
-            <SendActionsBar
-              generatePdf={async () => {
-                const data = buildPDFData();
-                if (!data) throw new Error('No analysis data yet');
-                return await generateInvestorPresentationPDF(data);
-              }}
-              propertyName={result.propertyName}
-              tenantId={agentTenantId}
-              brandName={agentProfile?.agencyName || agentProfile?.name}
-              tenantSlug={agentProfile?.tenantSlug}
-              disabled={result.aiLoading}
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <span
+              className="w-1.5 h-5 rounded-full"
+              style={{ background: 'linear-gradient(180deg, #2effc0, #2d5cff)' }}
             />
-          </div>
+            Analysis Results
+          </h2>
+
+          {/* Investor presentation hero — Download · Email · WhatsApp.
+              Sits as its own full-width row so the page reads cleanly
+              from heading → deliverable → analysis cards.
+              The PDF generator picks the richer Investor Presentation
+              template for everyone — founder QA decision (29 Apr
+              2026): one branded template across the board. Free users
+              get the same layout as Adviser Pro; only the branding
+              (RealSight vs adviser brand) differs inside the doc. */}
+          <SendActionsBar
+            generatePdf={async () => {
+              const data = buildPDFData();
+              if (!data) throw new Error('No analysis data yet');
+              return await generateInvestorPresentationPDF(data);
+            }}
+            propertyName={result.propertyName}
+            tenantId={agentTenantId}
+            brandName={agentProfile?.agencyName || agentProfile?.name}
+            tenantSlug={agentProfile?.tenantSlug}
+            disabled={result.aiLoading}
+          />
 
           {/* AI verdict card — primary hero of the result section.
               Emerald accent + glow-on-view so it announces itself when
