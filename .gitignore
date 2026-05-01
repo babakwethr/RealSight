@@ -44,3 +44,7 @@ verify_logout.webp
 
 # Supabase CLI local state
 supabase/.temp/
+
+# AWS relay deploy artifacts
+aws-relay/function.zip
+aws-relay/deploy-output.json

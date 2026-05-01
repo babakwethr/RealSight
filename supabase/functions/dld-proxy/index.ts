@@ -58,6 +58,67 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * relayedFetch — when DDA_UAE_RELAY_URL is set, forward the request
+ * through our UAE-resident AWS Lambda relay (see /aws-relay/index.mjs)
+ * which has a UAE-region IP and can reach DDA's geo-restricted gateway.
+ *
+ * When the env var is absent, falls back to a direct fetch — useful
+ * for local testing from a UAE machine, but will 403 in production
+ * because Supabase Edge runs from Tokyo.
+ *
+ * The relay's wire protocol is documented in /aws-relay/index.mjs:
+ *   POST { url, method, headers, body } → { status, headers, body }
+ */
+async function relayedFetch(
+  url: string,
+  init: { method?: string; headers?: Record<string, string>; body?: string } = {},
+  abortSignal?: AbortSignal,
+): Promise<{ status: number; headers: Record<string, string>; body: string }> {
+  const relayUrl = Deno.env.get("DDA_UAE_RELAY_URL");
+  const relaySecret = Deno.env.get("DDA_UAE_RELAY_SECRET");
+
+  if (!relayUrl) {
+    // Direct call fallback — works only from UAE source IPs.
+    const res = await fetch(url, { ...init, signal: abortSignal });
+    const body = await res.text();
+    const headers: Record<string, string> = {};
+    res.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+    return { status: res.status, headers, body };
+  }
+
+  if (!relaySecret) {
+    throw new Error("DDA_UAE_RELAY_URL is set but DDA_UAE_RELAY_SECRET is missing.");
+  }
+
+  const relayRes = await fetch(relayUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-relay-secret": relaySecret,
+    },
+    body: JSON.stringify({
+      url,
+      method: init.method ?? "GET",
+      headers: init.headers ?? {},
+      body: init.body,
+    }),
+    signal: abortSignal,
+  });
+
+  if (!relayRes.ok) {
+    const detail = await relayRes.text();
+    throw new Error(`UAE relay returned ${relayRes.status}: ${detail}`);
+  }
+
+  const wrapped = await relayRes.json() as {
+    status: number;
+    headers: Record<string, string>;
+    body: string;
+  };
+  return wrapped;
+}
+
 // ── Allowed entity/dataset combinations ──────────────────────────────────
 // Tightening down what the public proxy will fetch. Keeps a stray
 // /admin path or PII-bearing dataset from being relayed by accident.
@@ -91,7 +152,7 @@ async function fetchAccessToken(
   // (the previous `/sdg/ssis/gatewayoauthtoken/...` path was a guess
   // from the v1 generic spec; not what the iPaaS actually exposes).
   const url = `${baseUrl.replace(/\/+$/, "")}/secure/ssis/dubaiai/gatewaytoken/1.0.0/getAccessToken`;
-  const res = await fetch(url, {
+  const res = await relayedFetch(url, {
     method: "POST",
     headers: {
       "x-DDA-SecurityApplicationIdentifier": appIdentifier,
@@ -104,12 +165,11 @@ async function fetchAccessToken(
     }),
   });
 
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`DDA token request failed (${res.status}): ${detail}`);
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`DDA token request failed (${res.status}): ${res.body}`);
   }
 
-  const data = await res.json() as {
+  const data = JSON.parse(res.body) as {
     access_token: string;
     expires_in?: number;
   };
@@ -260,18 +320,14 @@ serve(async (req) => {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 30_000);
 
-    const upstream = await fetch(targetUrl.toString(), {
+    const upstream = await relayedFetch(targetUrl.toString(), {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
-        "x-DDA-SecurityApplicationIdentifier": appIdentifier,
         "Accept": "application/json",
       },
-      signal: ctrl.signal,
-    });
+    }, ctrl.signal);
     clearTimeout(timeout);
-
-    const body = await upstream.text();
 
     // If DDA returns 401 it usually means our cached token rotted between
     // checks — wipe the cache so the next call re-auths. Don't try to
@@ -280,12 +336,11 @@ serve(async (req) => {
       cachedToken = null;
     }
 
-    return new Response(body, {
+    return new Response(upstream.body, {
       status: upstream.status,
       headers: {
         ...corsHeaders,
-        "Content-Type": upstream.headers.get("Content-Type") ||
-          "application/json",
+        "Content-Type": upstream.headers["content-type"] || "application/json",
       },
     });
   } catch (err: any) {
