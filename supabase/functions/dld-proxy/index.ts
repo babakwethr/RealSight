@@ -16,11 +16,18 @@
  *           Returns:  { access_token, token_type: "Bearer",
  *                       expires_in (3600s), scope }
  *
- *   STEP 2  GET  {BASE}/secure/ddads/openapi/1.0.0/<entity>/<dataset>
+ *   STEP 2  GET  {BASE}/open/<entity>/<dataset>
  *           Headers:  Authorization: Bearer <access_token>
  *           Query:    column, filter, page, pageSize, limit,
  *                     order_by, order_dir, offset                  (all optional)
  *           Returns:  { results: [...] }                           (1000 rows/page max)
+ *
+ *   Confirmed via the live "Endpoints" panel on data.dubai for the
+ *   Real Estate Transactions dataset (1 May 2026):
+ *     https://apis.data.dubai/open/dld/dld_transactions-open-api
+ *   The doc text mentioned `/secure/ddads/openapi/1.0.0/...` but the
+ *   sample request and the live portal both show `/open/...` — the
+ *   doc text was misleading; the portal is canonical.
  *
  * Tokens last 60 minutes. We cache in module-scope so warm function instances
  * skip re-auth, and refresh ~1 minute before expiry to avoid edge-of-window
@@ -225,11 +232,11 @@ serve(async (req) => {
       );
     }
 
-    // Build the upstream URL.
+    // Build the upstream URL. Path is `/open/<entity>/<dataset>` —
+    // confirmed via the live "Endpoints" panel on data.dubai
+    // (see DLD Real Estate Transactions: dld/dld_transactions-open-api).
     const targetUrl = new URL(
-      `${
-        baseUrl.replace(/\/+$/, "")
-      }/secure/ddads/openapi/1.0.0/${entity}/${dataset}`,
+      `${baseUrl.replace(/\/+$/, "")}/open/${entity}/${dataset}`,
     );
 
     // Forward the supported DDA query params (per OpenAPI doc §"Supported
