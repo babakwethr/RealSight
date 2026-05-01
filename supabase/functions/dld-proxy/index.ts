@@ -1,32 +1,47 @@
 /**
  * dld-proxy — Dubai Digital Authority (DDA) data fabric proxy.
  *
- * Per LAUNCH_PLAN.md §14. We received DDA Open/Shared API credentials on
- * 27 Apr 2026 (application `PUBLIC-USR-UID-4511215`, STG environment). The
- * gateway uses a two-step pattern documented in:
- *   • ICD_GSB-SSIS-002-SDG-SSIS-DubaiAI-GatewayToken_v1.0.0_Generic.docx
- *   • SDG-DDADS-OpenAPI_PUBLICUSER_v2.1.docx
+ * Per LAUNCH_PLAN.md §14. Credentials and granted-API confirmation
+ * received from DDADS support 1 May 2026 (application
+ * `PUBLIC-USR-UID-4511215`, STG environment). Gateway docs in
+ * /DDA API Docs/ — HowToUseAPI.pdf is the canonical reference.
  *
- *   STEP 1  POST {BASE}/secure/sdg/ssis/gatewayoauthtoken/1.0.0/getAccessToken
- *           Headers:  x-DDA-SecurityApplicationIdentifier
- *           Body:     { grant_type, client_id, client_secret }   (JSON)
- *           Returns:  { access_token, expires_in (3600s) }
+ * Two-step OAuth flow:
+ *
+ *   STEP 1  POST {BASE}/secure/ssis/dubaiai/gatewaytoken/1.0.0/getAccessToken
+ *           Headers:  Content-Type: application/json
+ *                     x-DDA-SecurityApplicationIdentifier
+ *           Body:     { grant_type: "client_credentials",
+ *                       client_id, client_secret }                 (JSON)
+ *           Returns:  { access_token, token_type: "Bearer",
+ *                       expires_in (3600s), scope }
  *
  *   STEP 2  GET  {BASE}/secure/ddads/openapi/1.0.0/<entity>/<dataset>
  *           Headers:  Authorization: Bearer <access_token>
- *                     x-DDA-SecurityApplicationIdentifier
- *           Returns:  { results: [...] }
+ *           Query:    column, filter, page, pageSize, limit,
+ *                     order_by, order_dir, offset                  (all optional)
+ *           Returns:  { results: [...] }                           (1000 rows/page max)
  *
  * Tokens last 60 minutes. We cache in module-scope so warm function instances
  * skip re-auth, and refresh ~1 minute before expiry to avoid edge-of-window
- * 401s. Rate limit per docs: 60 req/min, 200K/day, 30s timeout.
+ * 401s. Rate limit per docs: 60 req/min, 30s timeout per request.
  *
- * The proxy stays behind a `DDA_ENABLED` flag because at the time of writing
- * the gateway 403s our calls (IP allowlisting pending). When that lands and
- * we flip DDA_ENABLED=true, the function goes live with no code change.
+ * GEO-RESTRICTION (the real blocker)
+ * ----------------------------------
+ * Per HowToUseAPI.pdf §6.3 — DDA's gateway is only reachable from UAE
+ * source IPs. Our Supabase Edge Functions run in Tokyo
+ * (`ap-northeast-1`), Vercel runs in US — both outside UAE, so this
+ * proxy will continue to receive HTTP 403 ("Unauthorized application
+ * request") until calls originate from a UAE-resident server. Options
+ * under consideration: AWS Lambda in me-central-1, Azure Functions in
+ * UAE North, or a small UAE-based VPS relay. When the chosen relay is
+ * deployed, an env var `DDA_UAE_RELAY_URL` will route requests through
+ * it; absent that, this proxy attempts direct calls.
  *
- * Until then, callers receive `{ fallback: true, source: 'cache' }` (HTTP 503)
- * — same shape as before, so existing consumers keep working.
+ * The proxy stays behind a `DDA_ENABLED` flag. When DDA_ENABLED is
+ * "true" and credentials are present, we make real calls. Otherwise
+ * callers receive `{ fallback: true, source: 'cache' }` (HTTP 503) —
+ * same shape as before, so existing consumers keep working.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -64,7 +79,11 @@ async function fetchAccessToken(
     return cachedToken.value;
   }
 
-  const url = `${baseUrl.replace(/\/+$/, "")}/secure/sdg/ssis/gatewayoauthtoken/1.0.0/getAccessToken`;
+  // Per HowToUseAPI.pdf §3.1 — official path is
+  //   /secure/ssis/dubaiai/gatewaytoken/1.0.0/getAccessToken
+  // (the previous `/sdg/ssis/gatewayoauthtoken/...` path was a guess
+  // from the v1 generic spec; not what the iPaaS actually exposes).
+  const url = `${baseUrl.replace(/\/+$/, "")}/secure/ssis/dubaiai/gatewaytoken/1.0.0/getAccessToken`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
