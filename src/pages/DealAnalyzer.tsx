@@ -3,6 +3,7 @@ import { BackButton } from '@/components/BackButton';
 import {
   Search, BarChart3, TrendingUp, CheckCircle2, Loader2,
   Building2, X, Sparkles, ExternalLink, ChevronDown,
+  Gauge, FileText, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1148,39 +1149,91 @@ function DealAnalyzerContent() {
       )}
 
       {/* ── Empty state — shown when no analysis result yet.
-          Keeps the right canvas from looking broken before the
-          user runs their first analysis. Mint accent matches the
-          V3 hero language. Hidden the moment a result arrives. */}
+          Cinematic right-canvas hero: aurora glow background, big
+          mint orb, then 3 deliverable cards explaining what the
+          user is about to get (Verdict / Numbers / PDF). Matches
+          the V3 design language: dark + mint accent + glassmorphism. */}
       {!result && (
-        <div className="glass-panel accent-emerald glow-on-view min-h-[360px] lg:min-h-[460px] flex items-center justify-center p-6 sm:p-8">
-          <div className="text-center max-w-md mx-auto">
+        <div className="glass-panel accent-emerald glow-on-view relative overflow-hidden p-6 sm:p-8 lg:p-10">
+          {/* Aurora glow orbs — soft, blurred, decorative only */}
+          <div aria-hidden className="pointer-events-none absolute inset-0">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-              style={{
-                background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
-                boxShadow: '0 12px 36px rgba(24,214,164,0.45), inset 0 1px 0 rgba(255,255,255,0.45)',
-              }}
-            >
-              <Sparkles className="h-7 w-7 text-white" />
+              className="absolute -top-20 -right-16 w-80 h-80 rounded-full opacity-50"
+              style={{ background: 'radial-gradient(circle, rgba(46,255,192,0.22) 0%, transparent 65%)', filter: 'blur(40px)' }}
+            />
+            <div
+              className="absolute -bottom-24 -left-16 w-80 h-80 rounded-full opacity-40"
+              style={{ background: 'radial-gradient(circle, rgba(45,92,255,0.20) 0%, transparent 65%)', filter: 'blur(40px)' }}
+            />
+            <div
+              className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-25"
+              style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)', filter: 'blur(30px)' }}
+            />
+          </div>
+
+          {/* Hero block: orb + headline + subhead */}
+          <div className="relative text-center max-w-xl mx-auto mb-7 lg:mb-9">
+            <div className="relative w-20 h-20 lg:w-24 lg:h-24 mx-auto mb-6">
+              <div
+                className="absolute inset-0 rounded-3xl animate-pulse"
+                style={{
+                  background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
+                  boxShadow: '0 24px 60px rgba(24,214,164,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+                }}
+              />
+              <div className="absolute inset-0 rounded-3xl flex items-center justify-center">
+                <Sparkles className="h-10 w-10 lg:h-11 lg:w-11 text-white drop-shadow" />
+              </div>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 tracking-tight">
-              Your AI deal analysis appears here
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Paste a listing link or fill the form on the left — get a market verdict, AI investment advice, and a branded PDF in seconds.
+            <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] text-[#2effc0]/90 mb-2.5">
+              AI Deal Analyzer
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/95 bg-emerald-400/10 border border-emerald-400/20 rounded-full px-3 py-1.5">
-                Market Verdict
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/95 bg-cyan-400/10 border border-cyan-400/20 rounded-full px-3 py-1.5">
-                Yield + Cash Flow
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300/95 bg-amber-400/10 border border-amber-400/20 rounded-full px-3 py-1.5">
-                Investor PDF
-              </span>
+            <h3 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-black text-foreground mb-3 tracking-tight leading-tight">
+              Your verdict appears here
+            </h3>
+            <p className="text-sm sm:text-[15px] text-muted-foreground leading-relaxed">
+              Paste a Bayut, Property Finder or Dubizzle link on the left — or fill the form by hand. We pull the listing, score it against live DLD comparables, and write you a branded PDF you can send to your client.
+            </p>
+          </div>
+
+          {/* 3 deliverable cards — what the user is about to get */}
+          <div className="relative grid sm:grid-cols-3 gap-3 lg:gap-4">
+            {/* Card 1 — Market Verdict */}
+            <div className="glass-card p-4 lg:p-5 border-l-4 border-l-emerald-400/55 hover:border-l-emerald-400/80 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-emerald-400/12 border border-emerald-400/25 flex items-center justify-center mb-3">
+                <Gauge className="h-5 w-5 text-emerald-300" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/90 mb-1.5">Verdict</p>
+              <p className="text-sm font-bold text-foreground mb-1 leading-snug">Market Score 0–100</p>
+              <p className="text-[12px] text-muted-foreground leading-snug">Above / at / below market vs. live DLD comps in the same area</p>
+            </div>
+
+            {/* Card 2 — Yield + Cash Flow */}
+            <div className="glass-card p-4 lg:p-5 border-l-4 border-l-cyan-400/55 hover:border-l-cyan-400/80 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-cyan-400/12 border border-cyan-400/25 flex items-center justify-center mb-3">
+                <TrendingUp className="h-5 w-5 text-cyan-300" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300/90 mb-1.5">Numbers</p>
+              <p className="text-sm font-bold text-foreground mb-1 leading-snug">Yield + Cash Flow</p>
+              <p className="text-[12px] text-muted-foreground leading-snug">Gross yield, IRR, demand &amp; liquidity scores, recommended strategy</p>
+            </div>
+
+            {/* Card 3 — PDF */}
+            <div className="glass-card p-4 lg:p-5 border-l-4 border-l-amber-400/55 hover:border-l-amber-400/80 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-amber-400/12 border border-amber-400/25 flex items-center justify-center mb-3">
+                <FileText className="h-5 w-5 text-amber-300" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-300/90 mb-1.5">Deliverable</p>
+              <p className="text-sm font-bold text-foreground mb-1 leading-snug">Branded Investor PDF</p>
+              <p className="text-[12px] text-muted-foreground leading-snug">8-page presentation — download, email, or share via WhatsApp</p>
             </div>
           </div>
+
+          {/* Tiny footer line — speed reassurance */}
+          <p className="relative mt-6 text-center text-[11px] text-white/45 flex items-center justify-center gap-1.5">
+            <Zap className="h-3 w-3 text-[#2effc0]/70" />
+            Typically ready in under 10 seconds
+          </p>
         </div>
       )}
 
