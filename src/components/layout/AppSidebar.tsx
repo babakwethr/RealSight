@@ -197,7 +197,6 @@ export function AppSidebar() {
             <div className="space-y-0.5 px-1.5">
               <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
               <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
-              <NavItem to="/studio"        icon={Wand2}           label="Studio" />
               <NavItem to="/projects"      icon={Building2}       label="New Launches" />
             </div>
 
@@ -213,7 +212,8 @@ export function AppSidebar() {
 
             <SectionLabel label="Admin" accent="admin" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/admin" icon={Shield} label="Workspace" />
+              <NavItem to="/studio" icon={Wand2}  label="Studio" />
+              <NavItem to="/admin"  icon={Shield} label="Workspace" />
             </div>
           </>
         ) : (
