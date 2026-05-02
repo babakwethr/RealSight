@@ -20,14 +20,6 @@ export default {
         display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
         // Preserved: Berkeley Mono for inline numbers, tables, code.
         mono: ['Berkeley Mono', 'SF Mono', 'ui-monospace', 'Menlo', 'monospace'],
-        // Studio (2 May 2026): Fraunces for editorial display headings —
-        // variable axes (opsz, wght, SOFT, WONK) deliver real magazine
-        // typography. Used on /studio and any "lookbook" surface.
-        editorial: ['Fraunces', 'Georgia', 'serif'],
-        // Tactical labels — JetBrains Mono ships via Google Fonts and is
-        // distinct from the existing `mono` fallback chain so design
-        // surfaces (Studio, future presentation surfaces) can opt in.
-        tactical: ['JetBrains Mono', 'Berkeley Mono', 'SF Mono', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
