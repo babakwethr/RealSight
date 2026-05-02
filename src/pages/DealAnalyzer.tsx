@@ -548,8 +548,12 @@ function DealAnalyzerContent() {
 
   // Auto-collapse both input sections when an analysis result arrives,
   // so the Result panel sits closer to the top of the visible area.
+  // Mobile only — on desktop (lg:+) the inputs live in a sticky left
+  // rail next to the result canvas, so collapsing them defeats the
+  // workbench layout. The lg: breakpoint matches the grid switch in
+  // the page wrapper below.
   useEffect(() => {
-    if (result) {
+    if (result && typeof window !== 'undefined' && window.innerWidth < 1024) {
       setManualOpen(false);
       setLinksOpen(false);
     }
@@ -767,12 +771,12 @@ function DealAnalyzerContent() {
   const canAnalyze = !!manualPrice && !!manualSize && (!!selectedArea || !!areaSearch);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in">
       <BackButton />
 
       {/* ── Hero header — gradient word + AI accent ── */}
-      <div className="relative">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="relative mb-6">
+        <div className="flex items-center gap-3">
           <div
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
             style={{
@@ -783,7 +787,7 @@ function DealAnalyzerContent() {
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-none">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-none">
               Deal{' '}
               <span
                 className="bg-clip-text text-transparent"
@@ -792,12 +796,24 @@ function DealAnalyzerContent() {
                 Analyzer
               </span>
             </h1>
-            <p className="text-[13px] text-muted-foreground mt-1">
+            <p className="text-[13px] lg:text-sm text-muted-foreground mt-1">
               Score any Dubai property against live DLD data + AI advice — in seconds
             </p>
           </div>
         </div>
       </div>
+
+      {/* ── Workbench: 2-column on lg+, single column below ──
+          Left rail = inputs (sticky on desktop so the form is always
+          visible while the user reads results on the right).
+          Right canvas = property context + analysis results.
+          Mobile keeps the original stacked single-column flow. */}
+      <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 xl:gap-8">
+
+      {/* ╔════════════════════════════════════════════╗
+          ║  LEFT RAIL — Inputs (controls only)        ║
+          ╚════════════════════════════════════════════╝ */}
+      <aside className="space-y-4 lg:col-span-5 lg:sticky lg:top-6 lg:self-start">
 
       {/* ── Plain-language guidance ── */}
       <GuidanceCard
@@ -892,27 +908,6 @@ function DealAnalyzerContent() {
           )}
         </div>
       </section>
-
-      {/* Listing agent card — surfaces the broker who posted the
-          listing on Dubizzle (name, photo, agency, RERA BRN, contact).
-          Renders only when extract-listing returned agent data. */}
-      {extractedAgent && (
-        <ListingAgentCard agent={extractedAgent} />
-      )}
-
-      {/* Recent DLD-registered transactions — pulls the last 10
-          comparable sales from DLD's DDA Open API via dld-proxy.
-          Renders a graceful "awaiting DLD allowlist" placeholder
-          while DDA's IP allowlist is still pending; the moment
-          DDA_ENABLED=true flips and the gateway returns rows, this
-          card auto-populates without redeploy. See LAUNCH_PLAN §14. */}
-      {(extractedAgent || result?.area || selectedArea || areaSearch) && (
-        <RecentTransactionsCard
-          area={selectedArea || areaSearch || result?.area}
-          propertyName={propertyName || result?.propertyName}
-          unitType={result?.unitType}
-        />
-      )}
 
       {/* OR divider — only meaningful when both input sections are
           expanded (i.e. the user is actively choosing between paths).
@@ -1125,6 +1120,70 @@ function DealAnalyzerContent() {
         </>)}
       </section>
 
+      </aside>
+      {/* ╔════════════════════════════════════════════╗
+          ║  RIGHT CANVAS — Property context + result  ║
+          ╚════════════════════════════════════════════╝ */}
+      <main className="space-y-4 lg:col-span-7 min-w-0">
+
+      {/* Listing agent card — surfaces the broker who posted the
+          listing on Dubizzle (name, photo, agency, RERA BRN, contact).
+          Renders only when extract-listing returned agent data. */}
+      {extractedAgent && (
+        <ListingAgentCard agent={extractedAgent} />
+      )}
+
+      {/* Recent DLD-registered transactions — pulls the last 10
+          comparable sales from DLD's DDA Open API via dld-proxy.
+          Renders a graceful "awaiting DLD allowlist" placeholder
+          while DDA's IP allowlist is still pending; the moment
+          DDA_ENABLED=true flips and the gateway returns rows, this
+          card auto-populates without redeploy. See LAUNCH_PLAN §14. */}
+      {(extractedAgent || result?.area || selectedArea || areaSearch) && (
+        <RecentTransactionsCard
+          area={selectedArea || areaSearch || result?.area}
+          propertyName={propertyName || result?.propertyName}
+          unitType={result?.unitType}
+        />
+      )}
+
+      {/* ── Empty state — shown when no analysis result yet.
+          Keeps the right canvas from looking broken before the
+          user runs their first analysis. Mint accent matches the
+          V3 hero language. Hidden the moment a result arrives. */}
+      {!result && (
+        <div className="glass-panel accent-emerald glow-on-view min-h-[360px] lg:min-h-[460px] flex items-center justify-center p-6 sm:p-8">
+          <div className="text-center max-w-md mx-auto">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{
+                background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
+                boxShadow: '0 12px 36px rgba(24,214,164,0.45), inset 0 1px 0 rgba(255,255,255,0.45)',
+              }}
+            >
+              <Sparkles className="h-7 w-7 text-white" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 tracking-tight">
+              Your AI deal analysis appears here
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Paste a listing link or fill the form on the left — get a market verdict, AI investment advice, and a branded PDF in seconds.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/95 bg-emerald-400/10 border border-emerald-400/20 rounded-full px-3 py-1.5">
+                Market Verdict
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/95 bg-cyan-400/10 border border-cyan-400/20 rounded-full px-3 py-1.5">
+                Yield + Cash Flow
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300/95 bg-amber-400/10 border border-amber-400/20 rounded-full px-3 py-1.5">
+                Investor PDF
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Results ── */}
       {result && (
         <div id="analysis-results" className="space-y-4 animate-slide-up scroll-mt-24">
@@ -1242,6 +1301,9 @@ function DealAnalyzerContent() {
           )}
         </div>
       )}
+
+      </main>
+      </div>
 
     </div>
   );

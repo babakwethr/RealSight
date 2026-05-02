@@ -102,7 +102,6 @@ export function AdminTabs() {
  * Renders an "Admin Mode · {section}" sticky strip + the tab bar + the
  * outlet for the active sub-page.
  */
-import { Shield } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useTenant } from '@/hooks/useTenant';
 
