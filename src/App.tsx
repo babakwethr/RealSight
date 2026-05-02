@@ -55,6 +55,7 @@ import TopPicks from "./pages/TopPicks";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import Watchlist from "./pages/Watchlist";
 import Studio from "./pages/Studio";
+import PresentationGenerator from "./pages/studio/PresentationGenerator";
 
 // Preview V3 (fresh mobile-first concept) — isolated, unauth, leaves V1/V2 untouched
 import V3Layout, { V3PhoneFrame } from "./pages/preview/v3/V3Layout";
@@ -255,6 +256,7 @@ const App = () => (
                     Presentation Generator, Social Pack, Video, Buyer
                     Matcher and future tool drops. */}
                 <Route path="/studio" element={<Studio />} />
+                <Route path="/studio/presentation" element={<PresentationGenerator />} />
 
                 <Route element={<AdminShell />}>
                   <Route path="/admin"                          element={<AdminWorkspace />} />

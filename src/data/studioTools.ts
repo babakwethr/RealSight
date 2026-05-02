@@ -49,9 +49,10 @@ export const STUDIO_TOOLS: StudioTool[] = [
   {
     slug: 'presentation',
     name: 'Presentation',
-    tagline: 'Any topic — five branded slides, sixty seconds.',
-    status: 'coming',
-    comingLabel: 'May 2026',
+    tagline: 'Any topic — a five-page branded presentation, ready to send.',
+    status: 'beta',
+    comingLabel: 'Beta',
+    route: '/studio/presentation',
     illustration: 'presentation',
     tone: 'mint',
     icon: Sparkles,
