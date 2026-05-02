@@ -790,7 +790,11 @@ export async function generateDealAnalyzerPDF(data: DealAnalyzerPDFData): Promis
     _dubaiMarina:   marinaDataUrl  ?? undefined,
     agentPhotoUrl:  agentPhotoDataUrl ?? data.agentPhotoUrl,
     reraQrUrl:      reraQrDataUrl     ?? data.reraQrUrl,
-    photos:         galleryDataUrls.length > 0 ? galleryDataUrls : data.photos,
+    // Drop gallery photos entirely if proxy returned null for every
+    // URL — falling back to raw CDN URLs leaves @react-pdf rendering
+    // grey placeholders (CORS rejects cross-origin Image fetches).
+    // Skip the slide instead of shipping a blank page.
+    photos:         galleryDataUrls.length > 0 ? galleryDataUrls : undefined,
   };
 
   // Diagnostic for QA: which images made it through?

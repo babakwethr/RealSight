@@ -687,7 +687,14 @@ export async function generateInvestorPresentationPDF(data: DealAnalyzerPDFData)
     _dubaiMarina:  marinaDataUrl  ?? undefined,
     agentPhotoUrl: agentPhotoDataUrl ?? data.agentPhotoUrl,
     reraQrUrl:     reraQrDataUrl     ?? data.reraQrUrl,
-    photos:        galleryDataUrls.length > 0 ? galleryDataUrls : data.photos,
+    // Only embed gallery photos that successfully proxied to data
+    // URLs. If proxy returned null for every URL (e.g. CDN host not
+    // in the allowlist, or all images timed out), drop the array
+    // entirely so the slide is skipped — better than rendering a
+    // page of grey rectangles, which is what @react-pdf does when
+    // it can't fetch an Image src cross-origin (founder QA 2 May
+    // 2026: "the property photos in Dubizzle don't show. It's blank").
+    photos: galleryDataUrls.length > 0 ? galleryDataUrls : undefined,
   };
 
   // Diagnostic — surfaces in browser console for QA. Same shape as

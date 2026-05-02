@@ -39,9 +39,11 @@ const ALLOWED_SUFFIXES = [
   'propertyfinder.com',
   'dubizzle.com',
   'olx-cdn.com',
+  'olxuae.com',                 // Dubizzle is owned by OLX UAE; some CDN paths surface via this domain
   'imgcache.dubizzle.com',
-  'akamaized.net',     // PF + dubizzle both use Akamai
-  'cloudfront.net',    // generic CDN used by all 3
+  'akamaized.net',              // PF + dubizzle both use Akamai
+  'cloudfront.net',             // generic CDN used by all 3
+  'amazonaws.com',              // Dubizzle prod listing photos sit on S3 (e.g. dubizzle-prod-listing-photos.s3.amazonaws.com)
 ];
 
 function hostMatches(host: string): boolean {
