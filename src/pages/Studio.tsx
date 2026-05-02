@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Bell, CheckCircle2, Sparkles } from 'lucide-react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { ArrowUpRight, Bell, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -8,37 +9,28 @@ import { cn } from '@/lib/utils';
 import {
   STUDIO_TOOLS,
   studioToolCounts,
+  TONE_PALETTE,
   type StudioTool,
-  type StudioToolVariant,
 } from '@/data/studioTools';
 
 /**
- * Studio — adviser-only "tools that build your business" workspace.
+ * Studio — adviser tools workspace.
  *
- * One card per tool. Live tools open via full-page take-over (per
- * founder direction 2 May 2026). Coming tools open a notify-me modal
- * and store the adviser's interest in localStorage so we can later
- * surface "you asked about this" prompts when the tool ships.
+ * Design language: editorial atelier. Reads like a Christie's catalogue
+ * crossed with a Higgsfield UI: numbered tools, large display serif,
+ * cinematic photography, asymmetric grid, monospaced tactical labels,
+ * and a film-grain canvas overlay. Mint and gold are the only accents
+ * — applied surgically, not painted everywhere.
  *
- * Visual language reuses the cinematic gradient palette established
- * in `HeroMetricCard` so this page slots into the V3 design system
- * without introducing new tokens. Photo-realistic Higgsfield
- * backgrounds land in a follow-up once founder upgrades the plan.
+ * Motion choreography:
+ *  · 1.0s — fade-in canvas + line-draw across the editorial title rule
+ *  · 0.4s — display headline reveals letter-by-letter via clip mask
+ *  · 0.6s — cards stagger up with overshoot (live first, then coming)
+ *  · scroll — hero photo parallaxes ~80px to anchor the page
+ *  · hover — Ken Burns zoom on photo + accent line draws under the title
  */
 
-// ── Gradient palette — mirrors HeroMetricCard for visual consistency ──
-const VARIANT_GRADIENT: Record<StudioToolVariant, string> = {
-  mint:    'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(16,227,176,0.45), transparent 60%), linear-gradient(115deg, #063F35 0%, #0AC291 48%, #10E3B0 100%)',
-  blue:    'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(123,92,255,0.45), transparent 60%), linear-gradient(105deg, #2A4BAE 0%, #3B6CE8 42%, #6F6AF6 100%)',
-  cyan:    'linear-gradient(120deg, #08213D 0%, #1F5BA6 45%, #4AA8FF 100%)',
-  purple:  'radial-gradient(ellipse 60% 80% at 20% 30%, rgba(74,168,255,0.38), transparent 55%), linear-gradient(135deg, #1A1640 0%, #3D2A8A 45%, #7B5CFF 100%)',
-  amber:   'radial-gradient(ellipse 70% 80% at 70% 30%, rgba(245,180,51,0.35), transparent 60%), linear-gradient(120deg, #2A1E0D 0%, #8C6B1F 50%, #C9A84C 100%)',
-  sunset:  'radial-gradient(ellipse 70% 80% at 70% 30%, rgba(245,180,51,0.30), transparent 60%), linear-gradient(135deg, #7C2D12 0%, #F97316 55%, #FDBA74 100%)',
-  rose:    'linear-gradient(115deg, #FF5577 0%, #7B5CFF 55%, #4AA8FF 100%)',
-  night:   'radial-gradient(ellipse 60% 80% at 80% 40%, rgba(123,92,255,0.35), transparent 60%), radial-gradient(ellipse 50% 60% at 20% 60%, rgba(16,227,176,0.18), transparent 60%), linear-gradient(135deg, #1A1640 0%, #0F1D33 100%)',
-};
-
-// ── localStorage key for notify-me state ──────────────────────────────
+// ── localStorage key for notify-me ───────────────────────────────────
 const NOTIFY_KEY = 'studio.notifyMe';
 
 function loadNotifyMe(): Record<string, number> {
@@ -55,9 +47,18 @@ function saveNotifyMe(state: Record<string, number>) {
   try {
     localStorage.setItem(NOTIFY_KEY, JSON.stringify(state));
   } catch {
-    // Quota errors are silent — the toast already confirmed intent.
+    // Silent — toast already confirmed intent.
   }
 }
+
+// ── Easing curves ────────────────────────────────────────────────────
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;          // cinematic deceleration
+const EASE_OVERSHOOT = [0.34, 1.56, 0.64, 1] as const; // card pop on entry
+
+// ── Film grain SVG (inline, ~1KB, no extra request) ──────────────────
+const FILM_GRAIN_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>`,
+)}`;
 
 export default function Studio() {
   const navigate = useNavigate();
@@ -65,12 +66,23 @@ export default function Studio() {
   const [openTool, setOpenTool] = useState<StudioTool | null>(null);
   const [notified, setNotified] = useState<Record<string, number>>(loadNotifyMe);
 
+  // Hero photo parallax — subtle, ~80px over the first viewport.
+  const { scrollY } = useScroll();
+  const heroParallax = useTransform(scrollY, [0, 600], [0, -80]);
+  const heroFade = useTransform(scrollY, [0, 400], [1, 0.65]);
+
+  // Page-load reveal — kick once on mount.
+  const [hasRevealed, setHasRevealed] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setHasRevealed(true), 80);
+    return () => window.clearTimeout(t);
+  }, []);
+
   const handleCardClick = (tool: StudioTool) => {
     if (tool.status === 'live' || tool.status === 'beta') {
       if (tool.route) navigate(tool.route);
       return;
     }
-    // Coming — open notify-me modal
     setOpenTool(tool);
   };
 
@@ -78,243 +90,551 @@ export default function Studio() {
     const next = { ...notified, [tool.slug]: Date.now() };
     setNotified(next);
     saveNotifyMe(next);
-    toast.success("Got it — we'll let you know.", {
-      description: `We'll email you when ${tool.name} launches.`,
+    toast.success("On the list.", {
+      description: `We'll write when ${tool.name} ships.`,
     });
     setOpenTool(null);
   };
 
   return (
-    <div className="animate-fade-in">
-      {/* ── Hero header ── */}
+    <div
+      className="relative min-h-screen"
+      style={{
+        // Letterboxed editorial canvas — pulled tighter than the rest of the
+        // app so Studio reads as a "magazine spread" inside the chrome.
+        ['--studio-gutter' as string]: 'clamp(1rem, 4vw, 3rem)',
+      }}
+    >
+      {/* Film grain overlay — barely visible but breaks up the dark canvas. */}
       <div
-        className="relative rounded-3xl overflow-hidden mb-8 border border-white/[0.06]"
-        style={{
-          backgroundImage:
-            'linear-gradient(180deg, rgba(8,15,28,0.72) 0%, rgba(8,15,28,0.92) 100%), url(/pdf-bg/dubai-skyline.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 40%',
-        }}
-      >
-        <div className="px-6 sm:px-8 lg:px-10 py-9 lg:py-12">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] text-[#2effc0]/90 mb-3 flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" />
-                Adviser Studio
-              </p>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-[1.05]">
-                Tools that{' '}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #2d5cff 100%)' }}
-                >
-                  build your business
-                </span>
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-3 max-w-2xl leading-relaxed">
-                Generate branded presentations, social packs, video pitches and AI matchmaking — all from one place. New tool every month.
-              </p>
-            </div>
-            <div className="shrink-0 flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur px-3 py-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2effc0] animate-pulse" />
-              <span className="text-[11px] font-semibold text-white/80">
-                {counts.live} live · {counts.coming} coming
-              </span>
-            </div>
-          </div>
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[1] opacity-[0.06] mix-blend-overlay"
+        style={{ backgroundImage: `url("${FILM_GRAIN_SVG}")`, backgroundSize: '240px 240px' }}
+      />
+
+      {/* ╔══════════════════════════════════════════════════════════════╗
+          ║  HERO — editorial title-card                                 ║
+          ╚══════════════════════════════════════════════════════════════╝ */}
+      <section className="relative pt-2 lg:pt-6 pb-10 lg:pb-14" style={{ paddingLeft: 'var(--studio-gutter)', paddingRight: 'var(--studio-gutter)' }}>
+        {/* Eyebrow strip — STUDIO · ADVISER TOOLS · live count */}
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: EASE_OUT }}
+          className="flex items-center gap-3 text-[10.5px] mb-9 lg:mb-12"
+          style={{ fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.18em' }}
+        >
+          <span className="text-white/45 uppercase">RealSight</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span className="text-[#18D6A4] uppercase font-medium">Studio</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span className="text-white/45 uppercase">Adviser Tools</span>
+          <span className="flex-1 h-px bg-white/10 ml-2" />
+          <span className="text-white/55 tabular-nums">
+            {String(counts.live).padStart(2, '0')} LIVE · {String(counts.coming).padStart(2, '0')} IN PRODUCTION
+          </span>
+        </motion.div>
+
+        {/* The display headline — Fraunces, oversized, with clip-mask reveal. */}
+        <div className="overflow-hidden">
+          <motion.h1
+            initial={{ y: '110%' }}
+            animate={hasRevealed ? { y: '0%' } : {}}
+            transition={{ duration: 0.95, ease: EASE_OUT, delay: 0.15 }}
+            className="font-editorial leading-[0.92] tracking-[-0.025em] text-white"
+            style={{
+              fontFamily: '"Fraunces", Georgia, serif',
+              fontWeight: 360,
+              fontSize: 'clamp(2.4rem, 7.6vw, 6.5rem)',
+              fontVariationSettings: '"opsz" 144, "SOFT" 35, "WONK" 0',
+            }}
+          >
+            Tools that build
+          </motion.h1>
         </div>
-      </div>
+        <div className="overflow-hidden">
+          <motion.h1
+            initial={{ y: '110%' }}
+            animate={hasRevealed ? { y: '0%' } : {}}
+            transition={{ duration: 0.95, ease: EASE_OUT, delay: 0.28 }}
+            className="font-editorial leading-[0.92] tracking-[-0.025em]"
+            style={{
+              fontFamily: '"Fraunces", Georgia, serif',
+              fontWeight: 360,
+              fontSize: 'clamp(2.4rem, 7.6vw, 6.5rem)',
+              fontVariationSettings: '"opsz" 144, "SOFT" 35, "WONK" 1',
+            }}
+          >
+            <span
+              className="bg-clip-text text-transparent italic"
+              style={{
+                backgroundImage: 'linear-gradient(92deg, #C9A84C 0%, #18D6A4 60%, #7BFFD6 100%)',
+                fontWeight: 320,
+              }}
+            >
+              your business.
+            </span>
+          </motion.h1>
+        </div>
 
-      {/* ── Card grid ── */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
-        {STUDIO_TOOLS.map(tool => (
-          <ToolCard
-            key={tool.slug}
-            tool={tool}
-            notified={!!notified[tool.slug]}
-            onClick={() => handleCardClick(tool)}
-          />
-        ))}
-      </div>
+        {/* Hairline rule + subhead */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={hasRevealed ? { scaleX: 1 } : {}}
+          transition={{ duration: 1, ease: EASE_OUT, delay: 0.55 }}
+          className="origin-left h-px bg-white/15 mt-9 lg:mt-12 mb-5 lg:mb-7"
+        />
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={hasRevealed ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.7 }}
+          className="text-white/60 text-[15px] lg:text-base leading-[1.55] max-w-[36rem]"
+        >
+          A working set of cinematic deliverables — branded presentations, social packs, video pitches and AI matchmaking. New tool curated and shipped every month.
+        </motion.p>
+      </section>
 
-      {/* ── Footer line ── */}
-      <div className="mt-10 flex items-center justify-center">
-        <p className="text-[12px] text-white/40">
-          Got an idea for a tool?{' '}
+      {/* ╔══════════════════════════════════════════════════════════════╗
+          ║  EDITORIAL GRID — asymmetric tool cards                      ║
+          ╚══════════════════════════════════════════════════════════════╝ */}
+      <section
+        className="relative pb-16 lg:pb-24"
+        style={{ paddingLeft: 'var(--studio-gutter)', paddingRight: 'var(--studio-gutter)' }}
+      >
+        {/* Section eyebrow — "THE COLLECTION · 2026" */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={hasRevealed ? { opacity: 1 } : {}}
+          transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.85 }}
+          className="flex items-end justify-between gap-4 mb-6 lg:mb-8"
+        >
+          <div className="flex items-baseline gap-3">
+            <span
+              className="text-[10.5px] text-white/45 uppercase tracking-[0.22em]"
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}
+            >
+              The Collection
+            </span>
+            <span className="w-7 h-px bg-white/15" />
+            <span
+              className="text-[10.5px] text-white/45 uppercase tracking-[0.22em] tabular-nums"
+              style={{ fontFamily: '"JetBrains Mono", monospace' }}
+            >
+              {STUDIO_TOOLS.length.toString().padStart(2, '0')} pieces
+            </span>
+          </div>
+          <span
+            className="text-[10.5px] text-white/35 uppercase tracking-[0.2em] hidden sm:inline"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}
+          >
+            Hover to preview · Click to enter
+          </span>
+        </motion.div>
+
+        <div
+          className="grid gap-3 sm:gap-4 lg:gap-5"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 22rem), 1fr))',
+            gridAutoFlow: 'dense',
+          }}
+        >
+          {STUDIO_TOOLS.map((tool, i) => (
+            <ToolCard
+              key={tool.slug}
+              tool={tool}
+              index={i}
+              hasRevealed={hasRevealed}
+              notified={!!notified[tool.slug]}
+              onClick={() => handleCardClick(tool)}
+              heroParallax={heroParallax}
+              heroFade={heroFade}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ╔══════════════════════════════════════════════════════════════╗
+          ║  EDITORIAL FOOTER                                            ║
+          ╚══════════════════════════════════════════════════════════════╝ */}
+      <section
+        className="relative pb-20"
+        style={{ paddingLeft: 'var(--studio-gutter)', paddingRight: 'var(--studio-gutter)' }}
+      >
+        <div className="h-px bg-white/10 mb-7" />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p
+            className="text-[10.5px] text-white/35 uppercase tracking-[0.22em]"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}
+          >
+            Studio · RealSight Adviser Tools · Edition 2026
+          </p>
           <a
             href="mailto:concierge@realsight.com?subject=Studio%20tool%20idea"
-            className="text-[#7aa6ff] hover:text-[#9fb9ff] underline-offset-2 hover:underline transition-colors font-semibold"
+            className="group inline-flex items-center gap-1.5 text-[12px] text-white/55 hover:text-white transition-colors"
+            style={{ fontFamily: '"JetBrains Mono", monospace' }}
           >
-            Tell us →
+            <span className="uppercase tracking-[0.16em]">Submit a tool idea</span>
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </a>
-        </p>
-      </div>
+        </div>
+      </section>
 
-      {/* ── Notify-me modal ── */}
+      {/* ── Notify-me modal ──────────────────────────────────────────── */}
       <Dialog open={!!openTool} onOpenChange={(o) => !o && setOpenTool(null)}>
         <DialogContent className="sm:max-w-md">
           {openTool && (
-            <>
-              <DialogHeader>
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                  style={{
-                    background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
-                    boxShadow: '0 12px 32px rgba(24,214,164,0.45), inset 0 1px 0 rgba(255,255,255,0.45)',
-                  }}
-                >
-                  <openTool.icon className="h-6 w-6 text-white" />
-                </div>
-                <DialogTitle className="text-xl">
-                  {openTool.name}
-                </DialogTitle>
-                <DialogDescription className="text-sm leading-relaxed pt-1">
-                  {openTool.tagline}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 my-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-white/55 mb-1">
-                  Status
-                </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {openTool.comingLabel ?? 'Coming soon'}
-                </p>
-              </div>
-              {notified[openTool.slug] ? (
-                <div className="flex items-center gap-2 text-sm text-emerald-400 rounded-xl bg-emerald-400/10 border border-emerald-400/20 px-3 py-2.5">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>You&rsquo;re on the list — we&rsquo;ll email you when it launches.</span>
-                </div>
-              ) : (
-                <Button
-                  size="lg"
-                  className="rounded-full font-bold w-full"
-                  style={{
-                    background: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #2d5cff 100%)',
-                    color: '#04130b',
-                  }}
-                  onClick={() => handleNotifyMe(openTool)}
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notify me when it launches
-                </Button>
-              )}
-            </>
+            <NotifyMeModal
+              tool={openTool}
+              alreadyNotified={!!notified[openTool.slug]}
+              onConfirm={() => handleNotifyMe(openTool)}
+            />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Background reveal — first ~1.2s, a thin mint line draws across.
+          Performs the cinema "title sweep" that anchors the rest of the
+          choreography. Disappears after the page settles. */}
+      <AnimatePresence>
+        {!hasRevealed && (
+          <motion.div
+            key="reveal-curtain"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: EASE_OUT }}
+            className="fixed inset-x-0 top-1/2 -translate-y-1/2 z-[2] pointer-events-none"
+          >
+            <motion.div
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 0.9, ease: EASE_OUT }}
+              className="origin-left h-px"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(24,214,164,0.7) 50%, transparent)',
+                boxShadow: '0 0 30px rgba(24,214,164,0.6)',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// ToolCard — one card in the Studio grid
+// ToolCard — editorial atelier card
 // ──────────────────────────────────────────────────────────────────────
 
 interface ToolCardProps {
   tool: StudioTool;
+  index: number;
+  hasRevealed: boolean;
   notified: boolean;
   onClick: () => void;
+  // Accept the parallax MotionValues so we could later wire one card into
+  // the scroll choreography if we want a "featured" piece. v1 ignores them.
+  heroParallax: ReturnType<typeof useTransform>;
+  heroFade: ReturnType<typeof useTransform>;
 }
 
-function ToolCard({ tool, notified, onClick }: ToolCardProps) {
+function ToolCard({ tool, index, hasRevealed, notified, onClick }: ToolCardProps) {
   const Icon = tool.icon;
+  const palette = TONE_PALETTE[tool.tone];
   const isLive = tool.status === 'live' || tool.status === 'beta';
+  const isWide = tool.span === 'wide';
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      initial={{ opacity: 0, y: 38 }}
+      animate={hasRevealed ? { opacity: 1, y: 0 } : {}}
+      transition={{
+        duration: 0.85,
+        ease: EASE_OVERSHOOT,
+        // Cards stagger from top-left; live first, then by index.
+        delay: 0.95 + index * 0.07,
+      }}
+      whileHover={{ y: -4 }}
       className={cn(
-        'group relative aspect-[1.35/1] w-full rounded-3xl overflow-hidden text-left',
-        'border border-white/[0.08] hover:border-white/[0.18] transition-all duration-300',
-        'hover:shadow-[0_24px_60px_rgba(46,255,192,0.18)]',
+        'group relative flex flex-col text-left overflow-hidden rounded-[14px]',
+        'border border-white/[0.07] hover:border-white/[0.15] transition-colors duration-500',
+        'bg-[#0B1322]',
+        // Wide cards span 2 columns on lg+ (auto-fit grid above is the
+        // base; the explicit span class is a hint browsers honour when
+        // they have room).
+        isWide && 'lg:col-span-2',
       )}
-      aria-label={`${tool.name} — ${tool.status === 'live' ? 'open' : 'notify me when it launches'}`}
+      style={{
+        // Hover ring drawn via box-shadow — subtle, tone-coloured.
+        ['--card-ring' as string]: palette.ring,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 0 rgba(0,0,0,0.4)',
+      }}
+      aria-label={`${tool.name} — ${isLive ? 'open' : 'notify me when it ships'}`}
     >
-      {/* Gradient layer (or photo background once Higgsfield assets land) */}
-      <div
-        className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.06]"
-        style={{
-          background: tool.bgImage
-            ? `linear-gradient(180deg, rgba(8,15,28,0.25) 0%, rgba(8,15,28,0.85) 100%), url(${tool.bgImage})`
-            : VARIANT_GRADIENT[tool.variant],
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-
-      {/* Bottom-fade overlay so the text is always readable */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(180deg, transparent 30%, rgba(8,15,28,0.55) 75%, rgba(8,15,28,0.88) 100%)',
-        }}
-      />
-
-      {/* Decorative sparkle for live/beta cards */}
-      {isLive && (
-        <div className="absolute top-4 left-4 w-1.5 h-1.5 rounded-full bg-[#2effc0] animate-pulse shadow-[0_0_12px_rgba(46,255,192,0.8)]" />
-      )}
-
-      {/* Status chip */}
-      <div className="absolute top-3 right-3 z-10">
-        {tool.status === 'live' && (
-          <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-400/90 text-emerald-950 rounded-full px-2.5 py-1 shadow-[0_4px_14px_rgba(46,255,192,0.4)]">
-            Live
-          </span>
+      {/* Photo plate — top-aligned, cinematic ratio */}
+      <div className={cn('relative w-full overflow-hidden', isWide ? 'aspect-[2.4/1]' : 'aspect-[1.65/1]')}>
+        {tool.bgImage ? (
+          <div
+            className="absolute inset-0 transition-transform duration-[1400ms] ease-out group-hover:scale-[1.07]"
+            style={{
+              backgroundImage: `url(${tool.bgImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: tool.bgPosition ?? 'center',
+              filter: 'brightness(0.62) saturate(1.05) contrast(1.08)',
+            }}
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse 70% 90% at 60% 30%, ${palette.accent}30 0%, transparent 65%), linear-gradient(160deg, #0B1322 0%, #08111E 100%)`,
+            }}
+          />
         )}
-        {tool.status === 'beta' && (
-          <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400/90 text-amber-950 rounded-full px-2.5 py-1 shadow-[0_4px_14px_rgba(251,191,36,0.4)]">
-            Beta
+        {/* Tonal wash — gives every card a subtle accent tint without
+            burning the photo. The gradient direction matches the
+            overall page motion (top-left → bottom-right). */}
+        <div
+          className="absolute inset-0 mix-blend-overlay opacity-50 transition-opacity duration-700 group-hover:opacity-65"
+          style={{
+            background: `linear-gradient(140deg, ${palette.accent}55 0%, transparent 55%, ${palette.accent}22 100%)`,
+          }}
+        />
+        {/* Bottom fade so chip + meta on the meta-strip below transition cleanly */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(11,19,34,0.95))' }}
+        />
+
+        {/* Status chip — top-right, tactical */}
+        <div className="absolute top-3 right-3 z-10">
+          <StatusChip tool={tool} palette={palette} />
+        </div>
+
+        {/* Number — bottom-left, oversized editorial numeral */}
+        <div className="absolute bottom-2.5 left-3.5 z-10">
+          <span
+            className="text-white/85 leading-none tabular-nums"
+            style={{
+              fontFamily: '"Fraunces", Georgia, serif',
+              fontVariationSettings: '"opsz" 144, "WONK" 1',
+              fontWeight: 280,
+              fontSize: isWide ? '3.4rem' : '2.6rem',
+              fontStyle: 'italic',
+              letterSpacing: '-0.02em',
+              textShadow: '0 4px 24px rgba(0,0,0,0.6)',
+            }}
+          >
+            {tool.number}
           </span>
-        )}
-        {tool.status === 'coming' && (
-          <span className="text-[10px] font-black uppercase tracking-wider bg-white/[0.10] text-white/70 border border-white/[0.12] backdrop-blur rounded-full px-2.5 py-1 group-hover:bg-white/[0.16] transition-colors">
-            {tool.comingLabel ?? 'Coming soon'}
-          </span>
+        </div>
+
+        {/* Notified pill — top-left, only when adviser opted in */}
+        {!isLive && notified && (
+          <div className="absolute top-3 left-3 z-10">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur"
+              style={{
+                background: palette.chipBg,
+                color: palette.chipFg,
+                border: `1px solid ${palette.chipFg}33`,
+                fontFamily: '"JetBrains Mono", monospace',
+              }}
+            >
+              <Bell className="h-2.5 w-2.5" />
+              ON THE LIST
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Notified pill (when adviser already opted in for this tool) */}
-      {!isLive && notified && (
-        <div className="absolute top-3 left-3 z-10">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 rounded-full px-2 py-0.5">
-            <Bell className="h-2.5 w-2.5" />
-            On the list
-          </span>
+      {/* Meta strip — title + tagline + accent line + arrow */}
+      <div className="relative px-4 sm:px-5 lg:px-6 pt-4 pb-5 flex flex-col gap-3 flex-1">
+        {/* Tactical metadata — Tool, status pulse */}
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-white/40"
+             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <Icon className="h-3 w-3" style={{ color: palette.accent }} />
+          <span>{tool.tone === 'mint' ? 'Generation' : 'Tool'}</span>
+          <span className="w-3 h-px bg-white/15 ml-1" />
+          <span className="tabular-nums">{tool.comingLabel ?? 'Available'}</span>
         </div>
-      )}
 
-      {/* Icon orb */}
-      <div className="absolute top-1/2 left-5 sm:left-6 -translate-y-2/3 z-10">
-        <div
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center backdrop-blur"
+        {/* Display title — Fraunces, smaller-display optical size */}
+        <h3
+          className="text-white leading-[1.05] tracking-[-0.015em]"
           style={{
-            background: 'rgba(255,255,255,0.10)',
-            border: '1px solid rgba(255,255,255,0.18)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25)',
+            fontFamily: '"Fraunces", Georgia, serif',
+            fontVariationSettings: '"opsz" 96, "SOFT" 30',
+            fontWeight: 380,
+            fontSize: isWide ? 'clamp(1.6rem, 2.8vw, 2.05rem)' : 'clamp(1.4rem, 2.2vw, 1.7rem)',
           }}
         >
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          {tool.name}
+        </h3>
+
+        {/* Tagline — Inter, restrained */}
+        <p className="text-[13.5px] text-white/55 leading-[1.5] max-w-md">
+          {tool.tagline}
+        </p>
+
+        {/* CTA row — accent line that draws on hover + arrow */}
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-white/55 group-hover:text-white transition-colors duration-300"
+             style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <span className="uppercase tracking-[0.18em]">
+            {isLive ? 'Open Tool' : 'Notify Me'}
+          </span>
+          <span
+            aria-hidden
+            className="flex-1 h-px origin-left scale-x-[0.18] group-hover:scale-x-100 transition-transform duration-700 ease-out"
+            style={{ background: palette.accent }}
+          />
+          <ArrowUpRight
+            className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            style={{ color: palette.accent }}
+          />
         </div>
       </div>
 
-      {/* Title + tagline */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 z-10">
-        <h3 className="text-base sm:text-lg lg:text-[1.1rem] font-black text-white tracking-tight leading-tight mb-1">
-          {tool.name}
-        </h3>
-        <p className="text-[12px] sm:text-[13px] text-white/75 leading-snug line-clamp-2">
-          {tool.tagline}
-        </p>
-        <div className="flex items-center gap-1.5 mt-2.5 text-[11px] font-semibold text-white/65 group-hover:text-white transition-colors">
-          {isLive ? 'Open tool' : 'Notify me'}
-          <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+      {/* Hover ring — subtle tone-coloured glow on the entire card */}
+      <span
+        aria-hidden
+        className="absolute inset-0 rounded-[14px] pointer-events-none transition-opacity duration-500 opacity-0 group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 0 1px var(--card-ring), 0 24px 60px -20px var(--card-ring)` }}
+      />
+    </motion.button>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Status chip — tactical, monospaced, tone-aware
+// ──────────────────────────────────────────────────────────────────────
+
+interface StatusChipProps {
+  tool: StudioTool;
+  palette: { accent: string; chipBg: string; chipFg: string };
+}
+
+function StatusChip({ tool, palette }: StatusChipProps) {
+  if (tool.status === 'live') {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9.5px] font-bold backdrop-blur"
+        style={{
+          background: `${palette.accent}15`,
+          color: palette.chipFg,
+          border: `1px solid ${palette.accent}55`,
+          fontFamily: '"JetBrains Mono", monospace',
+          letterSpacing: '0.18em',
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{ background: palette.accent, boxShadow: `0 0 12px ${palette.accent}` }}
+        />
+        LIVE
+      </span>
+    );
+  }
+  if (tool.status === 'beta') {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9.5px] font-bold backdrop-blur"
+        style={{
+          background: 'rgba(245,180,51,0.15)',
+          color: '#FFD685',
+          border: '1px solid rgba(245,180,51,0.45)',
+          fontFamily: '"JetBrains Mono", monospace',
+          letterSpacing: '0.18em',
+        }}
+      >
+        BETA
+      </span>
+    );
+  }
+  // coming
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9.5px] font-medium backdrop-blur"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        color: 'rgba(255,255,255,0.65)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        fontFamily: '"JetBrains Mono", monospace',
+        letterSpacing: '0.16em',
+      }}
+    >
+      COMING · {(tool.comingLabel ?? '').toUpperCase()}
+    </span>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Notify-me modal contents — editorial-styled
+// ──────────────────────────────────────────────────────────────────────
+
+interface NotifyMeModalProps {
+  tool: StudioTool;
+  alreadyNotified: boolean;
+  onConfirm: () => void;
+}
+
+function NotifyMeModal({ tool, alreadyNotified, onConfirm }: NotifyMeModalProps) {
+  const palette = TONE_PALETTE[tool.tone];
+  return (
+    <>
+      <DialogHeader>
+        <div
+          className="text-[10px] mb-3 inline-flex items-center gap-2 self-start uppercase tracking-[0.22em]"
+          style={{ fontFamily: '"JetBrains Mono", monospace', color: palette.chipFg }}
+        >
+          <span className="tabular-nums">{tool.number}</span>
+          <span className="w-3 h-px" style={{ background: palette.accent, opacity: 0.55 }} />
+          <span>{tool.comingLabel}</span>
         </div>
-      </div>
-    </button>
+        <DialogTitle
+          className="leading-[1.05] tracking-[-0.015em] text-2xl"
+          style={{
+            fontFamily: '"Fraunces", Georgia, serif',
+            fontVariationSettings: '"opsz" 96, "SOFT" 35',
+            fontWeight: 360,
+          }}
+        >
+          {tool.name}
+        </DialogTitle>
+        <DialogDescription className="text-[14px] leading-[1.55] pt-1.5">
+          {tool.tagline}
+        </DialogDescription>
+      </DialogHeader>
+
+      {alreadyNotified ? (
+        <div
+          className="flex items-center gap-2 text-[13px] rounded-xl px-3 py-2.5"
+          style={{ background: palette.chipBg, color: palette.chipFg, border: `1px solid ${palette.accent}33` }}
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>You&rsquo;re on the list — we&rsquo;ll write when it ships.</span>
+        </div>
+      ) : (
+        <Button
+          size="lg"
+          className="rounded-full font-semibold w-full"
+          style={{
+            background: `linear-gradient(92deg, ${palette.accent}, #18D6A4 70%)`,
+            color: '#04130b',
+          }}
+          onClick={onConfirm}
+        >
+          <Bell className="h-4 w-4 mr-2" />
+          Notify me when it ships
+        </Button>
+      )}
+      <p
+        className="text-[10px] uppercase tracking-[0.22em] text-white/35 mt-1"
+        style={{ fontFamily: '"JetBrains Mono", monospace' }}
+      >
+        We email once · No marketing spam
+      </p>
+    </>
   );
 }
