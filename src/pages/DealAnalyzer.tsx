@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
 import {
   Search, BarChart3, TrendingUp, CheckCircle2, Loader2,
-  Building2, X, Sparkles, ExternalLink, ChevronDown,
+  Building2, X, Sparkles, ExternalLink,
   Gauge, FileText, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,6 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { GuidanceCard } from '@/components/GuidanceCard';
 import { useGlowOnView } from '@/hooks/useGlowOnView';
 import { generateDealAnalyzerPDF, type DealAnalyzerPDFData } from '@/components/pdf/DealAnalyzerPDF';
 import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresentationPDF';
@@ -324,12 +324,11 @@ function DealAnalyzerContent() {
   const [dubizzleUrl, setDubizzleUrl] = useState('');
   const [extracting, setExtracting] = useState<'bayut' | 'propertyfinder' | 'dubizzle' | null>(null);
 
-  // Both "input" sections (Option A · Got a link, Option B · No link)
-  // auto-collapse once an analysis result appears so the result sits
-  // closer to the top of the visible page. Click the header of either
-  // to reopen and edit.
-  const [linksOpen, setLinksOpen] = useState(true);
-  const [manualOpen, setManualOpen] = useState(true);
+  // Active input mode — tabs at the top of the input card switch
+  // between the URL paste flow (default) and the manual form. Only
+  // one is visible at a time which keeps the page focused and gives
+  // each input plenty of horizontal breathing room on desktop.
+  const [activeTab, setActiveTab] = useState<'link' | 'manual'>('link');
 
   // Refs for the cards that should fire the entrance glow when they
   // scroll into view. Reserved for hero / above-the-fold cards so the
@@ -442,6 +441,7 @@ function DealAnalyzerContent() {
           id: progressId,
           description: 'Please enter the property details below to analyse manually.',
         });
+        setActiveTab('manual');
         return;
       }
 
@@ -500,7 +500,9 @@ function DealAnalyzerContent() {
           description: `${platformLabels[source]} listing analysed against live DLD data.`,
         });
       } else {
-        // Partial — tell them what's still needed.
+        // Partial — tell them what's still needed and switch to the
+        // manual tab so they can see the partially-filled form and
+        // fill in the missing fields.
         const missing = [
           !r.area && 'Area',
           !r.price && 'Price',
@@ -512,12 +514,14 @@ function DealAnalyzerContent() {
             ? `Please add ${missing.join(' and ').toLowerCase()} below, then click Analyze.`
             : 'Please review the form below and click Analyze.',
         });
+        setActiveTab('manual');
       }
     } catch (e) {
       toast.error(`Couldn't find the property in this link.`, {
         id: progressId,
         description: 'Please enter the property details below to analyse manually.',
       });
+      setActiveTab('manual');
     } finally {
       setExtracting(null);
     }
@@ -547,18 +551,9 @@ function DealAnalyzerContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dubizzleUrl]);
 
-  // Auto-collapse both input sections when an analysis result arrives,
-  // so the Result panel sits closer to the top of the visible area.
-  // Mobile only — on desktop (lg:+) the inputs live in a sticky left
-  // rail next to the result canvas, so collapsing them defeats the
-  // workbench layout. The lg: breakpoint matches the grid switch in
-  // the page wrapper below.
-  useEffect(() => {
-    if (result && typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setManualOpen(false);
-      setLinksOpen(false);
-    }
-  }, [result]);
+  // No auto-collapse on result-arrival — the input card lives above
+  // the result and stays visible. Tabs let the user re-edit either
+  // mode in place without scrolling state in the way.
 
   const findAreaData = (areaName: string) => {
     if (!dldAreas || !areaName) return null;
@@ -804,172 +799,103 @@ function DealAnalyzerContent() {
         </div>
       </div>
 
-      {/* ── Workbench: 2-column on lg+, single column below ──
-          Left rail = inputs (sticky on desktop so the form is always
-          visible while the user reads results on the right).
-          Right canvas = property context + analysis results.
-          Mobile keeps the original stacked single-column flow. */}
-      <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 xl:gap-8">
-
-      {/* ╔════════════════════════════════════════════╗
-          ║  LEFT RAIL — Inputs (controls only)        ║
-          ╚════════════════════════════════════════════╝ */}
-      <aside className="space-y-4 lg:col-span-5 lg:sticky lg:top-6 lg:self-start">
-
-      {/* ── Plain-language guidance ── */}
-      <GuidanceCard
-        storageKey="deal-analyzer-v3"
-        tone="success"
-        title="Two ways to analyse a deal"
-        description="Pick whichever matches the situation: paste the listing URL your client sent, or enter the property details by hand if all you have is a phone call. You get the same verdict, AI advice, and shareable PDF either way."
-        bullets={[
-          'Got a link? Paste a Bayut, Property Finder or Dubizzle URL.',
-          'No link? Enter the area, price, size and beds — that\'s all we need.',
-          'Click "Analyze Deal" — get a verdict, an AI take, and a branded PDF you can send to your client.',
-        ]}
-      />
-
-      {/* ── Quick start: listing links (collapsible) ──
-          Per founder design (28 Apr 2026): URLs are a quick-fill
-          shortcut. Auto-collapses when an analysis result is on
-          screen so the result panel sits near the top; click the
-          header to reopen. Uses the new accent-emerald + glow-on-view
-          treatment so the section reads as the primary CTA. */}
-      <section
-        ref={quickStartRef}
-        className="glass-panel accent-emerald glow-on-view"
+      {/* ── Inputs card — single full-width box with tabs at the top.
+          Tab A (Got a link) is the default; Tab B (No link) is the
+          manual form fallback. We auto-switch to manual when an
+          extraction fails or returns partial data so the user sees
+          the partly-filled form and can complete it. */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'link' | 'manual')}
+        className="w-full mb-6"
       >
-        <div className="relative px-5 sm:px-6 py-5">
-          <button
-            type="button"
-            onClick={() => setLinksOpen(o => !o)}
-            aria-expanded={linksOpen}
-            className="w-full flex items-start justify-between gap-3 text-left mb-4"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#2effc0] mb-1 flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" />
-                Option A · Got a link
-              </p>
-              {linksOpen ? (
-                <>
-                  <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
-                    Paste your client's Bayut, Property Finder or Dubizzle link.
-                  </p>
-                  <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                    Paste the link and we'll <span className="text-[#2effc0]/90 font-semibold">read the listing and run the analysis automatically</span>. You'll see the full report below in seconds. If we can't read the listing, just fill the form manually below.
-                  </p>
-                </>
-              ) : (
-                <p className="text-[13px] text-white/65 leading-tight">
-                  Paste a Bayut, Property Finder, or Dubizzle link to run a new analysis
-                </p>
-              )}
-            </div>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-white/45 mt-1 shrink-0 transition-transform',
-                linksOpen && 'rotate-180',
-              )}
-            />
-          </button>
-          {linksOpen && (
-          <div className="grid sm:grid-cols-3 gap-3">
-            {/* Logos live at /public/brand/. The component falls back
-                to a colored letter mark if the image fails to load —
-                so deploys don't break if an asset is missing. */}
-            <ListingSourceField
-              source="Bayut"
-              value={bayutUrl}
-              onChange={setBayutUrl}
-              logoSrc="/brand/bayut.png"
-              fallbackColor="#16a34a"
-              fallbackLetter="B"
-              isExtracting={extracting === 'bayut'}
-            />
-            <ListingSourceField
-              source="Property Finder"
-              value={pfUrl}
-              onChange={setPfUrl}
-              logoSrc="/brand/propertyfinder.png"
-              fallbackColor="#ef4135"
-              fallbackLetter="P"
-              isExtracting={extracting === 'propertyfinder'}
-            />
-            <ListingSourceField
-              source="Dubizzle"
-              value={dubizzleUrl}
-              onChange={setDubizzleUrl}
-              logoSrc="/brand/dubizzle.png"
-              fallbackColor="#ed3a47"
-              fallbackLetter="D"
-              isExtracting={extracting === 'dubizzle'}
-            />
-          </div>
-          )}
-        </div>
-      </section>
-
-      {/* OR divider — only meaningful when both input sections are
-          expanded (i.e. the user is actively choosing between paths).
-          Hide whenever either is collapsed to avoid a dangling row. */}
-      {linksOpen && manualOpen && (
-        <div className="flex items-center gap-3 text-white/30">
-          <span className="flex-1 h-px bg-white/[0.08]" />
-          <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/55">OR</span>
-          <span className="flex-1 h-px bg-white/[0.08]" />
-        </div>
-      )}
-
-      {/* ── Option B · Manual entry (collapsible) ── */}
-      <section className="space-y-3">
-        {/* Clickable header — toggles the form open/closed. We keep the
-            full title + bullet description while open, and collapse to
-            a single concise row once a result is on screen so the page
-            doesn't grow unnecessarily long. */}
-        <button
-          type="button"
-          onClick={() => setManualOpen(o => !o)}
-          aria-expanded={manualOpen}
-          className={cn(
-            'w-full flex items-start justify-between gap-3 text-left rounded-xl transition-colors',
-            !manualOpen && 'bg-white/[0.03] border border-white/[0.08] px-4 py-3 hover:bg-white/[0.05]',
-          )}
+        <section
+          ref={quickStartRef}
+          className="glass-panel accent-emerald glow-on-view overflow-hidden"
         >
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] text-[#7aa6ff] mb-1 flex items-center gap-1.5">
-              <BarChart3 className="h-3 w-3" />
-              Option B · No link
-            </p>
-            {manualOpen ? (
-              <>
-                <p className="text-[14px] sm:text-[15px] font-bold text-white leading-tight">
-                  Enter the property details by hand.
-                </p>
-                <p className="text-[12px] text-white/55 mt-1 leading-relaxed">
-                  Pick this if your client called you with the basics — area, building, beds, asking price. We need <span className="text-white/85 font-semibold">area, price, and size</span> at minimum.
-                </p>
-              </>
-            ) : (
-              <p className="text-[13px] text-white/65 leading-tight">
-                Enter or edit property details manually
-              </p>
-            )}
-          </div>
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 text-white/45 mt-1 shrink-0 transition-transform',
-              manualOpen && 'rotate-180',
-            )}
-          />
-        </button>
-        {manualOpen && (<>
+          {/* Tab triggers — full-width header strip with Option A/B chips */}
+          <TabsList className="grid grid-cols-2 w-full bg-transparent rounded-none p-0 h-auto border-b border-white/[0.06]">
+            <TabsTrigger
+              value="link"
+              className="group flex items-center gap-3 px-4 sm:px-6 py-4 rounded-none data-[state=active]:bg-emerald-400/[0.05] data-[state=active]:shadow-[inset_0_-2px_0_0_rgb(46,255,192)] hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.06] group-data-[state=active]:bg-emerald-400/15 group-data-[state=active]:border-emerald-400/30 transition-colors">
+                <Sparkles className="h-4 w-4 text-white/55 group-data-[state=active]:text-emerald-300 transition-colors" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45 group-data-[state=active]:text-[#2effc0] transition-colors">Option A</p>
+                <p className="text-[13px] sm:text-sm font-bold text-foreground truncate">Got a link</p>
+              </div>
+            </TabsTrigger>
 
-        <div className="glass-panel accent-blue">
-          <div className="p-5 sm:p-6">
-            <div className="grid sm:grid-cols-2 gap-x-5 gap-y-4">
-              {/* Property name */}
-              <div className="space-y-1.5 sm:col-span-2">
+            <TabsTrigger
+              value="manual"
+              className="group flex items-center gap-3 px-4 sm:px-6 py-4 rounded-none data-[state=active]:bg-blue-400/[0.05] data-[state=active]:shadow-[inset_0_-2px_0_0_rgb(122,166,255)] hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.06] group-data-[state=active]:bg-blue-400/15 group-data-[state=active]:border-blue-400/30 transition-colors">
+                <BarChart3 className="h-4 w-4 text-white/55 group-data-[state=active]:text-[#7aa6ff] transition-colors" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45 group-data-[state=active]:text-[#7aa6ff] transition-colors">Option B</p>
+                <p className="text-[13px] sm:text-sm font-bold text-foreground truncate">No link</p>
+              </div>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── Tab A · URL paste ── */}
+          <TabsContent value="link" className="m-0 px-5 sm:px-7 lg:px-8 py-6 lg:py-7 outline-none focus-visible:outline-none">
+            <p className="text-[13px] sm:text-sm text-white/65 mb-5 leading-relaxed max-w-3xl">
+              Paste your client's <span className="text-white/85 font-semibold">Bayut, Property Finder, or Dubizzle</span> link. We'll read the listing and <span className="text-[#2effc0]/90 font-semibold">run the analysis automatically</span> — full report appears below in seconds.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-3 lg:gap-4">
+              <ListingSourceField
+                source="Bayut"
+                value={bayutUrl}
+                onChange={setBayutUrl}
+                logoSrc="/brand/bayut.png"
+                fallbackColor="#16a34a"
+                fallbackLetter="B"
+                isExtracting={extracting === 'bayut'}
+              />
+              <ListingSourceField
+                source="Property Finder"
+                value={pfUrl}
+                onChange={setPfUrl}
+                logoSrc="/brand/propertyfinder.png"
+                fallbackColor="#ef4135"
+                fallbackLetter="P"
+                isExtracting={extracting === 'propertyfinder'}
+              />
+              <ListingSourceField
+                source="Dubizzle"
+                value={dubizzleUrl}
+                onChange={setDubizzleUrl}
+                logoSrc="/brand/dubizzle.png"
+                fallbackColor="#ed3a47"
+                fallbackLetter="D"
+                isExtracting={extracting === 'dubizzle'}
+              />
+            </div>
+            <p className="text-[11px] text-white/40 mt-4">
+              No link?{' '}
+              <button
+                type="button"
+                onClick={() => setActiveTab('manual')}
+                className="text-[#7aa6ff] hover:text-[#9fb9ff] underline-offset-2 hover:underline transition-colors font-semibold"
+              >
+                Switch to manual entry →
+              </button>
+            </p>
+          </TabsContent>
+
+          {/* ── Tab B · Manual form ── */}
+          <TabsContent value="manual" className="m-0 px-5 sm:px-7 lg:px-8 py-6 lg:py-7 outline-none focus-visible:outline-none">
+            <p className="text-[13px] sm:text-sm text-white/65 mb-5 leading-relaxed max-w-3xl">
+              Enter the property by hand. We need <span className="text-white/85 font-semibold">area, price, and size</span> at minimum — the rest helps the AI write a more accurate verdict.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-4">
+              {/* Property name — full width on all breakpoints */}
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
                 <Label className="text-[11px] font-semibold text-white/65 uppercase tracking-wide">Property / Development Name</Label>
                 <Input
                   value={propertyName}
@@ -1093,8 +1019,8 @@ function DealAnalyzerContent() {
               </div>
             </div>
 
-            {/* Sticky-feel CTA bar */}
-            <div className="mt-6 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* CTA bar — bottom-aligned analyze button + helper line */}
+            <div className="mt-7 pt-5 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-[12px] text-white/55">
                 We'll match your area to live <span className="text-white/85 font-semibold">DLD transactions</span> and run an{' '}
                 <span className="text-[#2effc0] font-semibold">AI verdict</span> in seconds.
@@ -1116,16 +1042,12 @@ function DealAnalyzerContent() {
                   : <><Sparkles className="h-4 w-4 mr-2" /> Analyze Deal</>}
               </Button>
             </div>
-          </div>
-        </div>
-        </>)}
-      </section>
+          </TabsContent>
+        </section>
+      </Tabs>
 
-      </aside>
-      {/* ╔════════════════════════════════════════════╗
-          ║  RIGHT CANVAS — Property context + result  ║
-          ╚════════════════════════════════════════════╝ */}
-      <main className="space-y-4 lg:col-span-7 min-w-0">
+      {/* ── Result canvas — listing context + verdict (full width) ── */}
+      <div className="space-y-4">
 
       {/* Listing agent card — surfaces the broker who posted the
           listing on Dubizzle (name, photo, agency, RERA BRN, contact).
@@ -1355,7 +1277,6 @@ function DealAnalyzerContent() {
         </div>
       )}
 
-      </main>
       </div>
 
     </div>
