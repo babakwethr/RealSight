@@ -3,6 +3,7 @@ import {
   LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot,
   User, LogOut, Sparkles, ArrowRight, Shield,
   CreditCard, FolderOpen, Bell, Eye, Scale, Crown,
+  Wand2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -196,6 +197,7 @@ export function AppSidebar() {
             <div className="space-y-0.5 px-1.5">
               <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
               <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
+              <NavItem to="/studio"        icon={Wand2}           label="Studio" />
               <NavItem to="/projects"      icon={Building2}       label="New Launches" />
             </div>
 

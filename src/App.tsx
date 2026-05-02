@@ -54,6 +54,7 @@ import DealAnalyzer from "./pages/DealAnalyzer";
 import TopPicks from "./pages/TopPicks";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import Watchlist from "./pages/Watchlist";
+import Studio from "./pages/Studio";
 
 // Preview V3 (fresh mobile-first concept) — isolated, unauth, leaves V1/V2 untouched
 import V3Layout, { V3PhoneFrame } from "./pages/preview/v3/V3Layout";
@@ -249,6 +250,12 @@ const App = () => (
               />
 
               <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
+                {/* Studio — adviser tools workspace (no AdminShell tabs).
+                    Per LAUNCH_PLAN Phase 2 (2 May 2026): houses
+                    Presentation Generator, Social Pack, Video, Buyer
+                    Matcher and future tool drops. */}
+                <Route path="/studio" element={<Studio />} />
+
                 <Route element={<AdminShell />}>
                   <Route path="/admin"                          element={<AdminWorkspace />} />
                   <Route path="/admin/investors"                element={<AdminInvestors />} />
