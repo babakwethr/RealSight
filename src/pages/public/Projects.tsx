@@ -117,11 +117,11 @@ export default function Projects() {
 
 
       {/* Header */}
-      <section className="text-center mb-10">
-        <h1 className="text-4xl md:text-5xl font-light text-foreground mb-4">
+      <section className="text-center mb-8 sm:mb-10 px-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-foreground mb-3 sm:mb-4 tracking-tight">
           New <span className="text-primary">Launches</span>
         </h1>
-        <p className="text-base md:text-lg text-foreground/60 max-w-2xl mx-auto mb-6">
+        <p className="text-sm sm:text-base md:text-lg text-foreground/60 max-w-2xl mx-auto mb-5 sm:mb-6 leading-relaxed">
           Curated new launch properties from Dubai's most trusted developers — updated daily.
         </p>
 
