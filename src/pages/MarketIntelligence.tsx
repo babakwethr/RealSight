@@ -23,6 +23,7 @@ import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tool
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
 import { GuidanceCard } from '@/components/GuidanceCard';
+import { formatPriceSplit } from '@/lib/currency';
 
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
 
@@ -83,15 +84,15 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
         className={`relative rounded-2xl overflow-hidden cursor-pointer group col-span-full bg-gradient-to-br ${accent.bg} border ${accent.border} hover:scale-[1.005] transition-all duration-300`}
       >
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="p-6 flex gap-6 items-center">
+        <div className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
               {rank && <div className="flex items-center gap-1 text-amber-400 text-xs font-black"><Crown className="h-3.5 w-3.5" />#{rank} Top Area</div>}
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${accent.badge}`}>{accent.label}</span>
             </div>
             <h3 className="text-xl font-black text-white mb-1">{area.name}</h3>
             <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1"><MapPin className="h-3 w-3" />Dubai, UAE</p>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
               {[
                 { label: 'Price / sqft', value: `AED ${fmtNum(area.avg_price_per_sqft_current)}`, big: true },
                 { label: 'YoY Growth', value: `${pos ? '+' : ''}${yoy.toFixed(1)}%`, color: pos ? 'text-emerald-400' : 'text-red-400', big: true },
@@ -105,8 +106,8 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
               ))}
             </div>
           </div>
-          {/* Hero sparkline — tall and dramatic */}
-          <div className="w-48 h-24 shrink-0">
+          {/* Hero sparkline — full-width on mobile, fixed-width sidebar on desktop */}
+          <div className="w-full h-20 sm:w-48 sm:h-24 shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trend} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                 <defs>
@@ -375,31 +376,42 @@ function MarketIntelligenceContent() {
         );
       })()}
 
-      {/* KPI Cards */}
-      {kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {[
-            { label: 'Avg Price / sqft', value: `AED ${fmtNum(kpis.avgPsf)}`, change: `+${kpis.avgYoY}%`, up: true },
-            { label: 'Avg Rental Yield', value: `${kpis.avgYield}%`, change: 'Gross', up: true },
-            { label: 'Total Volume (30d)', value: fmtNum(kpis.totalVol), change: 'Transactions', up: true },
-            { label: 'Areas Tracked', value: `${allAreas.length}+`, change: 'Dubai-wide', up: true },
-            { label: 'Market Score', value: `${kpis.score}/10`, change: 'Strong Buy', isScore: true, scoreColor: kpis.scoreColor },
-          ].map((k, i) => (
-            <div key={i} className={`relative rounded-2xl p-5 overflow-hidden backdrop-blur-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_24px_rgba(0,0,0,0.2)] ${k.isScore ? 'bg-primary/[0.10] border-primary/25' : 'bg-white/[0.04] border-white/[0.08]'}`}>
-              <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <p className="text-xs text-muted-foreground/80 mb-2 font-medium">{k.label}</p>
-              <p className={`text-2xl font-black tracking-tight ${k.isScore ? '' : 'text-foreground'}`}
-                style={k.isScore ? { color: k.scoreColor } : undefined}>{k.value}</p>
-              <div className="flex items-center gap-1 mt-1">
-                {!k.isScore && <TrendingUp className="h-3 w-3 text-emerald-400" />}
-                {k.isScore && <Zap className="h-3 w-3" style={{ color: k.scoreColor }} />}
-                <span className={`text-xs font-semibold ${k.isScore ? '' : 'text-emerald-400'}`}
-                  style={k.isScore ? { color: k.scoreColor } : undefined}>{k.change}</span>
+      {/* KPI Cards — same stacked-currency pattern as Home */}
+      {kpis && (() => {
+        const psfSplit = formatPriceSplit(kpis.avgPsf, { compact: false });
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[
+              { label: 'Avg Price / sqft', value: psfSplit.aed, subValue: psfSplit.usd, change: `+${kpis.avgYoY}%`, up: true },
+              { label: 'Avg Rental Yield', value: `${kpis.avgYield}%`, change: 'Gross', up: true },
+              { label: 'Total Volume (30d)', value: fmtNum(kpis.totalVol), change: 'Transactions', up: true },
+              { label: 'Areas Tracked', value: `${allAreas.length}+`, change: 'Dubai-wide', up: true },
+              { label: 'Market Score', value: `${kpis.score}/10`, change: 'Strong Buy', isScore: true, scoreColor: kpis.scoreColor },
+            ].map((k, i) => (
+              <div key={i} className={`relative rounded-2xl px-4 sm:px-5 pt-4 pb-5 overflow-hidden backdrop-blur-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_24px_rgba(0,0,0,0.2)] ${k.isScore ? 'bg-primary/[0.10] border-primary/25' : 'bg-white/[0.04] border-white/[0.08]'}`}>
+                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <p className="text-xs text-muted-foreground/80 mb-2 font-medium">{k.label}</p>
+                <p className={`text-xl sm:text-2xl font-black tracking-tight font-mono whitespace-nowrap ${k.subValue ? 'mb-1' : 'mb-1'} ${k.isScore ? '' : 'text-foreground'}`}
+                  style={{ letterSpacing: '-0.04em', ...(k.isScore ? { color: k.scoreColor } : {}) }}>
+                  {k.value}
+                </p>
+                {k.subValue && (
+                  <p className="text-[11px] sm:text-xs font-bold leading-none mb-2 font-mono whitespace-nowrap text-muted-foreground/70"
+                    style={{ letterSpacing: '-0.02em' }}>
+                    {k.subValue}
+                  </p>
+                )}
+                <div className="flex items-center gap-1 mt-1">
+                  {!k.isScore && <TrendingUp className="h-3 w-3 text-emerald-400" />}
+                  {k.isScore && <Zap className="h-3 w-3" style={{ color: k.scoreColor }} />}
+                  <span className={`text-xs font-semibold ${k.isScore ? '' : 'text-emerald-400'}`}
+                    style={k.isScore ? { color: k.scoreColor } : undefined}>{k.change}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── Area selected: deep-dive view ── */}
       {areaParam && filteredAreas.length > 0 ? (() => {

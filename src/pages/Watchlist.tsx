@@ -184,25 +184,26 @@ function WatchlistContent() {
             ) : (
               <div className="space-y-2">
                 {filteredItems.map(item => (
-                  <div key={item.id} className="glass-card p-4 flex items-center gap-4 group">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div key={item.id} className="glass-card p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 group">
+                    <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       {type === 'projects' ? <Building className="h-5 w-5 text-primary" /> :
                        type === 'areas' ? <MapPin className="h-5 w-5 text-primary" /> :
                        <Target className="h-5 w-5 text-primary" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground text-sm">{item.name}</h3>
+                      <h3 className="font-semibold text-foreground text-sm leading-tight">{item.name}</h3>
                       {item.description && (
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.description}</p>
                       )}
-                      <p className="text-[10px] text-muted-foreground/60">
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                         Saved {new Date(item.savedAt).toLocaleDateString()}
                       </p>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Remove ${item.name}`}
+                      className="h-10 w-10 sm:h-8 sm:w-8 text-muted-foreground hover:text-red-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
                       onClick={() => removeItem(item.id)}
                     >
                       <Trash2 className="h-4 w-4" />
