@@ -13,11 +13,13 @@ interface LogoProps {
 export function Logo({ variant = 'white', className, height, alt = 'RealSight' }: LogoProps) {
   const src = variant === 'black' ? LOGO_BLACK : LOGO_WHITE;
   const sizeClass = className ?? (height ? `${height} w-auto` : 'h-8 w-auto');
+  // `block` removes the descender gap that `<img>` ships with by default,
+  // so flex `items-center` actually lands the wordmark on the row's centre line.
   return (
     <img
       src={src}
       alt={alt}
-      className={sizeClass}
+      className={`${sizeClass} block select-none`}
       draggable={false}
     />
   );

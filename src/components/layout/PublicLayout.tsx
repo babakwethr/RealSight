@@ -70,8 +70,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <Logo variant={isDark ? 'white' : 'black'} className="h-11 sm:h-9 w-auto" />
+            <Link to="/" className="flex items-center h-full">
+              <Logo variant={isDark ? 'white' : 'black'} className="h-10 sm:h-9 w-auto" />
             </Link>
 
             {/* Desktop Navigation */}
