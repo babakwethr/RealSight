@@ -30,7 +30,7 @@ import {
 } from 'recharts';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-import { formatDualPrice } from '@/lib/currency';
+import { formatDualPrice, formatPriceSplit } from '@/lib/currency';
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
 /**
  * AED + USD side by side ("AED 2.6M / USD 707K"). Per LAUNCH_PLAN.md §17 —
@@ -705,7 +705,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                   progress={score * 10}
                   decoration="rings"
                 >
-                  {fmtAED(kpis.medianPrice)} median · {kpis.avgYield}% yield · {fmtNum(kpis.totalVol)} transactions (30d)
+                  {fmtAED(kpis.medianPrice)} avg · {kpis.avgYield}% yield · {fmtNum(kpis.totalVol)} transactions (30d)
                 </HeroMetricCard>
               </div>
               <div className="lg:col-span-2">
@@ -734,46 +734,60 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           );
         })()}
 
-        {/* ── 5 KPI Cards — large numbers dominant, no chart lines ── */}
-        {kpis && areas.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-5">
-            {[
-              { label: 'Median Price', value: fmtAED(kpis.medianPrice), change: `${Number(kpis.avgYoY) > 0 ? '+' : ''}${kpis.avgYoY}%`, up: Number(kpis.avgYoY) > 0 },
-              { label: 'Price / sqft', value: fmtAED(kpis.avgPsf), change: `${Number(kpis.avgYoY) > 0 ? '+' : ''}${(Number(kpis.avgYoY) * 0.9).toFixed(0)}%`, up: Number(kpis.avgYoY) > 0 },
-              { label: 'Transactions', value: fmtNum(kpis.totalVol), change: '30 days', up: true },
-              { label: 'Rental Yield', value: `${kpis.avgYield}%`, change: 'Gross avg', up: true },
-              { label: 'Market Score', value: `${kpis.score}/10`, change: kpis.scoreLabel, isScore: true, scoreColor: kpis.scoreColor },
-            ].map((k, i) => (
-              <div key={i} className={`relative rounded-2xl px-5 pt-4 pb-5 backdrop-blur-md border transition-all duration-200 hover:border-white/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_24px_rgba(0,0,0,0.25)] ${k.isScore ? 'bg-primary/[0.10] border-primary/25' : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07]'}`}>
-                {/* Top highlight line */}
-                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                {/* Label + tiny trend icon */}
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground/70 font-medium">{k.label}</p>
-                  {!k.isScore && (k.up
-                    ? <TrendingUp className="h-3.5 w-3.5 text-emerald-400/50" />
-                    : <TrendingDown className="h-3.5 w-3.5 text-red-400/50" />)}
-                  {k.isScore && <Zap className="h-3.5 w-3.5 opacity-50" style={{ color: k.scoreColor }} />}
+        {/* ── 5 KPI Cards — large numbers dominant, no chart lines.
+             Price values render stacked (AED top, USD subtitle) so the
+             dual currency never wraps mid-amount on narrow cards. ── */}
+        {kpis && areas.length > 0 && (() => {
+          const priceSplit = formatPriceSplit(kpis.medianPrice);
+          const psfSplit = formatPriceSplit(kpis.avgPsf);
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-5">
+              {[
+                { label: 'Average Price', value: priceSplit.aed, subValue: priceSplit.usd, change: `${Number(kpis.avgYoY) > 0 ? '+' : ''}${kpis.avgYoY}%`, up: Number(kpis.avgYoY) > 0 },
+                { label: 'Price / sqft', value: psfSplit.aed, subValue: psfSplit.usd, change: `${Number(kpis.avgYoY) > 0 ? '+' : ''}${(Number(kpis.avgYoY) * 0.9).toFixed(0)}%`, up: Number(kpis.avgYoY) > 0 },
+                { label: 'Transactions', value: fmtNum(kpis.totalVol), change: '30 days', up: true },
+                { label: 'Rental Yield', value: `${kpis.avgYield}%`, change: 'Gross avg', up: true },
+                { label: 'Market Score', value: `${kpis.score}/10`, change: kpis.scoreLabel, isScore: true, scoreColor: kpis.scoreColor },
+              ].map((k, i) => (
+                <div key={i} className={`relative rounded-2xl px-4 sm:px-5 pt-4 pb-5 backdrop-blur-md border transition-all duration-200 hover:border-white/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_24px_rgba(0,0,0,0.25)] ${k.isScore ? 'bg-primary/[0.10] border-primary/25' : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07]'}`}>
+                  {/* Top highlight line */}
+                  <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  {/* Label + tiny trend icon */}
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-muted-foreground/70 font-medium">{k.label}</p>
+                    {!k.isScore && (k.up
+                      ? <TrendingUp className="h-3.5 w-3.5 text-emerald-400/50" />
+                      : <TrendingDown className="h-3.5 w-3.5 text-red-400/50" />)}
+                    {k.isScore && <Zap className="h-3.5 w-3.5 opacity-50" style={{ color: k.scoreColor }} />}
+                  </div>
+                  {/* DOMINANT number — Berkeley Mono, hero of the card. whitespace-nowrap
+                      stops "AED 2.7M" from breaking apart in narrow columns. */}
+                  <p className={`text-xl sm:text-2xl font-black leading-none font-mono whitespace-nowrap ${k.subValue ? 'mb-1' : 'mb-2'} ${k.isScore ? '' : 'text-foreground'}`}
+                    style={{ letterSpacing: '-0.04em', ...(k.isScore ? { color: k.scoreColor } : {}) }}>
+                    {k.value}
+                  </p>
+                  {/* Secondary currency line — smaller, muted, also nowrap */}
+                  {k.subValue && (
+                    <p className="text-[11px] sm:text-xs font-bold leading-none mb-2 font-mono whitespace-nowrap text-muted-foreground/70"
+                      style={{ letterSpacing: '-0.02em' }}>
+                      {k.subValue}
+                    </p>
+                  )}
+                  {/* Change badge */}
+                  <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                    k.isScore
+                      ? 'bg-white/5'
+                      : k.up
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-red-500/10 text-red-400'
+                  }`} style={k.isScore ? { color: k.scoreColor } : undefined}>
+                    {k.change}
+                  </span>
                 </div>
-                {/* DOMINANT number — Berkeley Mono, hero of the card */}
-                <p className={`text-2xl font-black leading-none mb-2 font-mono ${k.isScore ? '' : 'text-foreground'}`}
-                  style={{ letterSpacing: '-0.04em', ...(k.isScore ? { color: k.scoreColor } : {}) }}>
-                  {k.value}
-                </p>
-                {/* Change badge */}
-                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
-                  k.isScore
-                    ? 'bg-white/5'
-                    : k.up
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'bg-red-500/10 text-red-400'
-                }`} style={k.isScore ? { color: k.scoreColor } : undefined}>
-                  {k.change}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── Analyse My Property button + data trust line ──
              Mobile: stacked, full-width button on top, trust line centered below.

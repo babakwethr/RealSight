@@ -199,13 +199,13 @@ export default function MarketPulse() {
 
                 <div className="glass-card p-6 border-b-2 border-b-primary/20">
                     <div className="flex justify-between items-start mb-4">
-                        <p className="text-sm text-muted-foreground">Median Price</p>
+                        <p className="text-sm text-muted-foreground">Average Price</p>
                         <div className="p-2 bg-primary/10 rounded-lg"><TrendingUp className="h-4 w-4 text-primary" /></div>
                     </div>
                     <p className="text-2xl font-bold text-foreground">
                         {latestData?.median_price_per_sqft ? formatCurrency(latestData.median_price_per_sqft) : '--'}
                     </p>
-                    <p className="mt-2 text-[10px] text-muted-foreground">MARKET MIDPOINT</p>
+                    <p className="mt-2 text-[10px] text-muted-foreground">PER SQUARE FOOT</p>
                 </div>
 
                 <div className="glass-card p-6 border-b-2 border-b-primary/20">

@@ -58,3 +58,25 @@ export function formatUsdEquivalent(aed: number | null | undefined): string {
   if (aed == null || !isFinite(aed)) return '';
   return `≈ USD ${formatCompact(aedToUsd(aed))}`;
 }
+
+/**
+ * Split form of dual price — returns the AED line and the USD line as two
+ * strings, so the UI can render them stacked (AED big, USD small below).
+ * Use this in narrow card layouts where the joined "AED X / USD Y" string
+ * would wrap awkwardly mid-value.
+ */
+export function formatPriceSplit(
+  aed: number | null | undefined,
+  opts: { compact?: boolean } = {},
+): { aed: string; usd: string } {
+  if (aed == null || !isFinite(aed)) return { aed: '—', usd: '' };
+  const compact = opts.compact ?? true;
+  const usd = aedToUsd(aed);
+  if (compact) {
+    return { aed: `AED ${formatCompact(aed)}`, usd: `USD ${formatCompact(usd)}` };
+  }
+  return {
+    aed: `AED ${aed.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+    usd: `USD ${usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+  };
+}
