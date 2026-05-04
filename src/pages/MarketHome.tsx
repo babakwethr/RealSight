@@ -223,10 +223,11 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
         </button>
       </div>
 
-      {/* Mobile: simplified search + filters row */}
-      <div className="sm:hidden space-y-2">
+      {/* Mobile: search → segment → filter chips, three rows. Soft-square corners. */}
+      <div className="sm:hidden space-y-2.5">
+        {/* Search row */}
         <div className="flex gap-2">
-          <div className="relative flex-1 backdrop-blur-md bg-white/[0.06] border border-white/[0.12] rounded-2xl" style={{ position: 'relative' }}>
+          <div className="relative flex-1 backdrop-blur-md bg-white/[0.06] border border-white/[0.12] rounded-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
             <input
               value={query}
@@ -235,8 +236,8 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
               onBlur={() => { setTimeout(() => { if (!query.trim()) setQuery('Dubai'); }, 150); }}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
               placeholder="Search area or project..."
-              className="w-full h-14 pl-10 pr-4 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none rounded-2xl"
-              style={{ fontSize: '16px' }}
+              className="w-full h-13 pl-10 pr-4 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none rounded-xl"
+              style={{ fontSize: '16px', height: 52 }}
             />
             {showSugg && suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 z-[9999] bg-popover border border-border rounded-xl overflow-hidden shadow-2xl">
@@ -250,27 +251,28 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
             )}
           </div>
           <button onClick={handleSearch}
-            className="h-14 px-5 bg-primary text-primary-foreground text-sm font-bold rounded-2xl shrink-0 min-w-[80px]">
+            className="h-[52px] px-5 bg-primary text-primary-foreground text-sm font-bold rounded-xl shrink-0 min-w-[80px]">
             Search
           </button>
         </div>
 
-        {/* Mobile compact filter row — horizontal scroll */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
-          {/* Sales / Rental toggle */}
-          <div className="flex items-center rounded-xl p-0.5 shrink-0"
-               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
-            {(['Sales', 'Rental'] as const).map(m => (
-              <button key={m} onClick={() => setMode(m)}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
-                  mode === m
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground'
-                }`}>
-                {m}
-              </button>
-            ))}
-          </div>
+        {/* Sales / Rental — full-width 2-up segment */}
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-[10px] border"
+             style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)' }}>
+          {(['Sales', 'Rental'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`h-[38px] rounded-[7px] text-[13px] font-bold transition-all ${
+                mode === m
+                  ? 'bg-white text-[#0a0f2e] shadow-sm'
+                  : 'text-muted-foreground'
+              }`}>
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {/* Filter chips — soft-square, horizontal scroll */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
           <MobileFilterPill label="Beds" value={beds} onChange={setBeds}
             options={['Any', 'Studio', '1 Bed', '2 Beds', '3 Beds', '4 Beds', '5+ Beds']} />
           <MobileFilterPill label="Status" value={status} onChange={setStatus}
@@ -300,10 +302,10 @@ function MobileFilterPill({
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1 px-2.5 py-[7px] text-[11px] font-semibold rounded-xl border transition-colors whitespace-nowrap ${
+        className={`inline-flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-semibold rounded-[10px] border transition-colors whitespace-nowrap ${
           active
             ? 'bg-primary/15 border-primary/40 text-primary'
-            : 'bg-white/[0.05] border-white/[0.10] text-foreground/75'
+            : 'bg-white/[0.05] border-white/[0.14] text-foreground/75'
         }`}
       >
         {display}
@@ -585,8 +587,13 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             </div>
           </div>
 
-          {/* Area pills — small, colour-coded chips */}
-          <div className="flex items-center justify-center flex-wrap gap-1.5 pb-1 mt-5 px-1 max-w-2xl mx-auto">
+          {/* Area pills — small, colour-coded chips.
+              Mobile: single horizontal scroll row (no wrap), edge-to-edge with side padding.
+              Desktop: centered, wraps if needed, max-w-2xl. */}
+          <div
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 mt-5 px-4 lg:flex-wrap lg:justify-center lg:px-1 lg:max-w-2xl lg:mx-auto lg:overflow-visible"
+            style={{ scrollPaddingLeft: 16, scrollPaddingRight: 16 }}
+          >
             {(() => {
               const AREA_COLORS = ['#18D6A4', '#3B82F6', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#84CC16', '#F472B6'];
               const items: { name: string; count: number; color: string | null }[] = [
@@ -604,7 +611,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                   <button
                     key={name}
                     onClick={() => setSelectedArea(name === 'All Areas' ? '' : selectedArea === name ? '' : name)}
-                    className="inline-flex items-center gap-1 px-2 py-[3px] text-[10px] rounded-full border transition-all shrink-0 font-semibold whitespace-nowrap leading-none"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-[5px] text-[11px] lg:text-[10px] rounded-full border transition-all shrink-0 font-semibold whitespace-nowrap leading-none"
                     style={
                       active
                         ? {
@@ -621,11 +628,11 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                     }
                   >
                     {color && !active && (
-                      <span className="h-1 w-1 rounded-full" style={{ background: accent }} />
+                      <span className="h-1 w-1 rounded-full shrink-0" style={{ background: accent }} />
                     )}
                     <span>{name}</span>
                     {count > 0 && (
-                      <span className="opacity-70 font-medium text-[9px]">
+                      <span className="opacity-70 font-medium text-[9.5px] lg:text-[9px]">
                         {count > 999 ? `${(count / 1000).toFixed(0)}k` : count}
                       </span>
                     )}
@@ -639,10 +646,10 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
         {/* Subtle divider to mark the end of the search section */}
         <div aria-hidden="true" className="h-px w-full mb-5" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)' }} />
 
-        {/* ── Time tabs — centered segmented control, squared-off ── */}
-        <div className="flex flex-col items-center gap-2 pb-5">
+        {/* ── Time tabs — full-width 4-up segment on mobile, centered inline on desktop ── */}
+        <div className="flex flex-col gap-2 pb-5 sm:items-center">
           <div
-            className="inline-flex items-center rounded-xl p-1 backdrop-blur-md"
+            className="grid grid-cols-4 gap-1 p-1 rounded-[10px] backdrop-blur-md sm:inline-flex sm:items-center sm:gap-0 sm:rounded-xl"
             style={{
               background: 'rgba(255,255,255,0.035)',
               border: '1px solid rgba(255,255,255,0.08)',
@@ -653,7 +660,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               <button
                 key={t}
                 onClick={() => setTimePeriod(t)}
-                className={`px-3 sm:px-3.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                className={`h-8 sm:h-auto sm:px-3.5 sm:py-1 text-[11.5px] sm:text-[11px] font-bold rounded-[7px] sm:rounded-lg transition-all ${
                   timePeriod === t
                     ? 'bg-white text-[#0a0f2e] shadow-[0_4px_12px_-4px_rgba(255,255,255,0.35)]'
                     : 'text-white/55 hover:text-white'
@@ -664,7 +671,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             ))}
           </div>
           {kpis && areas.length > 0 && (
-            <span className="text-[11px] text-muted-foreground tracking-wide">
+            <span className="text-[11px] text-muted-foreground tracking-wide text-center">
               {selectedArea || 'All Dubai'} · {fmtNum(kpis.totalVol)} transactions (30d)
             </span>
           )}
@@ -997,14 +1004,14 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               Intelligence tools built for <span className="gradient-word">global investors</span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {FEATURE_CARDS.map((card) => {
               const Icon = card.icon;
+              const isFree = card.badge === 'Free';
               return (
                 <div key={card.id}
                   onClick={() => handleFeatureClick(card)}
-                  className={`relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)]`}
-                  style={{ minHeight: 220 }}
+                  className="relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)] min-h-[148px] lg:min-h-[220px]"
                 >
                   {/* Gradient background */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
@@ -1014,33 +1021,50 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                   {/* Top highlight */}
                   <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-                  <div className="relative z-10 p-6 flex flex-col h-full">
+                  <div className="relative z-10 p-3.5 lg:p-6 flex flex-col h-full">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/[0.12]"
+                    <div className="flex items-start justify-between mb-2.5 lg:mb-4">
+                      <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center border border-white/[0.12]"
                         style={{ backgroundColor: `${card.accent}20` }}>
-                        <Icon className="h-5 w-5" style={{ color: card.accent }} />
+                        <Icon className="h-4 w-4 lg:h-5 lg:w-5" style={{ color: card.accent }} />
                       </div>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${card.badgeCls} backdrop-blur-sm`}>
-                        {card.badge}
+                      <span
+                        className="inline-flex items-center justify-center h-[22px] px-2.5 rounded-md text-[10px] font-black uppercase tracking-[0.08em] leading-none whitespace-nowrap"
+                        style={
+                          isFree
+                            ? {
+                                color: '#022c1c',
+                                background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)',
+                                border: '1px solid rgba(46,255,192,0.85)',
+                                boxShadow: '0 4px 12px -3px rgba(46,255,192,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+                              }
+                            : {
+                                color: '#2a1c00',
+                                background: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)',
+                                border: '1px solid rgba(201,168,76,0.9)',
+                                boxShadow: '0 4px 12px -3px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+                              }
+                        }
+                      >
+                        {isFree ? 'Free' : 'Pro'}
                       </span>
                     </div>
 
                     {/* Hero metric */}
-                    <div className="mb-3">
-                      <p className="text-3xl font-black text-white leading-none mb-0.5"
+                    <div className="mb-2 lg:mb-3">
+                      <p className="text-xl lg:text-3xl font-black text-white leading-none mb-0.5"
                         style={{ textShadow: `0 0 30px ${card.accent}60` }}>
                         {card.metric}
                       </p>
-                      <p className="text-xs font-medium" style={{ color: `${card.accent}cc` }}>{card.metricSub}</p>
+                      <p className="text-[10.5px] lg:text-xs font-medium" style={{ color: `${card.accent}cc` }}>{card.metricSub}</p>
                     </div>
 
                     {/* Title + desc */}
-                    <h3 className="text-sm font-bold text-white mb-1.5">{card.title}</h3>
-                    <p className="text-xs text-white/60 leading-relaxed flex-1">{card.desc}</p>
+                    <h3 className="text-[12.5px] lg:text-sm font-bold text-white mb-1 lg:mb-1.5">{card.title}</h3>
+                    <p className="text-[10.5px] lg:text-xs text-white/60 leading-relaxed flex-1 line-clamp-2 lg:line-clamp-none">{card.desc}</p>
 
-                    {/* CTA row */}
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
+                    {/* CTA row — compact on mobile */}
+                    <div className="hidden lg:flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
                       <span className="text-[10px] text-white/50 font-medium">{card.plan}</span>
                       <div className="flex items-center gap-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-all duration-200" style={{ color: card.accent }}>
                         Try now <ArrowRight className="h-3 w-3" />
