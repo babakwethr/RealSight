@@ -1,5 +1,5 @@
-const LOGO_WHITE = '/assets/realsight/realsight-logo-white.png';
-const LOGO_BLACK = '/assets/realsight/realsight-logo-black.png';
+const LOGO_WHITE = '/assets/realsight/realsight-logo-white.svg';
+const LOGO_BLACK = '/assets/realsight/realsight-logo-black.svg';
 
 interface LogoProps {
   variant?: 'white' | 'black';
