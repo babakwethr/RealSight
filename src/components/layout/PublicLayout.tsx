@@ -71,7 +71,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <Logo variant={isDark ? 'white' : 'black'} height="h-9" />
+              <Logo variant={isDark ? 'white' : 'black'} className="h-11 sm:h-9 w-auto" />
             </Link>
 
             {/* Desktop Navigation */}

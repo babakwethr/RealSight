@@ -271,8 +271,8 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
           ))}
         </div>
 
-        {/* Filter chips — soft-square, horizontal scroll */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
+        {/* Filter chips — equal-width 3-up grid so they fill the row, no empty space. */}
+        <div className="grid grid-cols-3 gap-2">
           <MobileFilterPill label="Beds" value={beds} onChange={setBeds}
             options={['Any', 'Studio', '1 Bed', '2 Beds', '3 Beds', '4 Beds', '5+ Beds']} />
           <MobileFilterPill label="Status" value={status} onChange={setStatus}
@@ -299,17 +299,17 @@ function MobileFilterPill({
   const display = value === 'Any' ? label : value;
   const active = value !== 'Any';
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`inline-flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-semibold rounded-[10px] border transition-colors whitespace-nowrap ${
+        className={`flex items-center justify-between gap-1.5 w-full px-3 h-9 text-[12.5px] font-semibold rounded-[10px] border transition-colors whitespace-nowrap ${
           active
             ? 'bg-primary/15 border-primary/40 text-primary'
             : 'bg-white/[0.05] border-white/[0.14] text-foreground/75'
         }`}
       >
-        {display}
-        <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="truncate">{display}</span>
+        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 bg-[#0A0F1A] border border-white/15 rounded-xl shadow-2xl overflow-hidden min-w-[140px] z-[9999]">
@@ -646,10 +646,11 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
         {/* Subtle divider to mark the end of the search section */}
         <div aria-hidden="true" className="h-px w-full mb-5" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)' }} />
 
-        {/* ── Time tabs — full-width 4-up segment on mobile, centered inline on desktop ── */}
+        {/* ── Time tabs — single-row 6-up grid on mobile (matches timePeriods count),
+                 centered inline segment on desktop. ── */}
         <div className="flex flex-col gap-2 pb-5 sm:items-center">
           <div
-            className="grid grid-cols-4 gap-1 p-1 rounded-[10px] backdrop-blur-md sm:inline-flex sm:items-center sm:gap-0 sm:rounded-xl"
+            className="grid grid-cols-6 gap-1 p-1 rounded-[10px] backdrop-blur-md sm:inline-flex sm:items-center sm:gap-0 sm:rounded-xl"
             style={{
               background: 'rgba(255,255,255,0.035)',
               border: '1px solid rgba(255,255,255,0.08)',
@@ -660,7 +661,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               <button
                 key={t}
                 onClick={() => setTimePeriod(t)}
-                className={`h-8 sm:h-auto sm:px-3.5 sm:py-1 text-[11.5px] sm:text-[11px] font-bold rounded-[7px] sm:rounded-lg transition-all ${
+                className={`h-8 sm:h-auto sm:px-3.5 sm:py-1 text-[10.5px] sm:text-[11px] font-bold rounded-[7px] sm:rounded-lg transition-all ${
                   timePeriod === t
                     ? 'bg-white text-[#0a0f2e] shadow-[0_4px_12px_-4px_rgba(255,255,255,0.35)]'
                     : 'text-white/55 hover:text-white'
@@ -774,13 +775,15 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           </div>
         )}
 
-        {/* ── Analyse My Property button ── */}
-        <div className="flex items-center justify-between pb-4">
+        {/* ── Analyse My Property button + data trust line ──
+             Mobile: stacked, full-width button on top, trust line centered below.
+             Desktop: side-by-side with space-between. */}
+        <div className="flex flex-col items-stretch gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Button onClick={() => handleFeatureClick(FEATURE_CARDS[0])}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-bold rounded-xl px-6">
+            className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-bold rounded-xl px-6 w-full sm:w-auto h-12 sm:h-10">
             <Target className="h-4 w-4" /> Analyse My Property
           </Button>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-3 text-[11.5px] sm:text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5 text-primary" /> Verified DLD Data</span>
             <span>·</span>
             <span>Updated daily</span>
