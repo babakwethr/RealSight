@@ -8,8 +8,17 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+
+/** Time-of-day greeting helper — same pattern Stripe Atlas / Linear admin shells use. */
+function getTimeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
 /**
  * AdminWorkspace — landing page for /admin.
@@ -112,6 +121,7 @@ interface KpiState {
 
 export default function AdminWorkspace() {
   const { tenant } = useTenant();
+  const { user } = useAuth();
   const [showStats, setShowStats] = useState<boolean>(() => {
     try { return localStorage.getItem('rs-admin-stats-open') === 'true'; }
     catch { return false; }
@@ -168,9 +178,33 @@ export default function AdminWorkspace() {
 
   const workspaceName = tenant?.broker_name || 'RealSight';
 
+  // Time-aware personal greeting — uses first_name if set, falls back to the
+  // local-part of the email so we never render an awkward "Hi there" empty state.
+  const firstName = (user?.user_metadata?.first_name as string | undefined)
+    || (user?.email ? user.email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '');
+  const greeting = getTimeGreeting();
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* AdminShell renders the "Admin Mode" strip + AdminTabs above this. */}
+
+      {/* Personal greeting banner — added per the Mobile Redesign Pack mockup.
+          Time-of-day aware. Visible above the page header on every screen size. */}
+      {firstName && (
+        <div className="px-1">
+          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+            {greeting}, <span style={{
+              backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}>{firstName}</span>.
+          </h2>
+          <p className="text-[12.5px] sm:text-sm text-muted-foreground mt-1">
+            Welcome back to <strong className="text-foreground">{workspaceName}</strong> · Tap a card below to manage your workspace.
+          </p>
+        </div>
+      )}
 
       <AdminPageHeader
         icon={LayoutDashboard}

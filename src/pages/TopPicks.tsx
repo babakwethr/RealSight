@@ -192,18 +192,37 @@ function TopPicksContent() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/* Top badges */}
+          {/* Top badges — score tag is the differentiator per the Mobile Redesign Pack mockup.
+              Mint glow for AI scores ≥ 9, gold for 8-8.9, neutral below. */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5">
             {index < 3 && (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/90 text-black uppercase tracking-wider">
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-amber-500/95 text-black uppercase tracking-wider shadow-[0_4px_12px_-4px_rgba(245,158,11,0.6)]">
                 #{index + 1}
               </span>
             )}
-            {source === 'ai' && project.aiScore && (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/90 text-white uppercase tracking-wider">
-                AI {project.aiScore}
-              </span>
-            )}
+            {source === 'ai' && project.aiScore && (() => {
+              const score = Number(project.aiScore);
+              const tier = score >= 9 ? 'mint' : score >= 8 ? 'gold' : 'neutral';
+              const styles = {
+                mint: { color: '#022c1c', bg: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)', border: 'rgba(46,255,192,0.85)', shadow: '0 4px 14px -4px rgba(46,255,192,0.6)' },
+                gold: { color: '#2a1c00', bg: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)', border: 'rgba(201,168,76,0.9)', shadow: '0 4px 14px -4px rgba(201,168,76,0.55)' },
+                neutral: { color: '#fff', bg: 'rgba(0,0,0,0.65)', border: 'rgba(255,255,255,0.20)', shadow: '0 4px 12px -4px rgba(0,0,0,0.6)' },
+              }[tier];
+              return (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-[3px] rounded-md uppercase tracking-wider backdrop-blur-sm"
+                  style={{
+                    color: styles.color,
+                    background: styles.bg,
+                    border: `1px solid ${styles.border}`,
+                    boxShadow: styles.shadow,
+                  }}
+                >
+                  <Star className="h-2.5 w-2.5 fill-current" />
+                  {score.toFixed(1)} / 10
+                </span>
+              );
+            })()}
           </div>
 
           {/* Price overlay */}
