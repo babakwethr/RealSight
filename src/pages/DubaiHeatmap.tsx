@@ -189,47 +189,47 @@ function DubaiHeatmapContent() {
         </p>
       </div>
 
-      {/* Heat Mode Selector — modern pills with descriptions */}
+      {/* Heat Mode Selector — tighter on mobile, breathy on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {heatModes.map(mode => {
           const Icon = mode.icon;
           const active = activeMode === mode.id;
           return (
             <button key={mode.id} onClick={() => setActiveMode(mode.id)}
-              className={`relative rounded-2xl px-4 py-3 text-left transition-all backdrop-blur-md border ${
+              className={`relative rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 text-left transition-all backdrop-blur-md border ${
                 active
                   ? 'bg-primary/[0.10] border-primary/30 shadow-[inset_0_1px_0_rgba(34,197,94,0.15)]'
                   : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.14]'
               }`}>
-              <div className="flex items-center gap-2 mb-1">
-                <Icon className={`h-4 w-4 ${active ? 'text-primary' : 'text-foreground/50'}`} />
-                <span className={`text-sm font-bold ${active ? 'text-primary' : 'text-foreground'}`}>{mode.label}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${active ? 'text-primary' : 'text-foreground/50'}`} />
+                <span className={`text-[12.5px] sm:text-sm font-bold truncate ${active ? 'text-primary' : 'text-foreground'}`}>{mode.label}</span>
               </div>
-              <p className="text-[10px] text-foreground/40 leading-tight">{mode.desc}</p>
+              <p className="text-[9.5px] sm:text-[10px] text-foreground/40 leading-tight line-clamp-2">{mode.desc}</p>
             </button>
           );
         })}
       </div>
 
-      {/* Top stats strip — top 3 areas for active mode */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Top stats strip — top 3 areas for active mode. Tighter on mobile so 3-up still reads. */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {rankedAreas.slice(0, 3).map((area, i) => {
           const style = getHeatRGBA(area.value, activeMode);
           const podium = ['🥇', '🥈', '🥉'][i];
           return (
             <div key={area.name}
-              className="relative rounded-2xl overflow-hidden backdrop-blur-md bg-white/[0.04] border border-white/[0.08] p-4 hover:border-white/[0.15] transition-all"
+              className="relative rounded-2xl overflow-hidden backdrop-blur-md bg-white/[0.04] border border-white/[0.08] p-3 sm:p-4 hover:border-white/[0.15] transition-all"
               style={{ borderColor: i === 0 ? style.color.replace('1)', '0.4)') : undefined }}>
               <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{podium}</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">#{i + 1} {heatModes.find(m => m.id === activeMode)?.label}</span>
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-sm sm:text-base shrink-0">{podium}</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">#{i + 1}<span className="hidden sm:inline"> {heatModes.find(m => m.id === activeMode)?.label}</span></span>
                 </div>
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: style.fillColor, boxShadow: `0 0 8px ${style.glow}` }} />
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: style.fillColor, boxShadow: `0 0 8px ${style.glow}` }} />
               </div>
-              <p className="text-sm font-bold text-foreground truncate mb-1">{area.name}</p>
-              <p className="text-xl font-black" style={{ color: style.fillColor, fontFamily: 'Berkeley Mono, monospace', letterSpacing: '-0.02em' }}>
+              <p className="text-[12.5px] sm:text-sm font-bold text-foreground truncate mb-1">{area.name}</p>
+              <p className="text-base sm:text-xl font-black truncate" style={{ color: style.fillColor, fontFamily: 'Berkeley Mono, monospace', letterSpacing: '-0.02em' }}>
                 {formatModeValue(area.name)}
               </p>
             </div>
