@@ -24,6 +24,7 @@ import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
 import { GuidanceCard } from '@/components/GuidanceCard';
 import { formatPriceSplit } from '@/lib/currency';
+import { cn } from '@/lib/utils';
 
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
 
@@ -265,9 +266,40 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
-      {/* Header + inline area switcher */}
+      {/* Header + inline area switcher.
+          Mobile: slim breadcrumb-style top + DLD LIVE chip on its own row.
+          Desktop: original layout preserved (icon + h1 + sub on one row,
+          chip + Start Free aligned right). */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between">
+        {/* Mobile-only slim header */}
+        <div className="lg:hidden">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-semibold">
+              <span>Markets</span>
+              {areaParam && <><span className="text-foreground/30">·</span><span className="text-foreground">{areaParam}</span></>}
+            </div>
+            <div className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1 shrink-0">
+              <Activity className="h-3 w-3" /> DLD LIVE
+            </div>
+          </div>
+          <h1 className="text-[26px] font-black text-foreground tracking-tight leading-[1.1]">
+            {areaParam
+              ? <span className="gradient-heading">{areaParam}</span>
+              : <>Market <span className="gradient-word">Intelligence</span></>}
+          </h1>
+          <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-snug">
+            {areaParam ? 'Area deep-dive · powered by DLD transaction data.' : 'Dubai property market overview · powered by DLD data.'}
+          </p>
+          {!user && (
+            <Link to="/login?mode=signup"
+              className="inline-flex items-center mt-3 text-[12px] bg-primary text-primary-foreground px-3.5 h-8 rounded-[10px] font-bold">
+              Start Free
+            </Link>
+          )}
+        </div>
+
+        {/* Desktop header — unchanged layout */}
+        <div className="hidden lg:flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 className="h-6 w-6 text-primary" />
@@ -296,15 +328,31 @@ function MarketIntelligenceContent() {
           </div>
         </div>
 
-        {/* Quick area switcher — always accessible */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <Link to="/market-intelligence"
-            className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${!areaParam ? 'bg-primary text-primary-foreground border-primary' : 'border-white/[0.08] bg-white/[0.04] text-foreground/60 hover:border-primary/40 hover:text-foreground'}`}>
+        {/* Quick area switcher — compact pill row, edge-to-edge scroll on mobile.
+            Same chip pattern as the Home page so it reads as one design system. */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0">
+          <Link
+            to="/market-intelligence"
+            className={cn(
+              'shrink-0 inline-flex items-center h-8 px-3 rounded-[10px] text-[12px] font-semibold border transition-all whitespace-nowrap',
+              !areaParam
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-white/[0.04] text-foreground/65 border-transparent hover:bg-white/[0.07]'
+            )}
+          >
             All Dubai
           </Link>
           {allAreas.slice(0, 8).map((a: any) => (
-            <Link key={a.id} to={`/market-intelligence?area=${encodeURIComponent(a.name)}`}
-              className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap ${areaParam === a.name ? 'bg-primary text-primary-foreground border-primary' : 'border-white/[0.08] bg-white/[0.04] text-foreground/60 hover:border-primary/40 hover:text-foreground'}`}>
+            <Link
+              key={a.id}
+              to={`/market-intelligence?area=${encodeURIComponent(a.name)}`}
+              className={cn(
+                'shrink-0 inline-flex items-center h-8 px-3 rounded-[10px] text-[12px] font-semibold border transition-all whitespace-nowrap',
+                areaParam === a.name
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-white/[0.04] text-foreground/65 border-transparent hover:bg-white/[0.07]'
+              )}
+            >
               {a.name}
             </Link>
           ))}
