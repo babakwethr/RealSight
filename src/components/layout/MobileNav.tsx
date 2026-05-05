@@ -84,18 +84,28 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
       className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
     >
-      {/* Floating glass bar — rounded rectangle like the reference,
-          with a wide semicircular scoop at top-center for the FAB. */}
+      {/* Floating Liquid-Glass bar — Apple iOS 26 language:
+          - Heavier blur + saturation than v1 so the bar truly refracts.
+          - More transparent fill so the backdrop shows through.
+          - Specular top-edge highlight (catches light like real glass).
+          - Subtle bottom-inner shadow for depth.
+          - Wide semicircular scoop at top-center for the FAB. */}
       <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto">
         {/* Glass layer with border-radius + mask notch */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'rgba(15, 20, 40, 0.55)',
-            backdropFilter: 'blur(30px) saturate(1.6)',
-            WebkitBackdropFilter: 'blur(30px) saturate(1.6)',
+            background: 'rgba(15, 20, 40, 0.42)',
+            backdropFilter: 'blur(40px) saturate(2.0)',
+            WebkitBackdropFilter: 'blur(40px) saturate(2.0)',
             borderRadius: '26px',
-            boxShadow: '0 18px 40px -14px rgba(0,0,0,0.55)',
+            boxShadow:
+              // Outer drop shadow
+              '0 18px 40px -14px rgba(0,0,0,0.55),' +
+              // Inner top specular highlight — bright glass edge
+              'inset 0 1px 0 rgba(255,255,255,0.28),' +
+              // Inner bottom shadow — subtle refraction depth
+              'inset 0 -1px 0 rgba(0,0,0,0.30)',
             // Wider scoop — fits the FAB snugly like the reference
             WebkitMaskImage:
               'radial-gradient(circle 40px at 50% 0, transparent 39px, #000 40px)',
@@ -112,7 +122,7 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
             left: '26px',
             right: 'calc(50% + 40px)',
             background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 100%)',
+              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 100%)',
           }}
         />
         <div
@@ -122,7 +132,7 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
             left: 'calc(50% + 40px)',
             right: '26px',
             background:
-              'linear-gradient(90deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
+              'linear-gradient(90deg, rgba(255,255,255,0.35) 0%, transparent 100%)',
           }}
         />
 
@@ -138,7 +148,7 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
           <path
             d="M 1 0 A 40 40 0 0 0 81 0"
             fill="none"
-            stroke="rgba(255,255,255,0.22)"
+            stroke="rgba(255,255,255,0.35)"
             strokeWidth="1"
           />
         </svg>
@@ -194,6 +204,39 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
 
 /* -------------------------------- BITS -------------------------------- */
 
+/**
+ * Liquid-glass "lens" element that sits behind the active icon —
+ * Apple iOS 26 language: a translucent disc with a subtle white border,
+ * a backdrop-blur of its own (so it visibly refracts what's beneath),
+ * and chromatic-aberration glow (warm pink at the top, cool blue at the
+ * bottom) — that rainbow halo you see around the active tab in iOS 26.
+ */
+function LiquidLens() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute inset-0 rounded-full pointer-events-none"
+      style={{
+        background: 'rgba(255, 255, 255, 0.10)',
+        backdropFilter: 'blur(8px) saturate(1.8)',
+        WebkitBackdropFilter: 'blur(8px) saturate(1.8)',
+        border: '1px solid rgba(255, 255, 255, 0.32)',
+        boxShadow:
+          // Outer soft white glow
+          '0 0 24px rgba(255, 255, 255, 0.18),' +
+          // Chromatic top edge — warm pink/red
+          '0 -3px 14px -2px rgba(255, 80, 130, 0.55),' +
+          // Chromatic bottom edge — cool blue/cyan
+          '0 3px 14px -2px rgba(80, 140, 255, 0.55),' +
+          // Inner top highlight — specular
+          'inset 0 1px 0 rgba(255, 255, 255, 0.45),' +
+          // Inner bottom shadow — refraction depth
+          'inset 0 -1px 0 rgba(0, 0, 0, 0.28)',
+      }}
+    />
+  );
+}
+
 function TabLink({
   to,
   label,
@@ -211,25 +254,23 @@ function TabLink({
       className="flex flex-col items-center justify-center gap-1 px-2 group min-h-[48px] flex-1"
     >
       <motion.span
-        whileTap={{ scale: 0.85 }}
+        whileTap={{ scale: 0.88 }}
         className={cn(
-          'transition-colors',
-          active ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+          'relative inline-flex items-center justify-center w-11 h-11 transition-colors',
+          active ? 'text-white' : 'text-white/55 group-hover:text-white/85'
         )}
       >
-        {icon}
+        {active && <LiquidLens />}
+        <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{icon}</span>
       </motion.span>
       <span
         className={cn(
           'text-[10px] font-semibold tracking-wide transition-colors leading-none',
-          active ? 'text-white' : 'text-white/45'
+          active ? 'text-white' : 'text-white/50'
         )}
       >
         {label}
       </span>
-      {active && (
-        <span className="absolute h-1 w-1 rounded-full bg-[#18d6a4] translate-y-[26px]" />
-      )}
     </NavLink>
   );
 }
@@ -249,12 +290,12 @@ function TabButton({
       className="flex flex-col items-center justify-center gap-1 px-2 group min-h-[48px] flex-1"
     >
       <motion.span
-        whileTap={{ scale: 0.85 }}
-        className="transition-colors text-white/50 group-hover:text-white/80"
+        whileTap={{ scale: 0.88 }}
+        className="relative inline-flex items-center justify-center w-11 h-11 transition-colors text-white/55 group-hover:text-white/85"
       >
-        {icon}
+        <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{icon}</span>
       </motion.span>
-      <span className="text-[10px] font-semibold tracking-wide text-white/45 leading-none">
+      <span className="text-[10px] font-semibold tracking-wide text-white/50 leading-none">
         {label}
       </span>
     </button>
