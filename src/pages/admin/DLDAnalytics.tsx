@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, TrendingDown, Building2, MapPin, Activity, ShieldAlert, CheckCircle, Clock, Database } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Loader2, TrendingUp, TrendingDown, Building2, MapPin, Activity, ShieldAlert, CheckCircle, Clock, Database, ChevronDown, Check } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { format } from 'date-fns';
 import { SectionIntro } from '@/components/SectionIntro';
+import { cn } from '@/lib/utils';
 
 interface DLDArea {
     id: string;
@@ -115,19 +118,7 @@ export default function AdminDLDAnalytics() {
                 titlePlain="DLD"
                 titleGradient="Analytics"
                 description="Deep analytics across Dubai Land Department transaction data."
-                actions={
-                    <Select value={selectedArea} onValueChange={setSelectedArea}>
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Filter by Area" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Areas</SelectItem>
-                            {areas.map(area => (
-                                <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                }
+                actions={<AreaFilterCombobox areas={areas} value={selectedArea} onValueChange={setSelectedArea} />}
             />
 
             <SectionIntro
@@ -294,5 +285,80 @@ export default function AdminDLDAnalytics() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ─── Searchable area filter ──────────────────────────────────────────────────
+// Replaces the plain shadcn Select so users can type-to-filter once the DLD
+// areas table grows beyond a handful of seeded rows. Keeps the same value /
+// onValueChange API as the original Select to minimise blast radius.
+
+interface AreaFilterComboboxProps {
+    areas: DLDArea[];
+    value: string;                          // 'all' or an area id
+    onValueChange: (next: string) => void;
+}
+
+function AreaFilterCombobox({ areas, value, onValueChange }: AreaFilterComboboxProps) {
+    const [open, setOpen] = useState(false);
+    const selected = value === 'all'
+        ? { id: 'all', name: 'All Areas' }
+        : areas.find(a => a.id === value);
+    const label = selected?.name ?? 'Filter by Area';
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-label="Filter by area"
+                    className="w-full sm:w-[220px] justify-between h-10 rounded-xl bg-white/[0.04] border-white/[0.10] hover:bg-white/[0.07] hover:border-white/[0.20] text-[13px] font-semibold"
+                >
+                    <span className="flex items-center gap-2 min-w-0">
+                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">{label}</span>
+                    </span>
+                    <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform shrink-0', open && 'rotate-180')} />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                sideOffset={4}
+                className="w-[--radix-popover-trigger-width] p-0 bg-popover border-white/[0.10] rounded-xl overflow-hidden"
+            >
+                <Command className="bg-transparent">
+                    <CommandInput placeholder="Search areas…" className="h-10 text-[13px]" />
+                    <CommandList className="max-h-72">
+                        <CommandEmpty className="py-6 text-center text-[13px] text-muted-foreground">
+                            No area found.
+                        </CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem
+                                value="all all-areas"
+                                onSelect={() => { onValueChange('all'); setOpen(false); }}
+                                className="gap-2 py-2.5 text-[13px] font-semibold cursor-pointer"
+                            >
+                                <Check className={cn('h-4 w-4 shrink-0', value === 'all' ? 'text-primary' : 'opacity-0')} />
+                                All Areas
+                                <span className="ml-auto text-[11px] font-normal text-muted-foreground">{areas.length} areas</span>
+                            </CommandItem>
+                            {areas.map(area => (
+                                <CommandItem
+                                    key={area.id}
+                                    value={area.name}
+                                    onSelect={() => { onValueChange(area.id); setOpen(false); }}
+                                    className="gap-2 py-2.5 text-[13px] cursor-pointer"
+                                >
+                                    <Check className={cn('h-4 w-4 shrink-0', value === area.id ? 'text-primary' : 'opacity-0')} />
+                                    <span className="truncate">{area.name}</span>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }
