@@ -19,6 +19,8 @@ import {
 import { Logo } from '@/components/Logo';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { PublicFooter } from '@/components/layout/PublicFooter';
+import { MobileNav } from '@/components/layout/MobileNav';
+import { MobileDrawer } from '@/components/layout/MobileDrawer';
 import { AuthModal } from '@/components/AuthModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -446,6 +448,9 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
   const [selectedArea, setSelectedArea] = useState('');
   const [timePeriod, setTimePeriod] = useState('7D');
   const [popup, setPopup] = useState<typeof FEATURE_CARDS[0] | null>(null);
+  // Drawer state for the public home's MobileNav (the protected
+  // AppLayout has its own copy; here we add it for logged-out visitors).
+  const [publicDrawerOpen, setPublicDrawerOpen] = useState(false);
 
   // Auto-open modal if ?auth=login or ?auth=signup in URL (from /login redirect)
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -1191,6 +1196,19 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
 
       {/* Footer — public pages only */}
       {isPublic && <PublicFooter />}
+
+      {/* Public-mode bottom toolbar — same MobileNav as the logged-in app
+          so visitors get a consistent way to navigate. Tabs that need auth
+          (Portfolio, AI Chat, Admin) route through the login flow when
+          tapped while signed-out. Bottom padding on the page prevents
+          the toolbar from covering content. */}
+      {isPublic && (
+        <>
+          <div className="h-24 lg:hidden" aria-hidden="true" />
+          <MobileNav onMenuClick={() => setPublicDrawerOpen(true)} />
+          <MobileDrawer isOpen={publicDrawerOpen} onClose={() => setPublicDrawerOpen(false)} />
+        </>
+      )}
     </div>
   );
 }
