@@ -117,11 +117,12 @@ export default function Projects() {
 
 
       {/* Header */}
-      <section className="text-center sm:text-center mb-5 sm:mb-10 px-2">
-        {/* Hero — slim on mobile (left-aligned + compact), centered on desktop. */}
+      <section className="mb-5 sm:mb-10 px-2">
+        {/* Hero — same Inter Black weight as the rest of the app (was font-light,
+            which read as a different typeface vs every other page). */}
         <div className="text-left sm:text-center">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-light text-foreground mb-1.5 sm:mb-4 tracking-tight leading-tight">
-            New <span className="text-primary font-semibold sm:font-light">Launches</span>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground mb-1.5 sm:mb-4 tracking-tight leading-[1.1]">
+            New <span className="text-primary">Launches</span>
           </h1>
           <p className="text-[12.5px] sm:text-base md:text-lg text-foreground/60 max-w-2xl mx-auto mb-4 sm:mb-6 leading-relaxed">
             Curated properties from Dubai's most trusted developers — updated daily.
@@ -145,17 +146,19 @@ export default function Projects() {
         )}
       </section>
 
-      {/* Filters — search row + horizontal-scroll developer chips on mobile. */}
+      {/* Filters — search row + horizontal-scroll developer chips on mobile.
+          Borders made transparent on mobile (the white stroke read as wrong) — the
+          dark glass background gives enough definition on its own. */}
       <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center sm:justify-between">
-          {/* Search */}
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 items-stretch sm:items-center sm:justify-between">
+          {/* Search — borderless on mobile, subtle border on desktop */}
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50" />
             <Input
               placeholder="Search projects, areas..."
               value={filters.search}
               onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-              className="pl-10 h-12 sm:h-10 rounded-xl bg-white/5 border-glass-border focus-visible:ring-primary text-[14px]"
+              className="pl-10 h-12 sm:h-10 rounded-xl bg-white/[0.06] border border-transparent sm:border-glass-border focus-visible:ring-primary focus-visible:border-primary/40 text-[14px]"
             />
           </div>
 
@@ -163,30 +166,31 @@ export default function Projects() {
           <AdvancedFilters filters={filters} onChange={setFilters} />
         </div>
 
-        {/* Developer Quick Chips — horizontal scroll on mobile, no more 4-row wrap. */}
+        {/* Developer Quick Chips — smaller (h-7), tighter (px-3, 11.5 px text),
+            transparent border on inactive (was a visible white stroke). */}
         {developers.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:gap-2 pb-1">
             <span className="text-xs text-foreground/50 shrink-0 mr-1 hidden sm:inline">Developers:</span>
             <button
               onClick={() => setFilters(f => ({ ...f, developer: null }))}
               className={cn(
-                "h-9 px-4 rounded-[10px] text-[12.5px] font-semibold transition-all duration-200 border whitespace-nowrap shrink-0",
+                "h-7 sm:h-9 px-3 sm:px-4 rounded-full sm:rounded-[10px] text-[11.5px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
                 !filters.developer
                   ? "bg-primary/15 text-primary border-primary/50"
-                  : "bg-white/[0.04] text-foreground/70 border-white/[0.10] hover:border-white/[0.20]"
+                  : "bg-white/[0.04] text-foreground/70 border-transparent sm:border-white/[0.10] hover:bg-white/[0.07]"
               )}
             >
-              All developers
+              All
             </button>
             {developers.map(dev => (
               <button
                 key={dev}
                 onClick={() => setFilters(f => ({ ...f, developer: dev }))}
                 className={cn(
-                  "h-9 px-4 rounded-[10px] text-[12.5px] font-semibold transition-all duration-200 border whitespace-nowrap shrink-0",
+                  "h-7 sm:h-9 px-3 sm:px-4 rounded-full sm:rounded-[10px] text-[11.5px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
                   filters.developer === dev
                     ? "bg-primary/15 text-primary border-primary/50"
-                    : "bg-white/[0.04] text-foreground/70 border-white/[0.10] hover:border-white/[0.20]"
+                    : "bg-white/[0.04] text-foreground/70 border-transparent sm:border-white/[0.10] hover:bg-white/[0.07]"
                 )}
               >
                 {dev}

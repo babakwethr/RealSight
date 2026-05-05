@@ -188,34 +188,25 @@ export default function AdminWorkspace() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* AdminShell renders the "Admin Mode" strip + AdminTabs above this. */}
 
-      {/* Mobile hero: greeting + inline "Show stats" toggle.
-          Replaces the bulky AdminPageHeader card on phones; the desktop
-          header still shows below with the same toggle. */}
-      <div className="lg:hidden flex items-end justify-between gap-3 px-1">
-        <div className="min-w-0">
-          {firstName && (
-            <h2 className="text-2xl font-black text-foreground tracking-tight leading-tight truncate">
-              {greeting}, <span style={{
-                backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-              }}>{firstName}</span>.
-            </h2>
-          )}
-          <p className="text-[12.5px] text-muted-foreground mt-1 leading-snug">
-            Welcome back to <strong className="text-foreground">{workspaceName}</strong>.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowStats((v) => !v)}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11.5px] font-bold border border-white/[0.10] bg-white/[0.04] text-foreground/85 active:bg-white/[0.10] shrink-0"
-          aria-label={showStats ? 'Hide stats' : 'Show stats'}
-        >
-          {showStats
-            ? <><ChevronUp className="h-3.5 w-3.5" /> Hide stats</>
-            : <><ChevronDown className="h-3.5 w-3.5" /> Stats</>}
-        </button>
+      {/* Mobile hero: greeting takes the full row so the name never truncates.
+          Stats toggle is moved next to the "Manage your workspace" label below. */}
+      <div className="lg:hidden px-1">
+        {firstName && (
+          <h2 className="text-[26px] font-black text-foreground tracking-tight leading-[1.1]">
+            {greeting},
+            {' '}
+            <span style={{
+              backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}>{firstName}</span>
+            <span className="text-foreground">.</span>
+          </h2>
+        )}
+        <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-snug">
+          Welcome back to <strong className="text-foreground">{workspaceName}</strong>.
+        </p>
       </div>
 
       {/* Desktop header — unchanged, hidden on mobile. */}
@@ -304,11 +295,24 @@ export default function AdminWorkspace() {
         </div>
       )}
 
-      {/* ── SHORTCUT CARDS — 2-up on mobile so all 8 fit in 4 screens of scroll, not 8. ── */}
+      {/* ── SHORTCUT CARDS — 2-up on mobile. Stats toggle lives in the
+              section header on phones, so the greeting above can stay full-width. ── */}
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70 mb-3 px-1">
-          Manage your workspace
-        </p>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70">
+            Manage your workspace
+          </p>
+          {/* Mobile-only Stats toggle — text-button style, no big container */}
+          <button
+            onClick={() => setShowStats((v) => !v)}
+            className="lg:hidden inline-flex items-center gap-1 text-[11px] font-bold text-[#b6a4ff] hover:text-foreground active:text-foreground transition-colors"
+            aria-label={showStats ? 'Hide workspace stats' : 'Show workspace stats'}
+          >
+            {showStats
+              ? <><ChevronUp className="h-3 w-3" /> Hide stats</>
+              : <><ChevronDown className="h-3 w-3" /> Stats</>}
+          </button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {SHORTCUTS.map((card) => (
             <ShortcutTile key={card.to} {...card} />

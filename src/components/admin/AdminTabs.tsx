@@ -1,7 +1,8 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation as useTabLocation, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Shield, Star, Package, Building2, Database,
-  Activity, Layers, Settings,
+  Activity, Layers, Settings, ChevronDown, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,12 +42,123 @@ const TABS: Tab[] = [
 ];
 
 export function AdminTabs() {
+  const location = useTabLocation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Find the currently active tab so the mobile dropdown shows it as the trigger.
+  const activeTab = TABS.find((t) => {
+    if (t.to === '/admin') return location.pathname === '/admin';
+    return location.pathname.startsWith(t.to);
+  }) || TABS[0];
+  const ActiveIcon = activeTab.icon;
+
+  // Click outside / Esc to close dropdown
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
     <div className="mb-5">
-      {/* Contained pill-tab bar — much more visible than the previous
-          underline-on-bottom-border treatment (founder QA, 28 Apr 2026). */}
+      {/* ── MOBILE: dropdown menu instead of horizontal-scroll tabs ── */}
+      <div ref={ref} className="lg:hidden relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label="Admin section"
+          className="w-full flex items-center justify-between gap-2 h-12 px-4 rounded-2xl text-[14px] font-bold transition-all"
+          style={{
+            background: 'linear-gradient(180deg, rgba(123,92,255,0.10), rgba(15,18,40,0.55))',
+            border: '1px solid rgba(123,92,255,0.20)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px -12px rgba(123,92,255,0.20)',
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white"
+              style={{ background: 'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)' }}
+            >
+              <ActiveIcon className="h-3.5 w-3.5" />
+            </span>
+            <span className="text-foreground truncate">{activeTab.label}</span>
+          </span>
+          <ChevronDown
+            className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')}
+          />
+        </button>
+
+        {open && (
+          <>
+            {/* backdrop dim */}
+            <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" aria-hidden="true" onClick={() => setOpen(false)} />
+            <div
+              role="menu"
+              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+              style={{
+                background: 'rgba(15,18,40,0.97)',
+                border: '1px solid rgba(123,92,255,0.30)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)',
+              }}
+            >
+              <nav className="p-1.5 max-h-[60vh] overflow-y-auto">
+                {TABS.map((t) => {
+                  const Icon = t.icon;
+                  const isActive = activeTab.to === t.to;
+                  return (
+                    <Link
+                      key={t.to}
+                      to={t.to}
+                      role="menuitem"
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 h-11 px-3 rounded-xl text-[13.5px] font-semibold transition-colors',
+                        isActive
+                          ? 'text-white'
+                          : 'text-foreground/80 hover:bg-white/[0.04]',
+                      )}
+                      style={isActive
+                        ? { background: 'linear-gradient(135deg, rgba(123,92,255,0.20) 0%, rgba(92,63,255,0.14) 100%)' }
+                        : {}
+                      }
+                    >
+                      <span
+                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                        style={isActive
+                          ? { background: 'linear-gradient(135deg, #7B5CFF 0%, #5C3FFF 100%)', color: '#fff' }
+                          : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.65)' }
+                        }
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="flex-1 text-left truncate">{t.label}</span>
+                      {isActive && <Check className="h-4 w-4 text-[#b6a4ff] shrink-0" />}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── DESKTOP: existing horizontal pill bar — unchanged ── */}
       <div
-        className="rounded-2xl p-1.5 overflow-x-auto scrollbar-none"
+        className="hidden lg:block rounded-2xl p-1.5 overflow-x-auto scrollbar-none"
         style={{
           background:
             'linear-gradient(180deg, rgba(123,92,255,0.10), rgba(15,18,40,0.55))',
@@ -59,7 +171,6 @@ export function AdminTabs() {
         <nav className="flex items-center gap-1 min-w-max">
           {TABS.map((t) => {
             const Icon = t.icon;
-            // `end` on Overview makes it match exactly /admin (not /admin/anything).
             const isOverview = t.to === '/admin';
             return (
               <NavLink
