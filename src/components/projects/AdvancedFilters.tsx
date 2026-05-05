@@ -28,7 +28,10 @@ export function AdvancedFilters({ filters, onChange }: AdvancedFiltersProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="gap-2 border-glass-border glass-panel hover:bg-white/5">
+        <Button
+          variant="outline"
+          className="gap-2 h-12 sm:h-10 rounded-xl bg-white/[0.06] sm:glass-panel border border-transparent sm:border-glass-border hover:bg-white/[0.10] hover:border-primary/40 text-[13px] font-semibold w-full sm:w-auto"
+        >
           <SlidersHorizontal className="h-4 w-4" />
           <span className="hidden sm:inline">Advanced Filters</span>
           <span className="sm:hidden">Filters</span>

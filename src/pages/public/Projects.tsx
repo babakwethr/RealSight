@@ -166,15 +166,15 @@ export default function Projects() {
           <AdvancedFilters filters={filters} onChange={setFilters} />
         </div>
 
-        {/* Developer Quick Chips — smaller (h-7), tighter (px-3, 11.5 px text),
-            transparent border on inactive (was a visible white stroke). */}
+        {/* Developer Quick Chips — soft-square 10 px corners (NOT pills),
+            compact h-8 on mobile, no white stroke on inactive. */}
         {developers.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:gap-2 pb-1">
             <span className="text-xs text-foreground/50 shrink-0 mr-1 hidden sm:inline">Developers:</span>
             <button
               onClick={() => setFilters(f => ({ ...f, developer: null }))}
               className={cn(
-                "h-7 sm:h-9 px-3 sm:px-4 rounded-full sm:rounded-[10px] text-[11.5px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
+                "h-8 sm:h-9 min-w-[48px] px-3.5 sm:px-4 rounded-[10px] text-[12px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
                 !filters.developer
                   ? "bg-primary/15 text-primary border-primary/50"
                   : "bg-white/[0.04] text-foreground/70 border-transparent sm:border-white/[0.10] hover:bg-white/[0.07]"
@@ -187,7 +187,7 @@ export default function Projects() {
                 key={dev}
                 onClick={() => setFilters(f => ({ ...f, developer: dev }))}
                 className={cn(
-                  "h-7 sm:h-9 px-3 sm:px-4 rounded-full sm:rounded-[10px] text-[11.5px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
+                  "h-8 sm:h-9 px-3.5 sm:px-4 rounded-[10px] text-[12px] sm:text-[12.5px] font-semibold transition-all duration-200 whitespace-nowrap shrink-0 border",
                   filters.developer === dev
                     ? "bg-primary/15 text-primary border-primary/50"
                     : "bg-white/[0.04] text-foreground/70 border-transparent sm:border-white/[0.10] hover:bg-white/[0.07]"
