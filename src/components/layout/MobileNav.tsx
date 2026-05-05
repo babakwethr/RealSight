@@ -98,21 +98,18 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'rgba(15, 20, 40, 0.38)',
-            backdropFilter: 'blur(44px) saturate(2.2)',
-            WebkitBackdropFilter: 'blur(44px) saturate(2.2)',
+            // Slightly darker fill so the brighter lens contrasts cleanly
+            background: 'rgba(10, 14, 32, 0.55)',
+            backdropFilter: 'blur(50px) saturate(2.4)',
+            WebkitBackdropFilter: 'blur(50px) saturate(2.4)',
             borderRadius: '36px',
             boxShadow:
-              // Outer drop shadow
-              '0 22px 48px -16px rgba(0,0,0,0.60),' +
+              // Outer drop shadow — bar floats above content
+              '0 22px 48px -16px rgba(0,0,0,0.65),' +
               // Inner top specular highlight — bright glass edge
-              'inset 0 1.5px 0 rgba(255,255,255,0.32),' +
+              'inset 0 1px 0 rgba(255,255,255,0.22),' +
               // Inner bottom shadow — refraction depth
-              'inset 0 -1px 0 rgba(0,0,0,0.32),' +
-              // Faint coloured edge bloom (left = pink, right = blue)
-              // gives the whole pill the iOS 26 'liquid' chromatic vibe.
-              'inset 8px 0 24px -16px rgba(255,120,160,0.18),' +
-              'inset -8px 0 24px -16px rgba(120,160,255,0.18)',
+              'inset 0 -1px 0 rgba(0,0,0,0.30)',
             // Wider scoop — fits the FAB snugly like the reference
             WebkitMaskImage:
               'radial-gradient(circle 40px at 50% 0, transparent 39px, #000 40px)',
@@ -215,19 +212,19 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
 /* -------------------------------- BITS -------------------------------- */
 
 /**
- * The Liquid Lens — Apple iOS 26 active-tab indicator.
+ * The Liquid Lens — Apple iOS 26 active-tab indicator (v3).
  *
- * Three stacked layers:
- *   1. Backdrop-blurred disc with a subtle white border = the glass body
- *   2. Conic-gradient ring (warm-cool-warm) layered on top via mask =
- *      the chromatic aberration that reads as a rainbow on the edge
- *   3. A multi-stop box-shadow halo for the outer glow (pink on top,
- *      blue on bottom, gentle white wash all around)
+ * Studied the WhatsApp / iOS 26 reference more carefully:
+ *   - The lens is BRIGHTER than the bar (acts as a magnifier).
+ *   - Chromatic effect is SUBTLE — a thin red kiss on the top rim and
+ *     a blue kiss on the bottom rim. NOT a rainbow halo.
+ *   - No outer glow — the lens is self-contained.
+ *   - Strong specular highlight on the top edge (white glass rim).
+ *   - It looks 'physical' — like a real glass disc placed over the icon.
  *
  * Marked with `layoutId="liquid-lens"` and wrapped by a `LayoutGroup` in
  * the parent — Framer Motion smoothly animates the same disc from one
- * tab to the next when the user navigates. Spring physics tuned to
- * match Apple's fluid-droplet feel.
+ * tab to the next when the user navigates.
  */
 function LiquidLens() {
   return (
@@ -237,52 +234,25 @@ function LiquidLens() {
       transition={LIQUID_SPRING}
       className="absolute inset-0 rounded-full pointer-events-none"
       style={{
-        background: 'rgba(255, 255, 255, 0.10)',
-        backdropFilter: 'blur(14px) saturate(2.2)',
-        WebkitBackdropFilter: 'blur(14px) saturate(2.2)',
+        // Brighter than the bar — acts as a magnifying lens
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(20px) saturate(2.4) brightness(1.05)',
+        WebkitBackdropFilter: 'blur(20px) saturate(2.4) brightness(1.05)',
+        // Clean white rim — gives the disc a defined edge
+        border: '0.5px solid rgba(255, 255, 255, 0.40)',
         boxShadow:
-          // Outer wash of white glow
-          '0 0 28px rgba(255, 255, 255, 0.24),' +
-          // Pink/red halo on top
-          '0 -4px 18px -2px rgba(255, 90, 140, 0.70),' +
-          // Orange wash top-left
-          '-4px -3px 16px -3px rgba(255, 160, 90, 0.55),' +
-          // Cyan halo on bottom
-          '0 4px 18px -2px rgba(90, 170, 255, 0.70),' +
-          // Violet wash bottom-right
-          '4px 3px 16px -3px rgba(160, 100, 255, 0.55),' +
-          // Inner white specular (bright glass edge top)
-          'inset 0 1.5px 0 rgba(255, 255, 255, 0.50),' +
-          // Inner bottom darken (refraction depth)
-          'inset 0 -1.5px 0 rgba(0, 0, 0, 0.30)',
+          // Top-rim chromatic kiss (red — subtle, just a thin line)
+          'inset 0 0.5px 0 rgba(255, 130, 150, 0.55),' +
+          // Top specular — bright glass highlight catching ambient light
+          'inset 0 2px 0.5px -1.5px rgba(255, 255, 255, 0.85),' +
+          // Bottom-rim chromatic kiss (blue/violet — subtle)
+          'inset 0 -0.5px 0 rgba(120, 150, 255, 0.55),' +
+          // Bottom shadow — gives depth, like the disc is slightly raised
+          'inset 0 -2px 1px -1.5px rgba(0, 0, 0, 0.30),' +
+          // Soft drop shadow under the disc
+          '0 4px 12px -3px rgba(0, 0, 0, 0.45)',
       }}
-    >
-      {/* Conic-gradient chromatic ring — the actual rainbow border, drawn
-          with a mask so only the 1.5 px ring fills with the gradient. */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 rounded-full"
-        style={{
-          background:
-            'conic-gradient(from 200deg, ' +
-            'rgba(255, 90, 140, 0.95) 0deg, ' +
-            'rgba(255, 160, 90, 0.85) 45deg, ' +
-            'rgba(255, 230, 120, 0.55) 90deg, ' +
-            'rgba(255, 255, 255, 0.30) 140deg, ' +
-            'rgba(120, 200, 255, 0.85) 200deg, ' +
-            'rgba(140, 100, 255, 0.95) 270deg, ' +
-            'rgba(255, 90, 180, 0.95) 320deg, ' +
-            'rgba(255, 90, 140, 0.95) 360deg)',
-          padding: '1.5px',
-          // Mask: keep only the ring area (border = whole - inner)
-          WebkitMask:
-            'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          WebkitMaskComposite: 'xor',
-          maskComposite: 'exclude',
-        }}
-      />
-    </motion.span>
+    />
   );
 }
 
