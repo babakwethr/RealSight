@@ -188,51 +188,81 @@ export default function AdminWorkspace() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* AdminShell renders the "Admin Mode" strip + AdminTabs above this. */}
 
-      {/* Personal greeting banner — added per the Mobile Redesign Pack mockup.
-          Time-of-day aware. Visible above the page header on every screen size. */}
-      {firstName && (
-        <div className="px-1">
-          <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-            {greeting}, <span style={{
-              backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-            }}>{firstName}</span>.
-          </h2>
-          <p className="text-[12.5px] sm:text-sm text-muted-foreground mt-1">
-            Welcome back to <strong className="text-foreground">{workspaceName}</strong> · Tap a card below to manage your workspace.
+      {/* Mobile hero: greeting + inline "Show stats" toggle.
+          Replaces the bulky AdminPageHeader card on phones; the desktop
+          header still shows below with the same toggle. */}
+      <div className="lg:hidden flex items-end justify-between gap-3 px-1">
+        <div className="min-w-0">
+          {firstName && (
+            <h2 className="text-2xl font-black text-foreground tracking-tight leading-tight truncate">
+              {greeting}, <span style={{
+                backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}>{firstName}</span>.
+            </h2>
+          )}
+          <p className="text-[12.5px] text-muted-foreground mt-1 leading-snug">
+            Welcome back to <strong className="text-foreground">{workspaceName}</strong>.
           </p>
         </div>
-      )}
+        <button
+          onClick={() => setShowStats((v) => !v)}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[11.5px] font-bold border border-white/[0.10] bg-white/[0.04] text-foreground/85 active:bg-white/[0.10] shrink-0"
+          aria-label={showStats ? 'Hide stats' : 'Show stats'}
+        >
+          {showStats
+            ? <><ChevronUp className="h-3.5 w-3.5" /> Hide stats</>
+            : <><ChevronDown className="h-3.5 w-3.5" /> Stats</>}
+        </button>
+      </div>
 
-      <AdminPageHeader
-        icon={LayoutDashboard}
-        titlePlain={workspaceName + ' ·'}
-        titleGradient="Workspace"
-        description="Everything you need to run your white-label investor workspace."
-        actions={
-          <button
-            onClick={() => setShowStats((v) => !v)}
-            className={cn(
-              'inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all',
-              'border border-white/[0.10] bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]',
-            )}
-          >
-            {showStats ? (
-              <>
-                <ChevronUp className="h-3.5 w-3.5" />
-                Hide workspace stats
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                Show workspace stats
-              </>
-            )}
-          </button>
-        }
-      />
+      {/* Desktop header — unchanged, hidden on mobile. */}
+      <div className="hidden lg:block">
+        {firstName && (
+          <div className="px-1 mb-6">
+            <h2 className="text-2xl font-black text-foreground tracking-tight">
+              {greeting}, <span style={{
+                backgroundImage: 'linear-gradient(90deg, #2effc0 0%, #18d6a4 50%, #4aa8ff 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}>{firstName}</span>.
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Welcome back to <strong className="text-foreground">{workspaceName}</strong> · Tap a card below to manage your workspace.
+            </p>
+          </div>
+        )}
+        <AdminPageHeader
+          icon={LayoutDashboard}
+          titlePlain={workspaceName + ' ·'}
+          titleGradient="Workspace"
+          description="Everything you need to run your white-label investor workspace."
+          actions={
+            <button
+              onClick={() => setShowStats((v) => !v)}
+              className={cn(
+                'inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all',
+                'border border-white/[0.10] bg-white/[0.04] text-foreground/85 hover:bg-white/[0.07]',
+              )}
+            >
+              {showStats ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Hide workspace stats
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Show workspace stats
+                </>
+              )}
+            </button>
+          }
+        />
+      </div>
 
       {/* ── KPI TILES (collapsible) ─────────────────────────────────── */}
       {showStats && (
@@ -274,12 +304,12 @@ export default function AdminWorkspace() {
         </div>
       )}
 
-      {/* ── SHORTCUT CARDS ─────────────────────────────────────────── */}
+      {/* ── SHORTCUT CARDS — 2-up on mobile so all 8 fit in 4 screens of scroll, not 8. ── */}
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70 mb-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70 mb-3 px-1">
           Manage your workspace
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {SHORTCUTS.map((card) => (
             <ShortcutTile key={card.to} {...card} />
           ))}
@@ -377,7 +407,7 @@ function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCa
   return (
     <Link
       to={to}
-      className="group relative flex flex-col rounded-2xl p-5 sm:p-6 overflow-hidden transition-all duration-200 hover:-translate-y-1"
+      className="group relative flex flex-col rounded-2xl p-3.5 sm:p-5 lg:p-6 overflow-hidden transition-all duration-200 hover:-translate-y-1 min-h-[124px] sm:min-h-[160px]"
       style={{
         background:
           'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(15,18,40,0.85))',
@@ -391,9 +421,9 @@ function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCa
         style={{ background: `${accent}40` }}
       />
 
-      <div className="relative flex items-start gap-3 mb-4">
+      <div className="relative flex items-start gap-2 sm:gap-3 mb-2 sm:mb-4">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
           style={{
             background: `${accent}1F`,
             border: `1px solid ${accent}40`,
@@ -404,18 +434,18 @@ function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCa
           <Icon className="h-4 w-4" />
         </div>
         <h3
-          className="text-base font-black tracking-tight text-foreground pt-1.5"
+          className="text-[14px] sm:text-base font-black tracking-tight text-foreground pt-1 sm:pt-1.5 leading-tight"
           style={{ letterSpacing: '-0.015em' }}
         >
           {title}
         </h3>
       </div>
 
-      <p className="relative text-[12.5px] text-muted-foreground/85 leading-relaxed flex-1">
+      <p className="relative text-[11.5px] sm:text-[12.5px] text-muted-foreground/85 leading-snug sm:leading-relaxed flex-1 line-clamp-2 sm:line-clamp-none">
         {description}
       </p>
 
-      <div className="relative mt-4 flex items-center gap-1.5 text-[11px] font-bold text-foreground/60 group-hover:text-foreground transition-colors">
+      <div className="relative mt-2 sm:mt-4 flex items-center gap-1.5 text-[10.5px] sm:text-[11px] font-bold text-foreground/60 group-hover:text-foreground transition-colors">
         Open
         <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
       </div>

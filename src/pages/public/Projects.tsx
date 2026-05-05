@@ -117,45 +117,45 @@ export default function Projects() {
 
 
       {/* Header */}
-      <section className="text-center mb-8 sm:mb-10 px-2">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-foreground mb-3 sm:mb-4 tracking-tight">
-          New <span className="text-primary">Launches</span>
-        </h1>
-        <p className="text-sm sm:text-base md:text-lg text-foreground/60 max-w-2xl mx-auto mb-5 sm:mb-6 leading-relaxed">
-          Curated new launch properties from Dubai's most trusted developers — updated daily.
-        </p>
+      <section className="text-center sm:text-center mb-5 sm:mb-10 px-2">
+        {/* Hero — slim on mobile (left-aligned + compact), centered on desktop. */}
+        <div className="text-left sm:text-center">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-light text-foreground mb-1.5 sm:mb-4 tracking-tight leading-tight">
+            New <span className="text-primary font-semibold sm:font-light">Launches</span>
+          </h1>
+          <p className="text-[12.5px] sm:text-base md:text-lg text-foreground/60 max-w-2xl mx-auto mb-4 sm:mb-6 leading-relaxed">
+            Curated properties from Dubai's most trusted developers — updated daily.
+          </p>
+        </div>
 
         {isDemoMode && (
-          <div className="inline-flex flex-col sm:flex-row items-center justify-center gap-3 px-6 py-3 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-sm animate-in fade-in slide-in-from-top-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>Demo data ({fetchResult?.demoReason}). Live feed temporarily unavailable.</span>
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[12px] sm:text-sm animate-in fade-in slide-in-from-top-4 text-left sm:justify-center">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1 leading-tight">Demo data ({fetchResult?.demoReason}). Live feed unavailable.</span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-3 text-amber-500 hover:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20"
+              className="h-8 px-3 text-amber-500 hover:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 shrink-0"
               onClick={() => refetch()}
               disabled={isRefetching}
             >
-              {isRefetching ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-              Retry Live Feed
+              {isRefetching ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Retry'}
             </Button>
           </div>
         )}
       </section>
 
-      {/* Filters Top Bar */}
-      <div className="mb-8 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+      {/* Filters — search row + horizontal-scroll developer chips on mobile. */}
+      <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center sm:justify-between">
           {/* Search */}
           <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50" />
             <Input
               placeholder="Search projects, areas..."
               value={filters.search}
               onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-              className="pl-10 bg-white/5 border-glass-border focus-visible:ring-primary"
+              className="pl-10 h-12 sm:h-10 rounded-xl bg-white/5 border-glass-border focus-visible:ring-primary text-[14px]"
             />
           </div>
 
@@ -163,30 +163,30 @@ export default function Projects() {
           <AdvancedFilters filters={filters} onChange={setFilters} />
         </div>
 
-        {/* Developer Quick Chips */}
+        {/* Developer Quick Chips — horizontal scroll on mobile, no more 4-row wrap. */}
         {developers.length > 0 && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-foreground/50 w-full sm:w-auto mb-1 sm:mb-0">Developers:</span>
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap pb-1">
+            <span className="text-xs text-foreground/50 shrink-0 mr-1 hidden sm:inline">Developers:</span>
             <button
               onClick={() => setFilters(f => ({ ...f, developer: null }))}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs transition-all duration-200 border",
+                "h-9 px-4 rounded-[10px] text-[12.5px] font-semibold transition-all duration-200 border whitespace-nowrap shrink-0",
                 !filters.developer
-                  ? "bg-primary/20 text-primary border-primary"
-                  : "bg-transparent text-foreground/70 border-white/10 hover:border-white/20"
+                  ? "bg-primary/15 text-primary border-primary/50"
+                  : "bg-white/[0.04] text-foreground/70 border-white/[0.10] hover:border-white/[0.20]"
               )}
             >
-              All
+              All developers
             </button>
             {developers.map(dev => (
               <button
                 key={dev}
                 onClick={() => setFilters(f => ({ ...f, developer: dev }))}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-xs transition-all duration-200 border",
+                  "h-9 px-4 rounded-[10px] text-[12.5px] font-semibold transition-all duration-200 border whitespace-nowrap shrink-0",
                   filters.developer === dev
-                    ? "bg-primary/20 text-primary border-primary"
-                    : "bg-transparent text-foreground/70 border-white/10 hover:border-white/20"
+                    ? "bg-primary/15 text-primary border-primary/50"
+                    : "bg-white/[0.04] text-foreground/70 border-white/[0.10] hover:border-white/[0.20]"
                 )}
               >
                 {dev}
