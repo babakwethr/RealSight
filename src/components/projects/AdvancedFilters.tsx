@@ -38,59 +38,67 @@ export function AdvancedFilters({ filters, onChange }: AdvancedFiltersProps) {
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md bg-background/95 backdrop-blur-xl border-l border-glass-border p-0 flex flex-col pt-[env(safe-area-inset-top)]">
-        <SheetHeader className="p-6 border-b border-glass-border flex-none">
-          <SheetTitle className="text-xl font-light text-foreground text-left">Advanced Filters</SheetTitle>
+        <SheetHeader className="px-5 py-5 sm:p-6 border-b border-white/[0.06] flex-none">
+          <SheetTitle className="text-[20px] sm:text-xl font-black text-foreground text-left tracking-tight">
+            Advanced Filters
+          </SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-          
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:p-6 space-y-7 sm:space-y-8 custom-scrollbar">
+
           {/* Construction Status */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-foreground">Construction Status</h4>
+          <div className="space-y-3">
+            <h4 className="text-[13px] font-bold text-foreground tracking-tight">Construction Status</h4>
             <div className="flex flex-wrap gap-2">
-              {['Under Construction', 'Ready', 'Pre-Launch'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setLocalFilters(f => ({ ...f, constructionStatus: f.constructionStatus === status ? null : status }))}
-                  className={cn(
-                    "px-4 py-2 rounded-full text-xs font-medium border transition-all duration-200",
-                    localFilters.constructionStatus === status
-                      ? "bg-primary text-background border-primary"
-                      : "bg-transparent text-foreground/70 border-glass-border hover:border-primary/50"
-                  )}
-                >
-                  {status}
-                </button>
-              ))}
+              {['Under Construction', 'Ready', 'Pre-Launch'].map(status => {
+                const active = localFilters.constructionStatus === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setLocalFilters(f => ({ ...f, constructionStatus: f.constructionStatus === status ? null : status }))}
+                    className={cn(
+                      "h-9 px-3.5 rounded-[10px] text-[12px] font-semibold border transition-all duration-150 whitespace-nowrap",
+                      active
+                        ? "bg-primary/15 text-primary border-primary/50"
+                        : "bg-white/[0.04] text-foreground/75 border-transparent hover:bg-white/[0.07]"
+                    )}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Sale Status */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-foreground">Sale Status</h4>
+          <div className="space-y-3">
+            <h4 className="text-[13px] font-bold text-foreground tracking-tight">Sale Status</h4>
             <div className="flex flex-wrap gap-2">
-              {['Available', 'Sold Out', 'Coming Soon'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setLocalFilters(f => ({ ...f, saleStatus: f.saleStatus === status ? null : status }))}
-                  className={cn(
-                    "px-4 py-2 rounded-full text-xs font-medium border transition-all duration-200",
-                    localFilters.saleStatus === status
-                      ? "bg-primary text-background border-primary"
-                      : "bg-transparent text-foreground/70 border-glass-border hover:border-primary/50"
-                  )}
-                >
-                  {status}
-                </button>
-              ))}
+              {['Available', 'Sold Out', 'Coming Soon'].map(status => {
+                const active = localFilters.saleStatus === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setLocalFilters(f => ({ ...f, saleStatus: f.saleStatus === status ? null : status }))}
+                    className={cn(
+                      "h-9 px-3.5 rounded-[10px] text-[12px] font-semibold border transition-all duration-150 whitespace-nowrap",
+                      active
+                        ? "bg-primary/15 text-primary border-primary/50"
+                        : "bg-white/[0.04] text-foreground/75 border-transparent hover:bg-white/[0.07]"
+                    )}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Price Range */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-foreground">Maximum Price (AED)</h4>
-              <span className="text-xs text-primary">
+              <h4 className="text-[13px] font-bold text-foreground tracking-tight">Maximum Price (AED)</h4>
+              <span className="text-[12px] font-bold text-primary tabular-nums">
                 {localFilters.maxPrice ? `${(localFilters.maxPrice / 1000000).toFixed(1)}M+` : 'Any'}
               </span>
             </div>
@@ -99,52 +107,59 @@ export function AdvancedFilters({ filters, onChange }: AdvancedFiltersProps) {
               max={20000000}
               step={500000}
               onValueChange={(val) => setLocalFilters(f => ({ ...f, maxPrice: val[0] }))}
-              className="py-4"
+              className="py-3"
             />
-            <div className="flex justify-between text-xs text-foreground/50">
+            <div className="flex justify-between text-[11px] font-medium text-foreground/50 tabular-nums">
               <span>0</span>
               <span>20M+</span>
             </div>
           </div>
 
           {/* Payment Plan Presets */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-foreground">Payment Plan</h4>
+          <div className="space-y-3">
+            <h4 className="text-[13px] font-bold text-foreground tracking-tight">Payment Plan</h4>
             <div className="grid grid-cols-3 gap-2">
-              {['All', ...PAYMENT_PLAN_PRESETS].map(plan => (
-                <button
-                  key={plan}
-                  onClick={() => setLocalFilters(f => ({ ...f, paymentPlan: plan === 'All' ? null : plan }))}
-                  className={cn(
-                    "px-3 py-2 rounded-lg text-xs font-medium border transition-all duration-200 text-center",
-                    (localFilters.paymentPlan === plan || (plan === 'All' && !localFilters.paymentPlan))
-                      ? "bg-primary/10 text-primary border-primary/50"
-                      : "bg-transparent text-foreground/70 border-glass-border hover:border-primary/30"
-                  )}
-                >
-                  {plan}
-                </button>
-              ))}
+              {['All', ...PAYMENT_PLAN_PRESETS].map(plan => {
+                const active = localFilters.paymentPlan === plan || (plan === 'All' && !localFilters.paymentPlan);
+                return (
+                  <button
+                    key={plan}
+                    onClick={() => setLocalFilters(f => ({ ...f, paymentPlan: plan === 'All' ? null : plan }))}
+                    className={cn(
+                      "h-10 rounded-[10px] text-[12.5px] font-semibold border transition-all duration-150 text-center",
+                      active
+                        ? "bg-primary/15 text-primary border-primary/50"
+                        : "bg-white/[0.04] text-foreground/75 border-transparent hover:bg-white/[0.07]"
+                    )}
+                  >
+                    {plan}
+                  </button>
+                );
+              })}
             </div>
-            <p className="text-[10px] text-foreground/40 mt-1">
+            <p className="text-[11px] text-foreground/45 mt-1.5">
               Select preferred Pre-handover/Handover split
             </p>
           </div>
 
         </div>
 
-        <SheetFooter className="p-6 border-t border-glass-border bg-background/50 flex flex-row gap-3 sm:justify-between items-center safe-area-bottom pb-[max(env(safe-area-inset-bottom),1.5rem)]">
-          <Button 
-            variant="ghost" 
+        <SheetFooter className="px-5 py-4 sm:p-6 border-t border-white/[0.06] bg-background/50 flex flex-row gap-3 sm:justify-between items-center safe-area-bottom pb-[max(env(safe-area-inset-bottom),1rem)]">
+          <Button
+            variant="ghost"
             onClick={resetFilters}
-            className="flex-1 text-foreground/60 hover:text-foreground"
+            className="flex-1 h-12 sm:h-10 rounded-xl text-[13px] font-bold text-foreground/65 hover:text-foreground hover:bg-white/[0.04]"
           >
             Reset
           </Button>
           <SheetClose asChild>
-            <Button 
+            <Button
               onClick={applyFilters}
-              className="flex-1 bg-primary hover:bg-accent-green-dark text-black font-medium"
+              className="flex-1 h-12 sm:h-10 rounded-xl text-[13px] font-bold border-0 shadow-[0_8px_24px_-6px_rgba(24,214,164,0.55)]"
+              style={{
+                background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 50%, #0fa37c 100%)',
+                color: '#04130b',
+              }}
             >
               Apply Filters
             </Button>
