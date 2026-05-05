@@ -13,10 +13,14 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 
-// Spring used by every Liquid-Glass animation in the bar — matches the
-// 'fluid droplet' physics Apple ship in iOS 26: snappy but with a kiss
-// of overshoot so the lens visibly settles into place.
-const LIQUID_SPRING = { type: 'spring' as const, stiffness: 420, damping: 32, mass: 0.7 };
+// Spring used by every Liquid-Glass animation in the bar.
+// Lower stiffness + higher mass + lower damping = the viscous, syrupy
+// 'fluid magnifier' feel. The lens visibly drags as it slides between
+// tabs and settles with a subtle bounce — not a hard snap.
+const LIQUID_SPRING = { type: 'spring' as const, stiffness: 240, damping: 26, mass: 1.0 };
+// A snappier spring for the icon scale/press — keeps press feedback
+// instant even while the lens itself is in slow-flow motion.
+const PRESS_SPRING = { type: 'spring' as const, stiffness: 500, damping: 32 };
 
 interface MobileNavProps {
   onMenuClick: () => void;
@@ -94,11 +98,13 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
           high saturation, light fill. Wide semicircular scoop at the
           top-centre keeps room for the green FAB. */}
       <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto">
-        {/* Glass layer — pill with a centre scoop for the FAB. */}
+        {/* Glass layer — pill with a SOFT elliptical bay around the FAB.
+            No hard mask cut: a feathered radial gradient creates a gentle
+            valley that curves smoothly UP toward the FAB without touching
+            it (per Babak's feedback — no hard half-circle). */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            // Slightly darker fill so the brighter lens contrasts cleanly
             background: 'rgba(10, 14, 32, 0.55)',
             backdropFilter: 'blur(50px) saturate(2.4)',
             WebkitBackdropFilter: 'blur(50px) saturate(2.4)',
@@ -106,56 +112,20 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
             boxShadow:
               // Outer drop shadow — bar floats above content
               '0 22px 48px -16px rgba(0,0,0,0.65),' +
-              // Inner top specular highlight — bright glass edge
+              // Inner top specular highlight — soft glass edge
               'inset 0 1px 0 rgba(255,255,255,0.22),' +
               // Inner bottom shadow — refraction depth
               'inset 0 -1px 0 rgba(0,0,0,0.30)',
-            // Wider scoop — fits the FAB snugly like the reference
+            // Soft elliptical bay — wider and feathered so the curve
+            // 'wraps' around the FAB rather than scooping a hard arc.
+            // The transparent → black falloff over 78% → 100% gives the
+            // gentle smooth edge Babak asked for.
             WebkitMaskImage:
-              'radial-gradient(circle 40px at 50% 0, transparent 39px, #000 40px)',
+              'radial-gradient(ellipse 60px 28px at 50% 0, transparent 0%, transparent 78%, #000 100%)',
             maskImage:
-              'radial-gradient(circle 40px at 50% 0, transparent 39px, #000 40px)',
+              'radial-gradient(ellipse 60px 28px at 50% 0, transparent 0%, transparent 78%, #000 100%)',
           }}
         />
-
-        {/* Top hairlines — two straight halves that stop before the notch */}
-        <div
-          aria-hidden="true"
-          className="absolute top-0 h-px pointer-events-none"
-          style={{
-            left: '36px',
-            right: 'calc(50% + 40px)',
-            background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.42) 100%)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute top-0 h-px pointer-events-none"
-          style={{
-            left: 'calc(50% + 40px)',
-            right: '36px',
-            background:
-              'linear-gradient(90deg, rgba(255,255,255,0.42) 0%, transparent 100%)',
-          }}
-        />
-
-        {/* Curved hairline tracing the inside of the notch */}
-        <svg
-          aria-hidden="true"
-          className="absolute pointer-events-none"
-          width="82"
-          height="42"
-          viewBox="0 0 82 42"
-          style={{ left: 'calc(50% - 41px)', top: 0 }}
-        >
-          <path
-            d="M 1 0 A 40 40 0 0 0 81 0"
-            fill="none"
-            stroke="rgba(255,255,255,0.42)"
-            strokeWidth="1"
-          />
-        </svg>
 
         {/* Tab row — wrapped in LayoutGroup so the active "Liquid Lens"
             animates smoothly between tabs (shared layoutId). */}
@@ -226,6 +196,12 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
  * the parent — Framer Motion smoothly animates the same disc from one
  * tab to the next when the user navigates.
  */
+/**
+ * The Liquid Lens — a magnifier disc that slides between tabs.
+ * v4: lower-frequency motion (viscous spring) + stronger backdrop
+ * refraction + a soft white wash that follows the disc, reading as
+ * the magnifier moving over the bar.
+ */
 function LiquidLens() {
   return (
     <motion.span
@@ -234,23 +210,27 @@ function LiquidLens() {
       transition={LIQUID_SPRING}
       className="absolute inset-0 rounded-full pointer-events-none"
       style={{
-        // Brighter than the bar — acts as a magnifying lens
-        background: 'rgba(255, 255, 255, 0.18)',
-        backdropFilter: 'blur(20px) saturate(2.4) brightness(1.05)',
-        WebkitBackdropFilter: 'blur(20px) saturate(2.4) brightness(1.05)',
-        // Clean white rim — gives the disc a defined edge
-        border: '0.5px solid rgba(255, 255, 255, 0.40)',
+        // Lighter than the bar — magnifier brightens what's beneath
+        background: 'rgba(255, 255, 255, 0.16)',
+        // Heavier blur + brightness lift = visible magnification
+        backdropFilter: 'blur(24px) saturate(2.6) brightness(1.10)',
+        WebkitBackdropFilter: 'blur(24px) saturate(2.6) brightness(1.10)',
+        // Clean defined rim
+        border: '0.5px solid rgba(255, 255, 255, 0.42)',
         boxShadow:
-          // Top-rim chromatic kiss (red — subtle, just a thin line)
-          'inset 0 0.5px 0 rgba(255, 130, 150, 0.55),' +
-          // Top specular — bright glass highlight catching ambient light
-          'inset 0 2px 0.5px -1.5px rgba(255, 255, 255, 0.85),' +
-          // Bottom-rim chromatic kiss (blue/violet — subtle)
-          'inset 0 -0.5px 0 rgba(120, 150, 255, 0.55),' +
-          // Bottom shadow — gives depth, like the disc is slightly raised
-          'inset 0 -2px 1px -1.5px rgba(0, 0, 0, 0.30),' +
-          // Soft drop shadow under the disc
-          '0 4px 12px -3px rgba(0, 0, 0, 0.45)',
+          // Subtle warm chromatic on top rim (refraction at glass edge)
+          'inset 0 0.5px 0 rgba(255, 140, 160, 0.50),' +
+          // Bright top specular — light catching the rim
+          'inset 0 2px 0.5px -1.5px rgba(255, 255, 255, 0.90),' +
+          // Subtle cool chromatic on bottom rim
+          'inset 0 -0.5px 0 rgba(130, 160, 255, 0.50),' +
+          // Soft inner bottom shadow — depth
+          'inset 0 -2px 1px -1.5px rgba(0, 0, 0, 0.32),' +
+          // Soft outer white wash — the 'magnifier moving over the bar'
+          // halo that makes the disc feel physically present as it slides
+          '0 0 18px -2px rgba(255, 255, 255, 0.32),' +
+          // Soft drop shadow grounds the disc above the bar
+          '0 5px 14px -4px rgba(0, 0, 0, 0.45)',
       }}
     />
   );
@@ -273,8 +253,8 @@ function TabLink({
       className="flex flex-col items-center justify-center gap-1 px-2 group min-h-[48px] flex-1 relative"
     >
       <motion.span
-        whileTap={{ scale: 0.88 }}
-        transition={LIQUID_SPRING}
+        whileTap={{ scale: 0.90 }}
+        transition={PRESS_SPRING}
         className={cn(
           'relative inline-flex items-center justify-center w-11 h-11 transition-colors',
           active ? 'text-white' : 'text-white/55 group-hover:text-white/85'
@@ -282,17 +262,17 @@ function TabLink({
       >
         {active && <LiquidLens />}
         <motion.span
-          // Subtle bounce on the icon itself when this tab becomes active.
-          animate={active ? { scale: 1.08 } : { scale: 1 }}
-          transition={LIQUID_SPRING}
+          // Subtle pop on the icon itself when this tab becomes active.
+          animate={active ? { scale: 1.06 } : { scale: 1 }}
+          transition={PRESS_SPRING}
           className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
         >
           {icon}
         </motion.span>
       </motion.span>
       <motion.span
-        animate={active ? { opacity: 1, y: 0 } : { opacity: 0.6, y: 0 }}
-        transition={LIQUID_SPRING}
+        animate={active ? { opacity: 1 } : { opacity: 0.65 }}
+        transition={PRESS_SPRING}
         className={cn(
           'text-[10px] font-semibold tracking-wide leading-none',
           active ? 'text-white' : 'text-white/55'
@@ -319,8 +299,8 @@ function TabButton({
       className="flex flex-col items-center justify-center gap-1 px-2 group min-h-[48px] flex-1"
     >
       <motion.span
-        whileTap={{ scale: 0.88 }}
-        transition={LIQUID_SPRING}
+        whileTap={{ scale: 0.90 }}
+        transition={PRESS_SPRING}
         className="relative inline-flex items-center justify-center w-11 h-11 transition-colors text-white/55 group-hover:text-white/85"
       >
         <span className="relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">{icon}</span>
