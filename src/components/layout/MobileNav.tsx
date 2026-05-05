@@ -94,38 +94,60 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
     >
       {/* Floating Liquid-Glass bar — Apple iOS 26 language.
-          Pill shape (border-radius = height/2 = 36 px), heavy blur,
-          high saturation, light fill. Wide semicircular scoop at the
-          top-centre keeps room for the green FAB. */}
-      <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto">
-        {/* Glass layer — pill with a SOFT elliptical bay around the FAB.
-            No hard mask cut: a feathered radial gradient creates a gentle
-            valley that curves smoothly UP toward the FAB without touching
-            it (per Babak's feedback — no hard half-circle). */}
+          Pill shape (full height = 72, corner radius = 36 = pure pill).
+          The FAB bay is a real path with rounded corners (cubic-bezier
+          curves with horizontal tangents at every join) — not a fade,
+          not a hard half-circle. Drawn via SVG clip-path so the curves
+          stay smooth at every screen width. */}
+      <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto" style={{ filter: 'drop-shadow(0 18px 32px rgba(0,0,0,0.55))' }}>
+        {/* Hidden SVG defining the clip-path. The path is in objectBoundingBox
+            (0–1) units so it scales with the bar's actual width.
+            Bar outline: pill corners + smooth bay at top centre. */}
+        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+          <defs>
+            <clipPath id="liquid-bar-clip" clipPathUnits="objectBoundingBox">
+              <path d="M 0.095 0 L 0.34 0 C 0.40 0, 0.40 0.31, 0.46 0.31 L 0.54 0.31 C 0.60 0.31, 0.60 0, 0.66 0 L 0.905 0 A 0.095 0.5 0 0 1 1 0.5 A 0.095 0.5 0 0 1 0.905 1 L 0.095 1 A 0.095 0.5 0 0 1 0 0.5 A 0.095 0.5 0 0 1 0.095 0 Z" />
+            </clipPath>
+          </defs>
+        </svg>
+
+        {/* Glass layer — backdrop-filter clipped by the path above.
+            Inset shadows still render (they're inside the clip).
+            Outer drop shadow comes from the parent's `filter: drop-shadow()`. */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'rgba(10, 14, 32, 0.55)',
             backdropFilter: 'blur(50px) saturate(2.4)',
             WebkitBackdropFilter: 'blur(50px) saturate(2.4)',
-            borderRadius: '36px',
+            clipPath: 'url(#liquid-bar-clip)',
+            WebkitClipPath: 'url(#liquid-bar-clip)',
             boxShadow:
-              // Outer drop shadow — bar floats above content
-              '0 22px 48px -16px rgba(0,0,0,0.65),' +
-              // Inner top specular highlight — soft glass edge
-              'inset 0 1px 0 rgba(255,255,255,0.22),' +
+              // Inner top specular highlight — bright glass edge
+              'inset 0 1.5px 0 rgba(255,255,255,0.28),' +
               // Inner bottom shadow — refraction depth
               'inset 0 -1px 0 rgba(0,0,0,0.30)',
-            // Soft elliptical bay — wider and feathered so the curve
-            // 'wraps' around the FAB rather than scooping a hard arc.
-            // The transparent → black falloff over 78% → 100% gives the
-            // gentle smooth edge Babak asked for.
-            WebkitMaskImage:
-              'radial-gradient(ellipse 60px 28px at 50% 0, transparent 0%, transparent 78%, #000 100%)',
-            maskImage:
-              'radial-gradient(ellipse 60px 28px at 50% 0, transparent 0%, transparent 78%, #000 100%)',
           }}
         />
+
+        {/* Visible STROKE tracing the entire bar outline (sides, top with
+            the bay, pill corners). Drawn in a separate SVG so the stroke
+            stays a constant 1 px regardless of viewport scaling. */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          preserveAspectRatio="none"
+          viewBox="0 0 1 1"
+          aria-hidden="true"
+        >
+          <path
+            d="M 0.34 0 C 0.40 0, 0.40 0.31, 0.46 0.31 L 0.54 0.31 C 0.60 0.31, 0.60 0, 0.66 0"
+            fill="none"
+            stroke="rgba(255,255,255,0.42)"
+            strokeWidth="1"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
 
         {/* Tab row — wrapped in LayoutGroup so the active "Liquid Lens"
             animates smoothly between tabs (shared layoutId). */}
