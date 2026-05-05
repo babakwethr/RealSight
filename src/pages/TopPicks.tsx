@@ -225,11 +225,23 @@ function TopPicksContent() {
             })()}
           </div>
 
-          {/* Price overlay */}
+          {/* Price overlay — stacked AED/USD per the Mobile Redesign Pack mockup.
+              AED prominent, USD muted below (only when currency is AED so we
+              don't fabricate USD-from-USD conversions). */}
           <div className="absolute bottom-3 left-3">
-            <span className="text-base font-black text-white" style={{ fontFamily: 'Berkeley Mono, monospace', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+            <span className="block text-base font-black text-white leading-none" style={{ fontFamily: 'Berkeley Mono, monospace', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
               {formatPrice(price, currency)}
             </span>
+            {price && (currency || 'AED') === 'AED' && (
+              <span className="block text-[11px] font-bold text-white/65 mt-0.5" style={{ fontFamily: 'Berkeley Mono, monospace', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+                USD {(() => {
+                  const usd = price / 3.6725;
+                  if (usd >= 1000000) return `${(usd / 1000000).toFixed(1)}M`;
+                  if (usd >= 1000) return `${(usd / 1000).toFixed(0)}K`;
+                  return Math.round(usd).toLocaleString();
+                })()}
+              </span>
+            )}
           </div>
         </div>
 

@@ -179,13 +179,15 @@ function DubaiHeatmapContent() {
   return (
     <div className="space-y-5 animate-fade-in">
       <BackButton />
+      {/* Slim mobile hero — icon stays inline only on sm+ so the H1 lands cleanly
+          at thumb-scale. Same content, just less chrome on phones. */}
       <div>
-        <h1 className="text-2xl font-black text-foreground flex items-center gap-2" style={{ letterSpacing: '-0.02em' }}>
-          <Map className="h-6 w-6 text-primary" />
+        <h1 className="text-[26px] sm:text-2xl font-black text-foreground tracking-tight leading-[1.1] flex items-center gap-2">
+          <Map className="hidden sm:inline h-6 w-6 text-primary" />
           Dubai <span className="gradient-word">Heatmap</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Interactive market visualisation · 5 data layers · Real DLD transaction data
+        <p className="text-[12.5px] sm:text-sm text-muted-foreground mt-1.5 sm:mt-1 leading-snug">
+          Interactive market visualisation · 5 data layers · Real DLD data
         </p>
       </div>
 
