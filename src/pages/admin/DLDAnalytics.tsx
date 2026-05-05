@@ -149,7 +149,13 @@ export default function AdminDLDAnalytics() {
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg">{area.name}</CardTitle>
-                                        <Badge variant={area.demand_score > 85 ? 'default' : 'secondary'} className={area.demand_score > 85 ? 'bg-red-500/10 text-red-500 border-red-500/20' : ''}>
+                                        <Badge
+                                          variant={area.demand_score > 85 ? 'default' : 'secondary'}
+                                          className={cn(
+                                            'whitespace-nowrap shrink-0 text-[11px] font-bold px-2.5 py-1',
+                                            area.demand_score > 85 && 'bg-red-500/10 text-red-500 border-red-500/20'
+                                          )}
+                                        >
                                             {area.demand_score} Demand
                                         </Badge>
                                     </div>
@@ -224,13 +230,65 @@ export default function AdminDLDAnalytics() {
                     </Card>
                 </div>
 
-                {/* Live Transactions Log */}
+                {/* Live Transactions Log — mobile card list / desktop table */}
                 <div className="lg:col-span-2 space-y-4">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <Building2 className="h-5 w-5 text-emerald-500" />
                         Raw Transaction Ledger
                     </h2>
-                    <div className="glass-panel accent-blue rounded-xl overflow-hidden">
+
+                    {/* Mobile: card list — no horizontal scroll */}
+                    <div className="lg:hidden space-y-2">
+                        {transactions.map(txn => (
+                            <div
+                                key={txn.id}
+                                className="glass-panel accent-blue rounded-xl p-4 space-y-3"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[14px] font-bold text-foreground truncate leading-tight">
+                                            {txn.project_name || '—'}
+                                        </p>
+                                        <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                                            <MapPin className="h-3 w-3 inline mr-1 -mt-0.5" />
+                                            {txn.dld_areas?.name || '—'}
+                                        </p>
+                                    </div>
+                                    <Badge variant="outline" className="text-[10px] font-bold px-2 h-5 shrink-0 whitespace-nowrap">
+                                        {txn.property_type}
+                                    </Badge>
+                                </div>
+                                <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-white/[0.06]">
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-bold">Price</p>
+                                        <p className="text-[16px] font-black text-foreground font-mono leading-tight whitespace-nowrap">
+                                            {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', maximumFractionDigits: 0, notation: 'compact' }).format(txn.price)}
+                                        </p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-bold">AED/sqft</p>
+                                        <p className="text-[14px] font-bold text-foreground font-mono">{txn.price_per_sqft}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                                    <span className="truncate">{txn.status} · {txn.transaction_type}</span>
+                                    <span className="font-mono shrink-0">{txn.transaction_number}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 text-[11px]">
+                                    <span className="text-muted-foreground/80">{txn.buyer_nationality || 'Undisclosed buyer'}</span>
+                                    <span className="text-muted-foreground/60 font-mono">{format(new Date(txn.transaction_date), 'MMM d, yy')}</span>
+                                </div>
+                            </div>
+                        ))}
+                        {transactions.length === 0 && !loading && (
+                            <div className="glass-panel rounded-xl p-8 text-center text-muted-foreground text-sm">
+                                No transactions found for this area.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Desktop: original table — unchanged */}
+                    <div className="hidden lg:block glass-panel accent-blue rounded-xl overflow-hidden">
                         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                             <table className="w-full text-sm">
                                 <thead className="sticky top-0 bg-background/95 backdrop-blur z-10">

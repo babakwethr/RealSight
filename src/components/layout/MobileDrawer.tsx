@@ -23,7 +23,7 @@ interface MobileDrawerProps {
 //   • Deferred-from-launch items (Global Radar, Top Picks user view,
 //     Opportunity Signals as a standalone page) are not in the rail.
 
-// Adviser / Admin sections — Markets + Admin
+// Adviser / Admin sections — Workspace + Studio + Markets + Admin
 const ADVISER_SECTIONS = [
   {
     label: 'Workspace',
@@ -34,13 +34,17 @@ const ADVISER_SECTIONS = [
     ],
   },
   {
+    label: 'Adviser Studio',
+    items: [
+      { to: '/studio',              icon: Sparkles,         label: 'Studio' },
+    ],
+  },
+  {
     label: 'Markets',
     items: [
       { to: '/market-intelligence', icon: BarChart3,        label: 'Markets' },
       { to: '/heatmap',             icon: Map,              label: 'Dubai Heatmap' },
       { to: '/watchlist',           icon: Bookmark,         label: 'Watchlist' },
-      // Compare is investor-only (it diffs holdings in the investor's
-      // portfolio). Advisers compare a CLIENT's holdings inside admin.
     ],
   },
   {
@@ -125,11 +129,11 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         <div
           className="relative flex items-center justify-between px-5 border-b border-white/[0.08]"
           style={{
-            height: 'calc(57px + env(safe-area-inset-top, 0))',
+            height: 'calc(64px + env(safe-area-inset-top, 0))',
             paddingTop: 'env(safe-area-inset-top, 0)',
           }}
         >
-          <Logo variant="white" className="h-5 w-auto max-w-[120px]" />
+          <Logo variant="white" className="h-7 w-auto max-w-[150px]" />
           <button
             onClick={onClose}
             aria-label="Close menu"

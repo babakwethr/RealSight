@@ -177,7 +177,7 @@ function DubaiHeatmapContent() {
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in -mt-2 sm:mt-0">
       <BackButton />
       {/* Slim mobile hero — icon stays inline only on sm+ so the H1 lands cleanly
           at thumb-scale. Same content, just less chrome on phones. */}

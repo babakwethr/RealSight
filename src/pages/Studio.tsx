@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Bell, CheckCircle2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bell, CheckCircle2, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -85,28 +85,43 @@ export default function Studio() {
 
   return (
     <div className="animate-fade-in">
-      {/* ── Hero header — V3 mint accent + Inter type ── */}
-      <div className="relative mb-7 lg:mb-9">
-        <div className="flex items-center gap-3 mb-1.5">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-            style={{
-              background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
-              boxShadow: '0 8px 24px rgba(24,214,164,0.35), inset 0 1px 0 rgba(255,255,255,0.45)',
-            }}
-          >
-            <Sparkles className="h-4 w-4 text-white" />
+      {/* Back to Home — visible on every screen, sits above the hero so the
+          adviser always has a one-tap way out of the Studio surface. */}
+      <Link
+        to="/dashboard"
+        className="inline-flex items-center gap-1.5 h-9 -mx-1.5 px-1.5 mb-3 lg:mb-4 text-[12.5px] text-muted-foreground hover:text-foreground transition-colors group"
+      >
+        <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" aria-hidden="true" />
+        <span className="font-medium">Back</span>
+      </Link>
+
+      {/* ── Hero header — V3 mint accent + Inter type. Mobile gets breathing
+              room: orb on its own row, label + status pill stack below the
+              title so they don't compete for the top edge. ── */}
+      <div className="relative mb-6 lg:mb-9">
+        {/* Orb + status pill — mobile: row with the pill aligned right,
+            desktop: same flex inline with the eyebrow label. */}
+        <div className="flex items-center justify-between gap-3 mb-3 lg:mb-1.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: 'radial-gradient(circle at 30% 20%, #2effc0 0%, #18d6a4 45%, #059669 100%)',
+                boxShadow: '0 8px 24px rgba(24,214,164,0.35), inset 0 1px 0 rgba(255,255,255,0.45)',
+              }}
+            >
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] text-[#2effc0]/90 truncate">
+              Adviser Studio
+            </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.22em] text-[#2effc0]/90">
-            Adviser Studio
-          </p>
-          <div className="flex-1" />
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/[0.08] px-2.5 py-1 text-[10.5px]">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/[0.08] px-2.5 py-1 text-[10.5px] shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2effc0] animate-pulse" />
-            <span className="font-semibold text-white/75">{counts.live} live · {counts.coming} coming</span>
+            <span className="font-semibold text-white/75 whitespace-nowrap">{counts.live} live · {counts.coming} coming</span>
           </span>
         </div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-[1.05]">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-[1.1]">
           Tools that{' '}
           <span
             className="bg-clip-text text-transparent"
