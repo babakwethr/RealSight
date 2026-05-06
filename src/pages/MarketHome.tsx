@@ -588,11 +588,19 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               </div>
             )}
 
-            {/* HERO MOCKUP — Lane C composite (Reelly-AI style).
-                Public landing only. Phone shows the real RealSight UI surrounded
-                by floating brand discs (Bayut / Property Finder / Dubizzle real
-                logos + colour-disc placeholders for Emaar / Damac / Sobha until
-                we license the proper artwork). See the imagery rollout plan. */}
+            {/* HERO MOCKUP — Reelly-AI-style composite (phone + floating brand
+                discs). Visible on every screen size. Smaller phone on mobile,
+                bigger on desktop, so the discs don't crowd the phone. */}
+            {isPublic && (
+              <div className="block sm:hidden mb-8">
+                <HeroMockup
+                  screenshotSrc="/dashboard-preview.png"
+                  screenshotAlt="RealSight on iPhone — Markets overview"
+                  phoneWidth={200}
+                  priority
+                />
+              </div>
+            )}
             {isPublic && (
               <div className="hidden sm:block mb-10">
                 <HeroMockup
