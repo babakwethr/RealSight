@@ -132,12 +132,13 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   const x = useMotionValue(0);
   const opacity = useMotionValue(0);
   const velocity = useVelocity(x);
-  // Velocity-driven horizontal stretch: ±2200 px/s maps to scaleX 1.34;
-  // 0 px/s (rest) maps to scaleX 1. Symmetric for left + right travel.
-  const stretchTarget = useTransform(velocity, [-2200, 0, 2200], [1.34, 1, 1.34]);
+  // Velocity-driven horizontal stretch — v8.1, more dramatic so the
+  // liquid behaviour is visible even on slower taps. ±1300 px/s maps to
+  // scaleX 1.6; 0 px/s (rest) maps to scaleX 1. Symmetric L/R.
+  const stretchTarget = useTransform(velocity, [-1300, 0, 1300], [1.6, 1, 1.6]);
   // Smooth the stretch so it lags slightly behind raw velocity — gives
   // the lens 'inertia' that reads as liquid rather than a rigid scale-pop.
-  const scaleX = useSpring(stretchTarget, { stiffness: 220, damping: 20, mass: 0.6 });
+  const scaleX = useSpring(stretchTarget, { stiffness: 180, damping: 18, mass: 0.7 });
 
   // Reposition the lens whenever the active route or container size changes.
   useLayoutEffect(() => {
