@@ -177,6 +177,111 @@
       mix-blend-mode: overlay;
     }
 
+    /* Hand-composed mini Investors page — sits inside the phone */
+    .phone-screen {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #050717 0%, #0a0e25 100%);
+      padding: 14px 8px 8px;
+      font-size: 6px;
+      color: #fff;
+      overflow: hidden;
+    }
+    .ps-bar {
+      width: 28px;
+      height: 3px;
+      background: rgba(255,255,255,0.35);
+      border-radius: 999px;
+      margin: 0 auto 6px;
+    }
+    .ps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 4px 4px 6px;
+    }
+    .ps-title { font-weight: 900; font-size: 8px; letter-spacing: -0.02em; }
+    .ps-add {
+      width: 12px; height: 12px;
+      background: #18D6A4;
+      color: #000;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ps-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin: 0 4px 6px;
+    }
+    .ps-stat {
+      background: rgba(255,255,255,0.04);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .ps-num { font-weight: 900; font-size: 9px; letter-spacing: -0.04em; }
+    .ps-lbl { font-size: 5px; color: rgba(255,255,255,0.55); margin-top: 1px; }
+    .ps-tabs {
+      display: flex;
+      gap: 4px;
+      margin: 0 4px 6px;
+      padding: 2px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+    }
+    .ps-tab {
+      flex: 1;
+      text-align: center;
+      font-size: 5.5px;
+      font-weight: 700;
+      padding: 2px;
+      border-radius: 3px;
+      color: rgba(255,255,255,0.55);
+    }
+    .ps-tab.active { background: #fff; color: #000; }
+    .ps-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.04);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 3px 4px;
+      margin: 0 4px 3px;
+    }
+    .ps-av {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6px;
+      font-weight: 900;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .ps-rb { flex: 1; min-width: 0; }
+    .ps-name { font-size: 6.5px; font-weight: 700; }
+    .ps-meta { font-size: 5px; color: rgba(255,255,255,0.55); margin-top: 1px; }
+    .ps-pill {
+      font-size: 5px;
+      font-weight: 800;
+      padding: 1.5px 4px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .ps-pill.ok { background: rgba(46,255,192,0.15); color: #2effc0; border: 0.5px solid rgba(46,255,192,0.3); }
+    .ps-pill.new { background: rgba(74,168,255,0.15); color: #7aa6ff; border: 0.5px solid rgba(74,168,255,0.3); }
+
     /* ───────── Sample B — abstract data band on the right ───────── */
     .band {
       flex-shrink: 0;
@@ -233,13 +338,45 @@
           </div>
           <div class="phone-wrap">
             <div class="phone" aria-hidden="true">
-              <img src="/dashboard-preview.png" alt="" />
+              <!-- Live-render mock of the real Investors admin page,
+                   composed in HTML/CSS at phone-scale. No screenshot,
+                   no AI generation — the same components could re-render
+                   live in production via a small <InvestorsPagePreview/>
+                   React component. -->
+              <div class="phone-screen">
+                <div class="ps-bar"></div>
+                <div class="ps-header">
+                  <div class="ps-title">Investors</div>
+                  <div class="ps-add">+</div>
+                </div>
+                <div class="ps-stats">
+                  <div class="ps-stat"><span class="ps-num">12</span><span class="ps-lbl">Total</span></div>
+                  <div class="ps-stat"><span class="ps-num">3</span><span class="ps-lbl">Active</span></div>
+                  <div class="ps-stat"><span class="ps-num">1</span><span class="ps-lbl">New</span></div>
+                </div>
+                <div class="ps-tabs"><span class="ps-tab active">Investors</span><span class="ps-tab">Requests</span></div>
+                <div class="ps-row">
+                  <div class="ps-av" style="background: #7B5CFF">A</div>
+                  <div class="ps-rb"><div class="ps-name">Ahmed K.</div><div class="ps-meta">3 props · 8.7M</div></div>
+                  <div class="ps-pill ok">Active</div>
+                </div>
+                <div class="ps-row">
+                  <div class="ps-av" style="background: #18D6A4">S</div>
+                  <div class="ps-rb"><div class="ps-name">Sarah M.</div><div class="ps-meta">5 props · 14.2M</div></div>
+                  <div class="ps-pill ok">Active</div>
+                </div>
+                <div class="ps-row">
+                  <div class="ps-av" style="background: #4AA8FF">R</div>
+                  <div class="ps-rb"><div class="ps-name">Raj P.</div><div class="ps-meta">2 props · 4.1M</div></div>
+                  <div class="ps-pill new">New</div>
+                </div>
+              </div>
               <div class="sheen"></div>
             </div>
           </div>
         </div>
-        <div class="note">
-          ⚠ Stand-in: the phone shows <code>dashboard-preview.png</code>. In production it would be a real iPhone-class capture of the Investors page (swapped per shortcut).
+        <div class="note" style="color: rgba(46,255,192,0.85); background: rgba(46,255,192,0.06); border-color: rgba(46,255,192,0.18);">
+          ✓ The phone shows a live-rendered mini-version of the real Investors admin page (header, stats, list rows). In production this is a small React preview component, not a screenshot — so it always stays in sync with the actual page.
         </div>
       </div>
 
