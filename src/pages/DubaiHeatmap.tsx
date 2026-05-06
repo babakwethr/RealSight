@@ -8,6 +8,7 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FeatureGate } from '@/components/FeatureGate';
 import { UpsellBanner } from '@/components/UpsellBanner';
+import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 
 type HeatMode = 'growth' | 'liquidity' | 'yield' | 'demand' | 'price';
 
@@ -276,6 +277,18 @@ function DubaiHeatmapContent() {
                     }}>
                     <Tooltip direction="top" offset={[0, -10]} className="heatmap-tooltip">
                       <div className="text-left">
+                        {(() => {
+                          const photo = getAreaPhotoUrl(area.name);
+                          return photo ? (
+                            <img
+                              src={photo}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="w-32 h-16 rounded-md object-cover mb-1.5"
+                            />
+                          ) : null;
+                        })()}
                         {tooltipText.split('\n').map((line, i) => (
                           <div key={i} className={i === 0 ? 'font-semibold' : 'text-xs opacity-80'}>{line}</div>
                         ))}
