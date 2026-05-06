@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FeatureGate } from '@/components/FeatureGate';
 import { UpsellBanner } from '@/components/UpsellBanner';
+import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 
 type WatchlistType = 'projects' | 'areas' | 'signals';
 
@@ -255,18 +256,34 @@ function WatchlistContent() {
                 )
               ) : (
                 <div className="space-y-2">
-                  {filteredItems.map(item => (
+                  {filteredItems.map(item => {
+                    // Swap the gradient thumb for a real district photo when
+                    // the item is an area we have a shot of. Falls back to
+                    // the gradient + icon for projects, signals, and areas
+                    // without imagery.
+                    const photo = item.type === 'areas' ? getAreaPhotoUrl(item.name) : null;
+                    return (
                     <div
                       key={item.id}
                       className="group rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.14] transition-all p-3 sm:p-3.5 flex items-center gap-3 sm:gap-3.5"
                     >
-                      {/* Gradient thumb — matches the mockup's list-row pattern */}
-                      <div
-                        className="w-14 h-14 sm:w-12 sm:h-12 rounded-xl shrink-0 flex items-center justify-center border"
-                        style={{ background: thumb.bg, borderColor: thumb.ring }}
-                      >
-                        <TypeIcon className="h-5 w-5" style={{ color: thumb.icon }} />
-                      </div>
+                      {/* Photo thumb if we have one, else gradient + type icon */}
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="w-14 h-14 sm:w-12 sm:h-12 rounded-xl shrink-0 object-cover ring-1 ring-white/10"
+                        />
+                      ) : (
+                        <div
+                          className="w-14 h-14 sm:w-12 sm:h-12 rounded-xl shrink-0 flex items-center justify-center border"
+                          style={{ background: thumb.bg, borderColor: thumb.ring }}
+                        >
+                          <TypeIcon className="h-5 w-5" style={{ color: thumb.icon }} />
+                        </div>
+                      )}
                       {/* Body */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-foreground text-[14px] leading-tight truncate">{item.name}</h3>
@@ -288,7 +305,8 @@ function WatchlistContent() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
