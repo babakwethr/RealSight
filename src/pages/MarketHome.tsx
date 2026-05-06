@@ -525,45 +525,46 @@ function FeatureToolCard({
 
       {/* Text overlay — placement depends on format. */}
       {format === 'horizontal' ? (
-        // LEFT side, vertically centred. ~60% width so the right of the card
-        // stays clear for the picture. Text wraps inside the dark zone.
-        <div className="absolute inset-y-0 left-0 z-10 p-4 lg:p-5 flex flex-col justify-center w-[62%] sm:w-3/5">
+        // LEFT side, vertically centred. Padding bumped + larger type so the
+        // text actually fills the dark zone instead of floating in the middle.
+        <div className="absolute inset-y-0 left-0 z-10 p-5 lg:p-6 flex flex-col justify-center w-[62%] sm:w-3/5">
           <p
-            className="text-[9.5px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+            className="text-[11px] lg:text-[12.5px] font-black uppercase tracking-[0.18em] mb-2.5"
             style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
           >
             {card.metric} · {card.metricSub}
           </p>
           <h3
-            className="text-[15px] lg:text-lg font-black text-white leading-tight mb-1.5"
-            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+            className="text-[20px] sm:text-[22px] lg:text-[26px] font-black text-white leading-[1.1] mb-2.5 tracking-tight"
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.7)' }}
           >
             {card.title}
           </h3>
           <p
-            className="text-[11px] lg:text-[12.5px] text-white/80 leading-snug line-clamp-3"
+            className="text-[13px] lg:text-[14.5px] text-white/85 leading-relaxed line-clamp-3"
             style={{ textShadow: '0 1px 4px rgba(0,0,0,0.55)' }}
           >
             {card.desc}
           </p>
         </div>
       ) : (
-        // BOTTOM, full width. Vertical card has the picture on top, text below.
-        <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
+        // BOTTOM, full width. Vertical cards bumped up slightly too so the
+        // title doesn't read as small.
+        <div className="absolute bottom-0 left-0 right-0 z-10 p-4 lg:p-5">
           <p
-            className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+            className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.18em] mb-2"
             style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
           >
             {card.metric} · {card.metricSub}
           </p>
           <h3
-            className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
-            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}
+            className="text-[16px] lg:text-[19px] font-black text-white leading-[1.15] mb-1.5 tracking-tight"
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
           >
             {card.title}
           </h3>
           <p
-            className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
+            className="text-[12px] lg:text-[13px] text-white/80 leading-relaxed line-clamp-2"
             style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
           >
             {card.desc}
