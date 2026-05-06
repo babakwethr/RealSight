@@ -43,6 +43,8 @@ interface ShortcutCard {
   title: string;
   description: string;
   accent: string;
+  /** Slug under /images/admin/{slug}.webp — Lane B mint-accent illustration. */
+  illustration: string;
 }
 
 const SHORTCUTS: ShortcutCard[] = [
@@ -52,6 +54,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Investors',
     description: 'Onboard, manage and switch between every client in your workspace.',
     accent: '#7B5CFF',
+    illustration: 'investors',
   },
   {
     to: '/admin/users',
@@ -59,6 +62,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'User Roles',
     description: 'Add team members and control who has admin or read-only access.',
     accent: '#4AA8FF',
+    illustration: 'user-roles',
   },
   {
     to: '/admin/monthly-picks',
@@ -66,6 +70,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Top Picks',
     description: 'Curate monthly investment recommendations to push to all clients.',
     accent: '#FFD25E',
+    illustration: 'top-picks',
   },
   {
     to: '/admin/inventory',
@@ -73,6 +78,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Portal Inventory',
     description: 'Choose which off-plan projects appear inside your branded portal.',
     accent: '#18D6A4',
+    illustration: 'portal-inventory',
   },
   {
     to: '/admin/projects',
@@ -80,6 +86,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Manual Inventory',
     description: 'Add bespoke listings the public feeds don\'t cover (resale, exclusives).',
     accent: '#F472B6',
+    illustration: 'manual-inventory',
   },
   {
     to: '/admin/dld-analytics',
@@ -87,6 +94,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'DLD Analytics',
     description: 'Direct queries into the Dubai transaction database — your own ad-hoc cuts.',
     accent: '#22C55E',
+    illustration: 'dld-analytics',
   },
   {
     to: '/admin/market-pulse',
@@ -94,6 +102,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Market Pulse',
     description: 'Real-time area-level activity, momentum and inventory tightness signals.',
     accent: '#F59E0B',
+    illustration: 'market-pulse',
   },
   {
     to: '/admin/market-index',
@@ -101,6 +110,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Market Index',
     description: 'Composite score per area — the number you publish to your investors.',
     accent: '#8B5CF6',
+    illustration: 'market-index',
   },
   {
     to: '/admin/settings',
@@ -108,6 +118,7 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Workspace Settings',
     description: 'Branding, subdomain, AI concierge persona and welcome message.',
     accent: '#9CA3AF',
+    illustration: 'settings',
   },
 ];
 
@@ -407,7 +418,7 @@ function KpiTile({
   );
 }
 
-function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCard) {
+function ShortcutTile({ to, icon: Icon, title, description, accent, illustration }: ShortcutCard) {
   return (
     <Link
       to={to}
@@ -423,6 +434,18 @@ function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCa
         aria-hidden="true"
         className="absolute -top-12 -right-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{ background: `${accent}40` }}
+      />
+
+      {/* Lane-B illustration — small mint-accent decoration in the
+          top-right corner. Sits at low opacity by default and brightens
+          on hover, matching the existing Studio card pattern. */}
+      <img
+        src={`/images/admin/${illustration}.webp`}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-3 -right-3 w-20 h-20 sm:w-24 sm:h-24 opacity-70 group-hover:opacity-100 transition-opacity duration-300 select-none"
       />
 
       <div className="relative flex items-start gap-2 sm:gap-3 mb-2 sm:mb-4">
