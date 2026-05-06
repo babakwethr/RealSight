@@ -23,6 +23,8 @@ import { generateInvestorPresentationPDF } from '@/components/pdf/InvestorPresen
 import { SendActionsBar } from '@/components/dealanalyzer/SendActionsBar';
 import { ListingAgentCard, type ListingAgent } from '@/components/dealanalyzer/ListingAgentCard';
 import { RecentTransactionsCard } from '@/components/dealanalyzer/RecentTransactionsCard';
+import { ParallaxImage } from '@/components/ParallaxImage';
+import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 
 // ── Gemini AI verdict generation ─────────────────────────────────────────
 async function generateAIVerdict(params: {
@@ -1193,9 +1195,27 @@ function DealAnalyzerContent() {
 
           {/* AI verdict card — primary hero of the result section.
               Emerald accent + glow-on-view so it announces itself when
-              the user scrolls down to the verdict. */}
-          <div ref={verdictRef} className="glass-panel accent-emerald glow-on-view p-5 border-l-4 border-l-primary">
-            <div className="flex items-start gap-3">
+              the user scrolls down to the verdict. Wrapped in a relative
+              container with a low-opacity area-photo backdrop so the
+              card carries a sense of place (the actual neighbourhood
+              the listing is in) instead of a flat panel. */}
+          {(() => {
+            const areaPhoto = getAreaPhotoUrl(result.area);
+            return (
+              <div className="relative rounded-xl overflow-hidden">
+                {areaPhoto && (
+                  <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+                    <ParallaxImage
+                      src={areaPhoto}
+                      alt=""
+                      className="opacity-30"
+                      speed={0.1}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/75 to-background/55" />
+                  </div>
+                )}
+                <div ref={verdictRef} className="relative glass-panel accent-emerald glow-on-view p-5 border-l-4 border-l-primary bg-transparent">
+                  <div className="flex items-start gap-3">
               {result.aiLoading ? (
                 <Loader2 className="h-5 w-5 text-primary mt-0.5 animate-spin shrink-0" />
               ) : (
@@ -1218,7 +1238,10 @@ function DealAnalyzerContent() {
                 )}
               </div>
             </div>
-          </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Metrics grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
