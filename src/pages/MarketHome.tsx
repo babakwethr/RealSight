@@ -21,6 +21,8 @@ import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { PublicFooter } from '@/components/layout/PublicFooter';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { MobileDrawer } from '@/components/layout/MobileDrawer';
+import { HeroMockup } from '@/components/HeroMockup';
+import { FeatureHighlight } from '@/components/FeatureHighlight';
 import { AuthModal } from '@/components/AuthModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -586,6 +588,22 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               </div>
             )}
 
+            {/* HERO MOCKUP — Lane C composite (Reelly-AI style).
+                Public landing only. Phone shows the real RealSight UI surrounded
+                by floating brand discs (Bayut / Property Finder / Dubizzle real
+                logos + colour-disc placeholders for Emaar / Damac / Sobha until
+                we license the proper artwork). See the imagery rollout plan. */}
+            {isPublic && (
+              <div className="hidden sm:block mb-10">
+                <HeroMockup
+                  screenshotSrc="/dashboard-preview.png"
+                  screenshotAlt="RealSight on iPhone — Markets overview"
+                  phoneWidth={280}
+                  priority
+                />
+              </div>
+            )}
+
             {/* Search is in its own isolated stacking context above all content */}
             <div style={{ position: 'relative', zIndex: 50 }}>
               <SearchFilterBar areas={allAreaNames} onSearch={name => setSelectedArea(name === 'Dubai' ? '' : name)} />
@@ -1017,6 +1035,29 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             </div>
           );
         })()}
+
+        {/* ── FEATURE HIGHLIGHTS — Lane D scroll-stop sections.
+              Public landing only. One section per top feature — title, value
+              statement, anchoring detail, real captured screenshot in a phone
+              frame. Replaces the generic intelligence-tools card grid as the
+              page's storytelling spine (the cards below stay as a recap).
+              Ships as ONE section first (Deal Analyzer) for formula sign-off
+              before the rest land. See the imagery rollout plan. */}
+        {isPublic && (
+          <div className="my-8 sm:my-12">
+            <FeatureHighlight
+              eyebrow="Deal Analyzer"
+              title="Score any Dubai property in seconds."
+              description="Paste a Bayut, Property Finder, or Dubizzle link. We pull the listing and score it against live DLD data — yield, growth, and an AI verdict — before you even reply to the seller."
+              anchor="★ 8.3 / 10 verdict in under 2 s · 10,000+ DLD transactions"
+              ctaLabel="Try the Deal Analyzer"
+              ctaTo="/deal-analyzer"
+              screenshotSrc="/dashboard-preview.png"
+              screenshotAlt="RealSight Deal Analyzer result for a Dubai Marina apartment"
+              accent="mint"
+            />
+          </div>
+        )}
 
         {/* ── Feature cards (Dribbble-inspired gradient style) ── */}
         <div className={`${isPublic ? 'py-10' : 'pt-8'}`}>
