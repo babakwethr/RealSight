@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Card Samples — Pick A or B</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 24px 80px;
+      background: #050717;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    p.lede {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      max-width: 640px;
+      margin: 0 0 32px;
+      line-height: 1.55;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 24px;
+    }
+    .sample {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sample-label {
+      color: #2effc0;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 11px;
+      font-weight: 900;
+      margin: 0;
+    }
+    .sample-sub {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 12px;
+      margin: 0;
+    }
+
+    /* ───────── Card base (matches AdminWorkspace ShortcutTile) ───────── */
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      border-radius: 18px;
+      padding: 22px;
+      min-height: 168px;
+      overflow: hidden;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(15, 18, 40, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .card .halo {
+      position: absolute;
+      top: -48px;
+      right: -40px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      filter: blur(48px);
+      background: rgba(123, 92, 255, 0.25);
+      pointer-events: none;
+    }
+    .card-text { flex: 1; min-width: 0; position: relative; z-index: 1; }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: rgba(123, 92, 255, 0.12);
+      border: 1px solid rgba(123, 92, 255, 0.30);
+      color: #b6a4ff;
+      box-shadow: 0 4px 18px -6px rgba(123, 92, 255, 0.45);
+    }
+    .icon-badge svg { width: 20px; height: 20px; }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 900;
+      margin: 0;
+      letter-spacing: -0.015em;
+      color: #fff;
+    }
+    .card .desc {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.5;
+      margin: 0 0 14px;
+    }
+    .card .open {
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.55);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+
+    /* ───────── Sample A — phone mockup on the right ───────── */
+    .phone-wrap {
+      flex-shrink: 0;
+      width: 110px;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: -10px;
+    }
+    .phone {
+      width: 100px;
+      aspect-ratio: 9 / 19.5;
+      border-radius: 18px;
+      background: #0a0420;
+      border: 4px solid #0a0420;
+      box-shadow:
+        0 20px 40px -10px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+      transform: rotate(-3deg);
+      position: relative;
+      overflow: hidden;
+    }
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 8px;
+      background: #000;
+      border-radius: 999px;
+      z-index: 2;
+    }
+    .phone img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      display: block;
+    }
+    .phone .sheen {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(155deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 28%);
+      mix-blend-mode: overlay;
+    }
+
+    /* ───────── Sample B — abstract data band on the right ───────── */
+    .band {
+      flex-shrink: 0;
+      width: 132px;
+      align-self: stretch;
+      margin: -22px -22px -22px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .band svg { width: 100%; height: 100%; display: block; }
+
+    /* Stand-in note */
+    .note {
+      font-size: 11px;
+      color: rgba(255, 200, 100, 0.85);
+      background: rgba(255, 200, 100, 0.08);
+      border: 1px solid rgba(255, 200, 100, 0.2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin Shortcut Card — Two Sample Designs</h1>
+    <p class="lede">
+      Both show the <strong>Investors</strong> shortcut as it would render in your admin grid.
+      Pick A or B and the same treatment applies to all 9 shortcut cards. Tap the cards on mobile.
+    </p>
+
+    <div class="grid">
+      <!-- ───────── SAMPLE A ───────── -->
+      <div class="sample">
+        <p class="sample-label">Sample A — Phone Mockup with Real Screenshot</p>
+        <p class="sample-sub">Honest, no AI weirdness. Each card carries an actual capture of the page it links to.</p>
+        <div class="card">
+          <span class="halo" aria-hidden="true"></span>
+          <div class="card-text">
+            <div class="card-header">
+              <div class="icon-badge" aria-hidden="true">
+                <!-- Users (lucide) -->
+                <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <h3>Investors</h3>
+            </div>
+            <p class="desc">Onboard, manage and switch between every client in your workspace.</p>
+            <p class="open">Open →</p>
+          </div>
+          <div class="phone-wrap">
+            <div class="phone" aria-hidden="true">
+              <img src="/dashboard-preview.png" alt="" />
+              <div class="sheen"></div>
+            </div>
+          </div>
+        </div>
+        <div class="note">
+          ⚠ Stand-in: the phone shows <code>dashboard-preview.png</code>. In production it would be a real iPhone-class capture of the Investors page (swapped per shortcut).
+        </div>
+      </div>
+
+      <!-- ───────── SAMPLE B ───────── -->
+      <div class="sample">
+        <p class="sample-label">Sample B — Abstract Data Band</p>
+        <p class="sample-sub">Hand-authored SVG, mint accent, matches the StudioIllustrations style. Subject changes per shortcut (avatars, gears, chart bars, etc.).</p>
+        <div class="card">
+          <span class="halo" aria-hidden="true"></span>
+          <div class="card-text">
+            <div class="card-header">
+              <div class="icon-badge" aria-hidden="true">
+                <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <h3>Investors</h3>
+            </div>
+            <p class="desc">Onboard, manage and switch between every client in your workspace.</p>
+            <p class="open">Open →</p>
+          </div>
+          <div class="band" aria-hidden="true">
+            <svg viewBox="0 0 132 168" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <linearGradient id="band-bg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#1A1140" />
+                  <stop offset="100%" stop-color="#08051E" />
+                </linearGradient>
+                <linearGradient id="line" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#18D6A4" stop-opacity="0.2" />
+                  <stop offset="50%" stop-color="#2effc0" />
+                  <stop offset="100%" stop-color="#b6a4ff" />
+                </linearGradient>
+                <radialGradient id="halo-grad" cx="0.5" cy="0.55" r="0.55">
+                  <stop offset="0%" stop-color="#7B5CFF" stop-opacity="0.45" />
+                  <stop offset="100%" stop-color="#7B5CFF" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="av1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#7B5CFF" /><stop offset="100%" stop-color="#5b3fcc" />
+                </linearGradient>
+                <linearGradient id="av2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#2effc0" /><stop offset="100%" stop-color="#18d6a4" />
+                </linearGradient>
+                <linearGradient id="av3" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#7aa6ff" /><stop offset="100%" stop-color="#4aa8ff" />
+                </linearGradient>
+              </defs>
+
+              <!-- bg -->
+              <rect width="132" height="168" fill="url(#band-bg)" />
+
+              <!-- soft halo -->
+              <ellipse cx="66" cy="92" rx="64" ry="80" fill="url(#halo-grad)" />
+
+              <!-- subtle grid lines -->
+              <g opacity="0.08" stroke="#fff" stroke-width="0.5">
+                <line x1="0" y1="42" x2="132" y2="42"/>
+                <line x1="0" y1="84" x2="132" y2="84"/>
+                <line x1="0" y1="126" x2="132" y2="126"/>
+              </g>
+
+              <!-- chart line — rising trend -->
+              <path d="M 8 120 C 26 118, 38 95, 56 82 S 94 50, 124 38" stroke="url(#line)" stroke-width="2.4" fill="none" stroke-linecap="round" />
+              <!-- node dots -->
+              <circle cx="56" cy="82" r="3" fill="#2effc0" />
+              <circle cx="92" cy="56" r="3" fill="#2effc0" />
+              <circle cx="124" cy="38" r="3.5" fill="#b6a4ff" />
+
+              <!-- 3 avatar circles representing investors -->
+              <g transform="translate(28, 138)">
+                <circle cx="0" cy="0" r="11" fill="url(#av1)" stroke="#fff" stroke-width="1.2" stroke-opacity="0.45" />
+                <circle cx="22" cy="0" r="11" fill="url(#av2)" stroke="#fff" stroke-width="1.2" stroke-opacity="0.45" />
+                <circle cx="44" cy="0" r="11" fill="url(#av3)" stroke="#fff" stroke-width="1.2" stroke-opacity="0.45" />
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="note" style="color: rgba(46,255,192,0.85); background: rgba(46,255,192,0.06); border-color: rgba(46,255,192,0.18);">
+          ✓ Pure SVG. Tiny file size (no Higgsfield credits). Per shortcut I'd swap the subject (avatars / gears / cylinders / clipboard / etc.) keeping the same band layout + accent palette.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
