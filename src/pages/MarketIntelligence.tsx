@@ -25,6 +25,7 @@ import { AIVerdict } from '@/components/AIVerdict';
 import { GuidanceCard } from '@/components/GuidanceCard';
 import { formatPriceSplit } from '@/lib/currency';
 import { cn } from '@/lib/utils';
+import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n));
 
@@ -61,6 +62,7 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
   const yoy = ((area.avg_price_per_sqft_current - area.avg_price_per_sqft_12m_ago) / (area.avg_price_per_sqft_12m_ago || 1)) * 100;
   const pos = yoy > 0;
   const accent = getCardAccent(yoy, area.rental_yield_avg || 0);
+  const photo = getAreaPhotoUrl(area.name);
 
   // Build trend with zoomed domain for dramatic chart
   const trend = useMemo(() => {
@@ -78,14 +80,41 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
   const maxV = Math.max(...trend.map(d => d.v)) * 1.005;
 
   if (hero) {
-    // Hero card — full width, horizontal layout
+    // Hero card — full width, horizontal layout. When we have a district
+    // photo we drop the gradient backdrop in favour of a real image with a
+    // left-to-right dark scrim (text-readable left, photo bleeds right).
     return (
       <div
         onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
-        className={`relative rounded-2xl overflow-hidden cursor-pointer group col-span-full bg-gradient-to-br ${accent.bg} border ${accent.border} hover:scale-[1.005] transition-all duration-300`}
+        className={cn(
+          'relative rounded-2xl overflow-hidden cursor-pointer group col-span-full border hover:scale-[1.005] transition-all duration-300',
+          accent.border,
+          !photo && `bg-gradient-to-br ${accent.bg}`,
+        )}
       >
+        {photo && (
+          <>
+            <img
+              src={photo}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Brand-colour wash so the photo carries the performance accent. */}
+            <div
+              aria-hidden="true"
+              className={`absolute inset-0 bg-gradient-to-br ${accent.bg} mix-blend-soft-light`}
+            />
+            {/* Left-to-right dark scrim — text on the left, photo bleeds right. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/15"
+            />
+          </>
+        )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
+        <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-3 flex-wrap">
               {rank && <div className="flex items-center gap-1 text-amber-400 text-xs font-black"><Crown className="h-3.5 w-3.5" />#{rank} Top Area</div>}
@@ -136,16 +165,27 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="p-5">
 
-        {/* Header: name + rank + YoY badge */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="min-w-0">
-            {rank && rank <= 3 && (
-              <div className="text-[9px] font-black text-amber-400 mb-1 flex items-center gap-1">
-                <Crown className="h-2.5 w-2.5" />#{rank} Top
-              </div>
+        {/* Header: photo thumb + name + rank + YoY badge */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-start gap-3 min-w-0">
+            {photo && (
+              <img
+                src={photo}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-12 h-12 rounded-lg object-cover shrink-0 ring-1 ring-white/10"
+              />
             )}
-            <h3 className="font-bold text-white text-sm leading-tight">{area.name}</h3>
-            <p className="text-[10px] text-white/40 mt-0.5">Dubai, UAE</p>
+            <div className="min-w-0">
+              {rank && rank <= 3 && (
+                <div className="text-[9px] font-black text-amber-400 mb-1 flex items-center gap-1">
+                  <Crown className="h-2.5 w-2.5" />#{rank} Top
+                </div>
+              )}
+              <h3 className="font-bold text-white text-sm leading-tight">{area.name}</h3>
+              <p className="text-[10px] text-white/40 mt-0.5">Dubai, UAE</p>
+            </div>
           </div>
           <div className={`flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${pos ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
             {pos ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
