@@ -15,9 +15,10 @@ import { useUserRole } from '@/hooks/useUserRole';
 
 // Spring used by every Liquid-Glass animation in the bar.
 // Lower stiffness + higher mass + lower damping = the viscous, syrupy
-// 'fluid magnifier' feel. The lens visibly drags as it slides between
-// tabs and settles with a subtle bounce — not a hard snap.
-const LIQUID_SPRING = { type: 'spring' as const, stiffness: 240, damping: 26, mass: 1.0 };
+// 'fluid magnifier' feel from the iOS 26 / WhatsApp reference. The lens
+// visibly drags as it slides between tabs and lands with a soft jelly
+// overshoot — not a hard snap. v7 tuning is softer than v6.
+const LIQUID_SPRING = { type: 'spring' as const, stiffness: 185, damping: 19, mass: 1.35 };
 // A snappier spring for the icon scale/press — keeps press feedback
 // instant even while the lens itself is in slow-flow motion.
 const PRESS_SPRING = { type: 'spring' as const, stiffness: 500, damping: 32 };
@@ -243,25 +244,26 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
 /* -------------------------------- BITS -------------------------------- */
 
 /**
- * The Liquid Lens — Apple iOS 26 active-tab indicator (v3).
+ * The Liquid Lens — v7, redrawn from the WhatsApp iOS 26 reference video.
  *
- * Studied the WhatsApp / iOS 26 reference more carefully:
- *   - The lens is BRIGHTER than the bar (acts as a magnifier).
- *   - Chromatic effect is SUBTLE — a thin red kiss on the top rim and
- *     a blue kiss on the bottom rim. NOT a rainbow halo.
- *   - No outer glow — the lens is self-contained.
- *   - Strong specular highlight on the top edge (white glass rim).
- *   - It looks 'physical' — like a real glass disc placed over the icon.
+ * Key changes from v6:
+ *   - Bigger than the icon cell. The lens is an OVAL (60×80) that
+ *     overflows the bar's vertical bounds — it visibly bleeds above
+ *     and below the pill, like a glass bubble sitting on top of the bar.
+ *   - Side-rim chromatic aberration. A warm red kiss on the LEFT inner
+ *     rim and a cool cyan kiss on the RIGHT inner rim — that's where
+ *     the WhatsApp lens shows the most visible fringing as it travels
+ *     horizontally.
+ *   - Softer, jelly-er spring (see LIQUID_SPRING) so the lens visibly
+ *     overshoots and settles when it lands.
+ *   - Brighter inner wash + stronger backdrop saturate to make the
+ *     magnifier effect read clearly on the dark bar.
  *
- * Marked with `layoutId="liquid-lens"` and wrapped by a `LayoutGroup` in
- * the parent — Framer Motion smoothly animates the same disc from one
- * tab to the next when the user navigates.
- */
-/**
- * The Liquid Lens — a magnifier disc that slides between tabs.
- * v4: lower-frequency motion (viscous spring) + stronger backdrop
- * refraction + a soft white wash that follows the disc, reading as
- * the magnifier moving over the bar.
+ * Implementation note: the lens is positioned as a direct absolute
+ * child of the parent NavLink (NOT inside the icon cell), so it can
+ * be larger than the icon and overflow the bar without being clipped.
+ * Centered with `left: 'calc(50% - 30px)'` to avoid a `transform`
+ * that would fight with Framer's own layoutId transform.
  */
 function LiquidLens() {
   return (
@@ -269,29 +271,33 @@ function LiquidLens() {
       layoutId="liquid-lens"
       aria-hidden="true"
       transition={LIQUID_SPRING}
-      className="absolute inset-0 rounded-full pointer-events-none"
+      className="absolute pointer-events-none rounded-full"
       style={{
-        // Lighter than the bar — magnifier brightens what's beneath
+        top: -4,
+        bottom: -4,
+        left: 'calc(50% - 30px)',
+        width: 60,
+        // Brighter than the bar — magnifier lifts what's beneath
         background: 'rgba(255, 255, 255, 0.16)',
-        // Heavier blur + brightness lift = visible magnification
-        backdropFilter: 'blur(24px) saturate(2.6) brightness(1.10)',
-        WebkitBackdropFilter: 'blur(24px) saturate(2.6) brightness(1.10)',
-        // Clean defined rim
-        border: '0.5px solid rgba(255, 255, 255, 0.42)',
+        // Heavier blur + saturate + brightness = visible magnification
+        backdropFilter: 'blur(22px) saturate(2.8) brightness(1.12)',
+        WebkitBackdropFilter: 'blur(22px) saturate(2.8) brightness(1.12)',
+        // Clean defined rim — the glass edge
+        border: '0.5px solid rgba(255, 255, 255, 0.48)',
         boxShadow:
-          // Subtle warm chromatic on top rim (refraction at glass edge)
-          'inset 0 0.5px 0 rgba(255, 140, 160, 0.50),' +
-          // Bright top specular — light catching the rim
-          'inset 0 2px 0.5px -1.5px rgba(255, 255, 255, 0.90),' +
-          // Subtle cool chromatic on bottom rim
-          'inset 0 -0.5px 0 rgba(130, 160, 255, 0.50),' +
-          // Soft inner bottom shadow — depth
-          'inset 0 -2px 1px -1.5px rgba(0, 0, 0, 0.32),' +
-          // Soft outer white wash — the 'magnifier moving over the bar'
-          // halo that makes the disc feel physically present as it slides
-          '0 0 18px -2px rgba(255, 255, 255, 0.32),' +
-          // Soft drop shadow grounds the disc above the bar
-          '0 5px 14px -4px rgba(0, 0, 0, 0.45)',
+          // Bright top specular — light catching the upper rim
+          'inset 0 2px 1px -1px rgba(255, 255, 255, 0.85),' +
+          // Soft inner bottom shadow — depth, the bottom curve
+          'inset 0 -2px 2px -1px rgba(0, 0, 0, 0.32),' +
+          // LEFT rim chromatic — warm red/orange refraction
+          'inset 1.5px 0 1px -0.5px rgba(255, 95, 110, 0.55),' +
+          // RIGHT rim chromatic — cool cyan/blue refraction
+          'inset -1.5px 0 1px -0.5px rgba(95, 170, 255, 0.55),' +
+          // Soft outer white halo — the 'magnifier moving over the bar'
+          // glow that makes the disc feel physically present as it slides
+          '0 0 22px -4px rgba(255, 255, 255, 0.30),' +
+          // Drop shadow grounds the disc above the bar
+          '0 6px 18px -6px rgba(0, 0, 0, 0.55)',
       }}
     />
   );
@@ -313,15 +319,17 @@ function TabLink({
       to={to}
       className="flex flex-col items-center justify-center gap-1 px-2 group min-h-[48px] flex-1 relative"
     >
+      {/* Liquid lens lives at the NavLink level (not inside the icon cell)
+          so it can be larger than the icon and overflow the bar's bounds. */}
+      {active && <LiquidLens />}
       <motion.span
         whileTap={{ scale: 0.90 }}
         transition={PRESS_SPRING}
         className={cn(
-          'relative inline-flex items-center justify-center w-11 h-11 transition-colors',
+          'relative z-10 inline-flex items-center justify-center w-11 h-11 transition-colors',
           active ? 'text-white' : 'text-white/55 group-hover:text-white/85'
         )}
       >
-        {active && <LiquidLens />}
         <motion.span
           // Subtle pop on the icon itself when this tab becomes active.
           animate={active ? { scale: 1.06 } : { scale: 1 }}
