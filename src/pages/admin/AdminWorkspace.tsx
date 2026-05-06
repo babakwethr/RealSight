@@ -436,18 +436,6 @@ function ShortcutTile({ to, icon: Icon, title, description, accent, illustration
         style={{ background: `${accent}40` }}
       />
 
-      {/* Lane-B illustration — small mint-accent decoration in the
-          top-right corner. Sits at low opacity by default and brightens
-          on hover, matching the existing Studio card pattern. */}
-      <img
-        src={`/images/admin/${illustration}.webp`}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-3 -right-3 w-20 h-20 sm:w-24 sm:h-24 opacity-70 group-hover:opacity-100 transition-opacity duration-300 select-none"
-      />
-
       <div className="relative flex items-start gap-2 sm:gap-3 mb-2 sm:mb-4">
         <div
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"

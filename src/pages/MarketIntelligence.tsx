@@ -160,34 +160,55 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
   return (
     <div
       onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
-      className={`relative rounded-2xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-200 bg-gradient-to-br ${accent.bg} border ${accent.border} shadow-[0_4px_24px_rgba(0,0,0,0.2)]`}
+      className={cn(
+        'relative rounded-2xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-200 border shadow-[0_4px_24px_rgba(0,0,0,0.2)]',
+        accent.border,
+        !photo && `bg-gradient-to-br ${accent.bg}`,
+      )}
     >
+      {/* District photo as a low-opacity full-card background — replaces
+          the previous thumb in the header, which squeezed the title text.
+          A strong dark scrim keeps the metrics readable on top. */}
+      {photo && (
+        <>
+          <img
+            src={photo}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Brand-colour wash carries the performance accent. */}
+          <div
+            aria-hidden="true"
+            className={`absolute inset-0 bg-gradient-to-br ${accent.bg} mix-blend-soft-light`}
+          />
+          {/* Heavy bottom-up scrim so the data on top of the photo is
+              legible without the photo disappearing entirely. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/75 to-black/90"
+          />
+        </>
+      )}
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-      <div className="p-5">
+      <div className="relative p-5">
 
-        {/* Header: photo thumb + name + rank + YoY badge */}
+        {/* Header: rank eyebrow + name + Dubai/UAE + YoY badge.
+            Strict line caps so titles like "Dubai Creek Harbour" don't
+            wrap to 3 lines and crush the layout: title ≤ 2 lines,
+            subtitle ≤ 1 line, eyebrow ≤ 1 line. */}
         <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-start gap-3 min-w-0">
-            {photo && (
-              <img
-                src={photo}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="w-12 h-12 rounded-lg object-cover shrink-0 ring-1 ring-white/10"
-              />
+          <div className="min-w-0 flex-1">
+            {rank && rank <= 3 && (
+              <div className="text-[9px] font-black text-amber-400 mb-1 flex items-center gap-1 truncate">
+                <Crown className="h-2.5 w-2.5 shrink-0" />#{rank} Top
+              </div>
             )}
-            <div className="min-w-0">
-              {rank && rank <= 3 && (
-                <div className="text-[9px] font-black text-amber-400 mb-1 flex items-center gap-1">
-                  <Crown className="h-2.5 w-2.5" />#{rank} Top
-                </div>
-              )}
-              <h3 className="font-bold text-white text-sm leading-tight">{area.name}</h3>
-              <p className="text-[10px] text-white/40 mt-0.5">Dubai, UAE</p>
-            </div>
+            <h3 className="font-bold text-white text-sm leading-tight line-clamp-2">{area.name}</h3>
+            <p className="text-[10px] text-white/55 mt-0.5 truncate">Dubai, UAE</p>
           </div>
-          <div className={`flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${pos ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+          <div className={`flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${pos ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
             {pos ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
             {pos ? '+' : ''}{yoy.toFixed(1)}%
           </div>
