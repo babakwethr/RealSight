@@ -25,6 +25,8 @@ import { AuthModal } from '@/components/AuthModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
+import { ParallaxImage } from '@/components/ParallaxImage';
+import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 import { AIVerdict } from '@/components/AIVerdict';
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer,
@@ -891,8 +893,25 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             Number(kpis.avgYoY) > 1 ? 'up' : Number(kpis.avgYoY) < -1 ? 'down' : 'flat';
           const yoyNum = Number(kpis.avgYoY);
           const areaLabel = (selectedArea || 'All Dubai').toUpperCase();
+          // Backdrop photo — match the selected area when available, else
+          // fall back to the Marina hero (most iconic Dubai shot).
+          const backdropPhoto =
+            getAreaPhotoUrl(selectedArea) || '/images/areas/marina.webp';
           return (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 pb-5">
+            <div className="relative pb-5">
+              {/* Low-opacity Dubai skyline behind the score row, with a
+                  parallax y/scale tied to scroll. Dark scrim keeps the
+                  cards readable on top. */}
+              <div aria-hidden="true" className="absolute inset-0 -mx-4 sm:-mx-6 rounded-3xl overflow-hidden pointer-events-none">
+                <ParallaxImage
+                  src={backdropPhoto}
+                  alt=""
+                  className="opacity-40"
+                  speed={0.12}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90" />
+              </div>
+              <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-4">
               <div className="lg:col-span-3">
                 <HeroMetricCard
                   variant="blue"
@@ -930,6 +949,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
                     <>Across Dubai, the market is reading <span className="font-semibold text-foreground">{kpis.scoreLabel.toLowerCase()}</span>. Momentum, yield and volume combine for a <span className="font-semibold text-foreground">{kpis.score}/10</span> composite score over the last {timePeriod.toLowerCase()}.</>
                   )}
                 </AIVerdict>
+              </div>
               </div>
             </div>
           );
