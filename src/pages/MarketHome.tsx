@@ -415,9 +415,14 @@ const FEATURE_CARDS = [
 // ─── Tool card with full-bleed image + text overlay (Urban-Company style) ───
 //
 // Two formats supported via the `format` prop:
-//   - 'horizontal' : aspect 16/9, banner-feel
-//   - 'vertical'   : aspect 3/4, portrait-feel
-// Both share the same image-fills-card + text-overlay treatment.
+//   - 'horizontal' : aspect 16/9, text on the LEFT, image visible on the RIGHT.
+//                    A left-to-right dark gradient hides the left half of the
+//                    image and gives the text a clean dark backdrop. The right
+//                    half of the image is fully visible.
+//   - 'vertical'   : aspect 3/4, image fills the card, text overlay at the
+//                    bottom with a bottom-up dark gradient.
+//
+// Both formats share the brand-colour wash and the Free / Pro badge.
 //
 function FeatureToolCard({
   card,
@@ -430,6 +435,12 @@ function FeatureToolCard({
 }) {
   const isFree = card.badge === 'Free';
   const aspectClass = format === 'horizontal' ? 'aspect-[16/9]' : 'aspect-[3/4]';
+  // For horizontals, push the visible image to the right of the card so the
+  // dark gradient on the left doesn't waste the photo's focal point.
+  const objectPosition = format === 'horizontal'
+    ? 'right center'
+    : (card.imageObjectPosition || 'center');
+
   return (
     <div
       onClick={onClick}
@@ -443,7 +454,7 @@ function FeatureToolCard({
           loading="lazy"
           decoding="async"
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          style={{ objectPosition: card.imageObjectPosition || 'center' }}
+          style={{ objectPosition }}
           draggable={false}
         />
       )}
@@ -457,13 +468,25 @@ function FeatureToolCard({
         }}
       />
 
-      {/* Bottom-up dark gradient — text legibility */}
+      {/* Direction-aware dark gradient.
+          Horizontal → left-to-right (text on LEFT, image visible on RIGHT).
+          Vertical   → bottom-up (text at bottom). */}
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.75) 75%, rgba(0,0,0,0.92) 100%)',
+          background: format === 'horizontal'
+            ? 'linear-gradient(90deg,' +
+              ' rgba(0,0,0,0.92) 0%,' +
+              ' rgba(0,0,0,0.78) 28%,' +
+              ' rgba(0,0,0,0.40) 55%,' +
+              ' rgba(0,0,0,0.10) 75%,' +
+              ' transparent 95%)'
+            : 'linear-gradient(180deg,' +
+              ' rgba(0,0,0,0.05) 0%,' +
+              ' rgba(0,0,0,0.25) 35%,' +
+              ' rgba(0,0,0,0.75) 75%,' +
+              ' rgba(0,0,0,0.92) 100%)',
         }}
       />
 
@@ -471,7 +494,11 @@ function FeatureToolCard({
       <div
         aria-hidden="true"
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ background: `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)` }}
+        style={{
+          background: format === 'horizontal'
+            ? `radial-gradient(circle at 25% 50%, ${card.accent}24 0%, transparent 60%)`
+            : `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)`,
+        }}
       />
 
       {/* Free / Pro badge */}
@@ -496,27 +523,53 @@ function FeatureToolCard({
         {isFree ? 'Free' : 'Pro'}
       </span>
 
-      {/* Text overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
-        <p
-          className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
-          style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
-        >
-          {card.metric} · {card.metricSub}
-        </p>
-        <h3
-          className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}
-        >
-          {card.title}
-        </h3>
-        <p
-          className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
-          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
-        >
-          {card.desc}
-        </p>
-      </div>
+      {/* Text overlay — placement depends on format. */}
+      {format === 'horizontal' ? (
+        // LEFT side, vertically centred. ~60% width so the right of the card
+        // stays clear for the picture. Text wraps inside the dark zone.
+        <div className="absolute inset-y-0 left-0 z-10 p-4 lg:p-5 flex flex-col justify-center w-[62%] sm:w-3/5">
+          <p
+            className="text-[9.5px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+          >
+            {card.metric} · {card.metricSub}
+          </p>
+          <h3
+            className="text-[15px] lg:text-lg font-black text-white leading-tight mb-1.5"
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.65)' }}
+          >
+            {card.title}
+          </h3>
+          <p
+            className="text-[11px] lg:text-[12.5px] text-white/80 leading-snug line-clamp-3"
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.55)' }}
+          >
+            {card.desc}
+          </p>
+        </div>
+      ) : (
+        // BOTTOM, full width. Vertical card has the picture on top, text below.
+        <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
+          <p
+            className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+          >
+            {card.metric} · {card.metricSub}
+          </p>
+          <h3
+            className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}
+          >
+            {card.title}
+          </h3>
+          <p
+            className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+          >
+            {card.desc}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
