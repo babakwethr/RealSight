@@ -356,8 +356,8 @@ const FEATURE_CARDS = [
   {
     id: 'market-score',
     title: 'Market Score',
-    metric: '8.3',
-    metricSub: '/ 10 — Strong Buy',
+    metric: '8.3 / 10',
+    metricSub: 'Strong Buy',
     desc: 'A proprietary 0–10 score computed from YoY growth and rental yield data. Know the market sentiment at a glance.',
     gradient: 'from-[#1a0533] via-[#2d1060] to-[#1a0533]',
     accent: '#A855F7',
@@ -525,15 +525,24 @@ function FeatureToolCard({
 
       {/* Text overlay — placement depends on format. */}
       {format === 'horizontal' ? (
-        // LEFT side, vertically centred. Padding bumped + larger type so the
-        // text actually fills the dark zone instead of floating in the middle.
+        // LEFT side, vertically centred. Eyebrow is a clean two-line stack:
+        // metric on line 1 ("AI Verdict" / "8.3 / 10"), metricSub on line 2
+        // ("in seconds" / "Strong Buy"). No awkward dot separator.
         <div className="absolute inset-y-0 left-0 z-10 p-5 lg:p-6 flex flex-col justify-center w-[62%] sm:w-3/5">
-          <p
-            className="text-[11px] lg:text-[12.5px] font-black uppercase tracking-[0.18em] mb-2.5"
-            style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
-          >
-            {card.metric} · {card.metricSub}
-          </p>
+          <div className="mb-2.5">
+            <p
+              className="text-[11.5px] lg:text-[13px] font-black uppercase tracking-[0.18em] leading-tight"
+              style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+            >
+              {card.metric}
+            </p>
+            <p
+              className="text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.18em] leading-tight mt-0.5 opacity-80"
+              style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+            >
+              {card.metricSub}
+            </p>
+          </div>
           <h3
             className="text-[20px] sm:text-[22px] lg:text-[26px] font-black text-white leading-[1.1] mb-2.5 tracking-tight"
             style={{ textShadow: '0 2px 10px rgba(0,0,0,0.7)' }}
@@ -548,15 +557,22 @@ function FeatureToolCard({
           </p>
         </div>
       ) : (
-        // BOTTOM, full width. Vertical cards bumped up slightly too so the
-        // title doesn't read as small.
+        // BOTTOM, full width. Vertical cards: same two-line eyebrow pattern.
         <div className="absolute bottom-0 left-0 right-0 z-10 p-4 lg:p-5">
-          <p
-            className="text-[10px] lg:text-[11px] font-black uppercase tracking-[0.18em] mb-2"
-            style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
-          >
-            {card.metric} · {card.metricSub}
-          </p>
+          <div className="mb-2">
+            <p
+              className="text-[10.5px] lg:text-[11.5px] font-black uppercase tracking-[0.18em] leading-tight"
+              style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+            >
+              {card.metric}
+            </p>
+            <p
+              className="text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.18em] leading-tight mt-0.5 opacity-80"
+              style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+            >
+              {card.metricSub}
+            </p>
+          </div>
           <h3
             className="text-[16px] lg:text-[19px] font-black text-white leading-[1.15] mb-1.5 tracking-tight"
             style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
