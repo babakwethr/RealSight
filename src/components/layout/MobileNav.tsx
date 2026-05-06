@@ -22,6 +22,31 @@ const LIQUID_SPRING = { type: 'spring' as const, stiffness: 240, damping: 26, ma
 // instant even while the lens itself is in slow-flow motion.
 const PRESS_SPRING = { type: 'spring' as const, stiffness: 500, damping: 32 };
 
+// Bar shape — pill (radius 36 px on a typical 380 px-wide bar) with a smooth
+// bay at top centre. Cubic-bezier curves with horizontal tangents at every
+// join so the bay enters the flat top with rounded corners (no sharp angle).
+// Used as a mask-image so backdrop-filter survives (clip-path + parent
+// filter combos break the glass effect).
+const BAR_SHAPE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 72" preserveAspectRatio="none">' +
+  '<path fill="white" d="' +
+  // Top edge: starts after pill corner, dips into bay, comes back, runs to other pill corner
+  'M 9.5 0 L 34.21 0 ' +
+  'C 38.16 0, 38.16 22, 42.11 22 ' +
+  'L 57.89 22 ' +
+  'C 61.84 22, 61.84 0, 65.79 0 ' +
+  'L 90.5 0 ' +
+  // Right pill corner (elliptical arc, scales with width but renders ~circular)
+  'A 9.5 36 0 0 1 100 36 ' +
+  'A 9.5 36 0 0 1 90.5 72 ' +
+  'L 9.5 72 ' +
+  // Left pill corner
+  'A 9.5 36 0 0 1 0 36 ' +
+  'A 9.5 36 0 0 1 9.5 0 Z' +
+  '"/></svg>';
+
+const BAR_MASK_URL = `url("data:image/svg+xml;utf8,${encodeURIComponent(BAR_SHAPE_SVG)}")`;
+
 interface MobileNavProps {
   onMenuClick: () => void;
 }
@@ -94,34 +119,48 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
     >
       {/* Floating Liquid-Glass bar — Apple iOS 26 language.
-          Pill shape (full height = 72, corner radius = 36 = pure pill).
-          The FAB bay is a real path with rounded corners (cubic-bezier
-          curves with horizontal tangents at every join) — not a fade,
-          not a hard half-circle. Drawn via SVG clip-path so the curves
-          stay smooth at every screen width. */}
-      <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto" style={{ filter: 'drop-shadow(0 18px 32px rgba(0,0,0,0.55))' }}>
-        {/* Hidden SVG defining the clip-path. The path is in objectBoundingBox
-            (0–1) units so it scales with the bar's actual width.
-            Bar outline: pill corners + smooth bay at top centre. */}
-        <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-          <defs>
-            <clipPath id="liquid-bar-clip" clipPathUnits="objectBoundingBox">
-              <path d="M 0.095 0 L 0.34 0 C 0.40 0, 0.40 0.31, 0.46 0.31 L 0.54 0.31 C 0.60 0.31, 0.60 0, 0.66 0 L 0.905 0 A 0.095 0.5 0 0 1 1 0.5 A 0.095 0.5 0 0 1 0.905 1 L 0.095 1 A 0.095 0.5 0 0 1 0 0.5 A 0.095 0.5 0 0 1 0.095 0 Z" />
-            </clipPath>
-          </defs>
-        </svg>
+          The bar shape (pill + smooth bay) is defined as an SVG mask
+          on the bar div itself. Mask-image does NOT break backdrop-
+          filter (clip-path + parent filter did), so the glass blur
+          stays intact while the bay still has rounded-corner curves. */}
+      <div className="relative mx-2 mb-3 h-[72px] pointer-events-auto">
+        {/* Soft outer drop shadow — sibling element behind the bar.
+            Same mask shape, dark fill, blurred + offset to read as
+            a soft shadow under the pill. Lives behind the bar so its
+            blur doesn't break the bar's backdrop-filter. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'rgba(0, 0, 0, 0.55)',
+            maskImage: BAR_MASK_URL,
+            WebkitMaskImage: BAR_MASK_URL,
+            maskSize: '100% 100%',
+            WebkitMaskSize: '100% 100%',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            filter: 'blur(18px)',
+            transform: 'translateY(10px)',
+            opacity: 0.75,
+          }}
+        />
 
-        {/* Glass layer — backdrop-filter clipped by the path above.
-            Inset shadows still render (they're inside the clip).
-            Outer drop shadow comes from the parent's `filter: drop-shadow()`. */}
+        {/* Glass layer — backdrop-filter shaped by the bar-shape mask.
+            Mask-image preserves backdrop-filter (unlike clip-path under
+            a filtered parent). Inset highlights stay; outer shadow is
+            the sibling element above. */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'rgba(10, 14, 32, 0.55)',
             backdropFilter: 'blur(50px) saturate(2.4)',
             WebkitBackdropFilter: 'blur(50px) saturate(2.4)',
-            clipPath: 'url(#liquid-bar-clip)',
-            WebkitClipPath: 'url(#liquid-bar-clip)',
+            maskImage: BAR_MASK_URL,
+            WebkitMaskImage: BAR_MASK_URL,
+            maskSize: '100% 100%',
+            WebkitMaskSize: '100% 100%',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
             boxShadow:
               // Inner top specular highlight — bright glass edge
               'inset 0 1.5px 0 rgba(255,255,255,0.28),' +
@@ -130,17 +169,17 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
           }}
         />
 
-        {/* Visible STROKE tracing the entire bar outline (sides, top with
-            the bay, pill corners). Drawn in a separate SVG so the stroke
-            stays a constant 1 px regardless of viewport scaling. */}
+        {/* Visible STROKE tracing the bay's curved edge.
+            Drawn in a separate SVG so the stroke stays constant 1 px
+            regardless of viewport scaling. */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
           preserveAspectRatio="none"
-          viewBox="0 0 1 1"
+          viewBox="0 0 100 72"
           aria-hidden="true"
         >
           <path
-            d="M 0.34 0 C 0.40 0, 0.40 0.31, 0.46 0.31 L 0.54 0.31 C 0.60 0.31, 0.60 0, 0.66 0"
+            d="M 34.21 0 C 38.16 0, 38.16 22, 42.11 22 L 57.89 22 C 61.84 22, 61.84 0, 65.79 0"
             fill="none"
             stroke="rgba(255,255,255,0.42)"
             strokeWidth="1"
