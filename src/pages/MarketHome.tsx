@@ -351,6 +351,7 @@ const FEATURE_CARDS = [
     popupDesc: 'Analyse any Dubai property against real DLD market data. Get an AI investment verdict, area comps, yield scenarios and a professional PDF report.',
     image: '/dashboard-preview.png',
     imageObjectPosition: 'center top',
+    format: 'horizontal' as const,
   },
   {
     id: 'market-score',
@@ -369,6 +370,7 @@ const FEATURE_CARDS = [
     popupDesc: 'The RealSight Market Score is a composite 0–10 index computed from DLD price growth, rental yield, and transaction volume. Updated daily.',
     image: '/pdf-bg/dubai-skyline.jpg',
     imageObjectPosition: 'center 60%',
+    format: 'horizontal' as const,
   },
   {
     id: 'ai-investor-presentation',
@@ -387,6 +389,7 @@ const FEATURE_CARDS = [
     popupDesc: 'Create a professional 8-slide investor presentation for any Dubai property. Branded with your name, phone, and agency. Share with clients in one click.',
     image: '/dashboard-preview.png',
     imageObjectPosition: 'center 30%',
+    format: 'vertical' as const,
   },
   {
     id: 'portfolio',
@@ -405,8 +408,118 @@ const FEATURE_CARDS = [
     popupDesc: 'Track every property you own in one place. Monitor payment schedules, store contracts, track capital gain, and get AI-powered portfolio health reports.',
     image: '/pdf-bg/dubai-marina.jpg',
     imageObjectPosition: 'center 40%',
+    format: 'vertical' as const,
   },
 ];
+
+// ─── Tool card with full-bleed image + text overlay (Urban-Company style) ───
+//
+// Two formats supported via the `format` prop:
+//   - 'horizontal' : aspect 16/9, banner-feel
+//   - 'vertical'   : aspect 3/4, portrait-feel
+// Both share the same image-fills-card + text-overlay treatment.
+//
+function FeatureToolCard({
+  card,
+  onClick,
+  format,
+}: {
+  card: typeof FEATURE_CARDS[number];
+  onClick: () => void;
+  format: 'horizontal' | 'vertical';
+}) {
+  const isFree = card.badge === 'Free';
+  const aspectClass = format === 'horizontal' ? 'aspect-[16/9]' : 'aspect-[3/4]';
+  return (
+    <div
+      onClick={onClick}
+      className={`relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] flex flex-col ${aspectClass}`}
+    >
+      {/* Full-bleed image */}
+      {card.image && (
+        <img
+          src={card.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          style={{ objectPosition: card.imageObjectPosition || 'center' }}
+          draggable={false}
+        />
+      )}
+
+      {/* Brand-colour wash — gives each card its own personality */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none mix-blend-soft-light"
+        style={{
+          background: `linear-gradient(135deg, ${card.accent}55 0%, transparent 50%, ${card.accent}30 100%)`,
+        }}
+      />
+
+      {/* Bottom-up dark gradient — text legibility */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.75) 75%, rgba(0,0,0,0.92) 100%)',
+        }}
+      />
+
+      {/* Hover accent glow */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)` }}
+      />
+
+      {/* Free / Pro badge */}
+      <span
+        className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center h-[22px] px-2.5 rounded-md text-[10px] font-black uppercase tracking-[0.08em] leading-none whitespace-nowrap"
+        style={
+          isFree
+            ? {
+                color: '#022c1c',
+                background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)',
+                border: '1px solid rgba(46,255,192,0.85)',
+                boxShadow: '0 4px 12px -3px rgba(46,255,192,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+              }
+            : {
+                color: '#2a1c00',
+                background: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)',
+                border: '1px solid rgba(201,168,76,0.9)',
+                boxShadow: '0 4px 12px -3px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+              }
+        }
+      >
+        {isFree ? 'Free' : 'Pro'}
+      </span>
+
+      {/* Text overlay */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
+        <p
+          className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+          style={{ color: card.accent, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+        >
+          {card.metric} · {card.metricSub}
+        </p>
+        <h3
+          className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}
+        >
+          {card.title}
+        </h3>
+        <p
+          className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+        >
+          {card.desc}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Rotating city name in hero title ────────────────────────────────────────
 const CITIES = ['Dubai', 'Spain', 'London', 'New York', 'Singapore'];
@@ -1039,108 +1152,22 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               Intelligence tools built for <span className="gradient-word">global investors</span>
             </h2>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {FEATURE_CARDS.map((card) => {
-              const isFree = card.badge === 'Free';
-              return (
-                <div key={card.id}
-                  onClick={() => handleFeatureClick(card)}
-                  className="relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] flex flex-col aspect-[3/4]"
-                >
-                  {/* FULL-BLEED IMAGE — Urban-Company style. The image fills
-                      the card; text overlays it via gradient mask. No hard cut. */}
-                  {card.image && (
-                    <img
-                      src={card.image}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      style={{ objectPosition: card.imageObjectPosition || 'center' }}
-                      draggable={false}
-                    />
-                  )}
-
-                  {/* Per-card brand-colour wash — picks up the card's accent
-                      so each one has its own personality, not all greyscale. */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 pointer-events-none mix-blend-soft-light"
-                    style={{
-                      background: `linear-gradient(135deg, ${card.accent}55 0%, transparent 50%, ${card.accent}30 100%)`,
-                    }}
-                  />
-
-                  {/* Soft bottom-up dark gradient — text legibility. Goes
-                      transparent at the top so the image stays bright there. */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background:
-                        'linear-gradient(180deg,' +
-                        ' rgba(0,0,0,0.05) 0%,' +
-                        ' rgba(0,0,0,0.25) 35%,' +
-                        ' rgba(0,0,0,0.75) 75%,' +
-                        ' rgba(0,0,0,0.92) 100%)',
-                    }}
-                  />
-
-                  {/* Animated accent glow on hover — subtle, only on hover */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                    style={{ background: `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)` }}
-                  />
-
-                  {/* Free / Pro badge — top-right of the card, floating on
-                      the image. Same mint / gold treatment as before. */}
-                  <span
-                    className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center h-[22px] px-2.5 rounded-md text-[10px] font-black uppercase tracking-[0.08em] leading-none whitespace-nowrap"
-                    style={
-                      isFree
-                        ? {
-                            color: '#022c1c',
-                            background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)',
-                            border: '1px solid rgba(46,255,192,0.85)',
-                            boxShadow: '0 4px 12px -3px rgba(46,255,192,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
-                          }
-                        : {
-                            color: '#2a1c00',
-                            background: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)',
-                            border: '1px solid rgba(201,168,76,0.9)',
-                            boxShadow: '0 4px 12px -3px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
-                          }
-                    }
-                  >
-                    {isFree ? 'Free' : 'Pro'}
-                  </span>
-
-                  {/* TEXT OVERLAY — sits at the bottom of the card on top of
-                      the dark gradient. Eyebrow (small accent caps) → metric
-                      → title. No icon. */}
-                  <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
-                    <p
-                      className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
-                      style={{
-                        color: card.accent,
-                        textShadow: '0 1px 6px rgba(0,0,0,0.6)',
-                      }}
-                    >
-                      {card.metric} · {card.metricSub}
-                    </p>
-                    <h3 className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
-                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}>
-                      {card.title}
-                    </h3>
-                    <p className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
-                       style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-                      {card.desc}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          {/* Two formats so we can A/B compare:
+              - Horizontals on top (wider, image-first banner) — 2 across
+              - Verticals below (taller, narrow, image fills) — 2 across */}
+          <div className="space-y-3 sm:space-y-4">
+            {/* HORIZONTAL pair (16:9 aspect — landscape) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {FEATURE_CARDS.filter(c => c.format === 'horizontal').map(card => (
+                <FeatureToolCard key={card.id} card={card} onClick={() => handleFeatureClick(card)} format="horizontal" />
+              ))}
+            </div>
+            {/* VERTICAL pair (3:4 aspect — portrait) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {FEATURE_CARDS.filter(c => c.format === 'vertical').map(card => (
+                <FeatureToolCard key={card.id} card={card} onClick={() => handleFeatureClick(card)} format="vertical" />
+              ))}
+            </div>
           </div>
         </div>
 
