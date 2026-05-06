@@ -132,13 +132,13 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   const x = useMotionValue(0);
   const opacity = useMotionValue(0);
   const velocity = useVelocity(x);
-  // Velocity-driven horizontal stretch — v8.1, more dramatic so the
-  // liquid behaviour is visible even on slower taps. ±1300 px/s maps to
-  // scaleX 1.6; 0 px/s (rest) maps to scaleX 1. Symmetric L/R.
-  const stretchTarget = useTransform(velocity, [-1300, 0, 1300], [1.6, 1, 1.6]);
-  // Smooth the stretch so it lags slightly behind raw velocity — gives
-  // the lens 'inertia' that reads as liquid rather than a rigid scale-pop.
-  const scaleX = useSpring(stretchTarget, { stiffness: 180, damping: 18, mass: 0.7 });
+  // Velocity-driven horizontal stretch — v9, gentler max so the lens
+  // never looks like a stretched rectangle. ±1700 px/s maps to scaleX
+  // 1.22; 0 px/s (rest) maps to scaleX 1. Symmetric L/R.
+  const stretchTarget = useTransform(velocity, [-1700, 0, 1700], [1.22, 1, 1.22]);
+  // Critically-damped smoothing — the stretch settles fast at rest so
+  // the lens doesn't oscillate or hold a wide shape after landing.
+  const scaleX = useSpring(stretchTarget, { stiffness: 280, damping: 28, mass: 0.6 });
 
   // Reposition the lens whenever the active route or container size changes.
   useLayoutEffect(() => {
@@ -360,28 +360,31 @@ function LiquidLens({
         x,
         scaleX,
         opacity,
-        top: -4,
-        bottom: -4,
+        top: -8,
+        bottom: -8,
         left: 0,
         width: LENS_WIDTH,
         transformOrigin: 'center',
-        background: 'rgba(255, 255, 255, 0.16)',
-        backdropFilter: 'blur(22px) saturate(2.8) brightness(1.12)',
-        WebkitBackdropFilter: 'blur(22px) saturate(2.8) brightness(1.12)',
-        border: '0.5px solid rgba(255, 255, 255, 0.48)',
+        // Much brighter white tint — the lens MUST read as a distinct
+        // glass bubble against the dark bar, not a near-invisible patch.
+        background:
+          'radial-gradient(ellipse 80% 70% at 50% 25%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.22) 60%, rgba(255,255,255,0.16) 100%)',
+        backdropFilter: 'blur(20px) saturate(2.6) brightness(1.18)',
+        WebkitBackdropFilter: 'blur(20px) saturate(2.6) brightness(1.18)',
+        border: '1px solid rgba(255, 255, 255, 0.55)',
         boxShadow:
-          // Bright top specular — light catching the upper rim
-          'inset 0 2px 1px -1px rgba(255, 255, 255, 0.85),' +
+          // Strong top specular — light catching the upper rim
+          'inset 0 3px 1.5px -1px rgba(255, 255, 255, 1.0),' +
           // Soft inner bottom shadow — depth, the bottom curve
-          'inset 0 -2px 2px -1px rgba(0, 0, 0, 0.32),' +
+          'inset 0 -2px 3px -1px rgba(0, 0, 0, 0.40),' +
           // LEFT rim chromatic — warm red/orange refraction
-          'inset 1.5px 0 1px -0.5px rgba(255, 95, 110, 0.55),' +
+          'inset 2.5px 0 2px -1px rgba(255, 80, 110, 0.70),' +
           // RIGHT rim chromatic — cool cyan/blue refraction
-          'inset -1.5px 0 1px -0.5px rgba(95, 170, 255, 0.55),' +
+          'inset -2.5px 0 2px -1px rgba(80, 170, 255, 0.70),' +
           // Soft outer white halo — the magnifier's presence as it slides
-          '0 0 22px -4px rgba(255, 255, 255, 0.30),' +
+          '0 0 28px -4px rgba(255, 255, 255, 0.42),' +
           // Drop shadow grounds the disc above the bar
-          '0 6px 18px -6px rgba(0, 0, 0, 0.55)',
+          '0 8px 22px -6px rgba(0, 0, 0, 0.65)',
       }}
     />
   );
