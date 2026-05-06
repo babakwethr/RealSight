@@ -1041,106 +1041,102 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {FEATURE_CARDS.map((card) => {
-              const Icon = card.icon;
               const isFree = card.badge === 'Free';
               return (
                 <div key={card.id}
                   onClick={() => handleFeatureClick(card)}
-                  className="relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col"
+                  className="relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] flex flex-col aspect-[3/4]"
                 >
-                  {/* IMAGE at top of card — real photo or app screenshot.
-                      Aspect 16:9 for a calm, premium banner look. The accent
-                      colour glow blends the image into the card body below. */}
+                  {/* FULL-BLEED IMAGE — Urban-Company style. The image fills
+                      the card; text overlays it via gradient mask. No hard cut. */}
                   {card.image && (
-                    <div className="relative w-full aspect-[16/10] overflow-hidden">
-                      <img
-                        src={card.image}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        style={{ objectPosition: card.imageObjectPosition || 'center' }}
-                        draggable={false}
-                      />
-                      {/* Subtle accent-colour wash so the image picks up the
-                          card's brand colour at the edges — keeps the feel
-                          colourful rather than just photographic. */}
-                      <div
-                        className="absolute inset-0 mix-blend-soft-light pointer-events-none"
-                        style={{
-                          background: `linear-gradient(180deg, transparent 30%, ${card.accent}50 100%)`,
-                        }}
-                      />
-                      {/* Bottom gradient fade INTO the card body so the image
-                          dissolves smoothly instead of having a hard seam. */}
-                      <div
-                        aria-hidden="true"
-                        className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
-                        style={{
-                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 100%)',
-                        }}
-                      />
-                      {/* Free / Pro badge floats over the image's top-right */}
-                      <span
-                        className="absolute top-2.5 right-2.5 inline-flex items-center justify-center h-[22px] px-2.5 rounded-md text-[10px] font-black uppercase tracking-[0.08em] leading-none whitespace-nowrap z-10"
-                        style={
-                          isFree
-                            ? {
-                                color: '#022c1c',
-                                background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)',
-                                border: '1px solid rgba(46,255,192,0.85)',
-                                boxShadow: '0 4px 12px -3px rgba(46,255,192,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
-                              }
-                            : {
-                                color: '#2a1c00',
-                                background: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)',
-                                border: '1px solid rgba(201,168,76,0.9)',
-                                boxShadow: '0 4px 12px -3px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
-                              }
-                        }
-                      >
-                        {isFree ? 'Free' : 'Pro'}
-                      </span>
-                    </div>
+                    <img
+                      src={card.image}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      style={{ objectPosition: card.imageObjectPosition || 'center' }}
+                      draggable={false}
+                    />
                   )}
 
-                  {/* Card body — gradient background + text content */}
-                  <div className={`relative flex-1 flex flex-col bg-gradient-to-br ${card.gradient}`}>
-                    {/* Animated accent glow on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                      style={{ background: `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)` }} />
+                  {/* Per-card brand-colour wash — picks up the card's accent
+                      so each one has its own personality, not all greyscale. */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 pointer-events-none mix-blend-soft-light"
+                    style={{
+                      background: `linear-gradient(135deg, ${card.accent}55 0%, transparent 50%, ${card.accent}30 100%)`,
+                    }}
+                  />
 
-                    <div className="relative z-10 p-3.5 lg:p-5 flex flex-col h-full">
-                      {/* Header: icon (badge moved to image overlay) */}
-                      <div className="flex items-start justify-between mb-2 lg:mb-3">
-                        <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center border border-white/[0.14] shadow-[0_4px_14px_-4px_rgba(0,0,0,0.5)]"
-                          style={{ backgroundColor: `${card.accent}25` }}>
-                          <Icon className="h-4 w-4 lg:h-5 lg:w-5" style={{ color: card.accent }} />
-                        </div>
-                        {/* Hero metric — moved next to icon for compactness */}
-                        <div className="text-right">
-                          <p className="text-base lg:text-xl font-black text-white leading-none"
-                            style={{ textShadow: `0 0 18px ${card.accent}60` }}>
-                            {card.metric}
-                          </p>
-                          <p className="text-[9.5px] lg:text-[10.5px] font-semibold mt-0.5" style={{ color: `${card.accent}cc` }}>
-                            {card.metricSub}
-                          </p>
-                        </div>
-                      </div>
+                  {/* Soft bottom-up dark gradient — text legibility. Goes
+                      transparent at the top so the image stays bright there. */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        'linear-gradient(180deg,' +
+                        ' rgba(0,0,0,0.05) 0%,' +
+                        ' rgba(0,0,0,0.25) 35%,' +
+                        ' rgba(0,0,0,0.75) 75%,' +
+                        ' rgba(0,0,0,0.92) 100%)',
+                    }}
+                  />
 
-                      {/* Title + desc */}
-                      <h3 className="text-[12.5px] lg:text-sm font-bold text-white mb-1 lg:mb-1.5">{card.title}</h3>
-                      <p className="text-[10.5px] lg:text-xs text-white/65 leading-relaxed flex-1 line-clamp-2 lg:line-clamp-3">{card.desc}</p>
+                  {/* Animated accent glow on hover — subtle, only on hover */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{ background: `radial-gradient(circle at 30% 20%, ${card.accent}28 0%, transparent 65%)` }}
+                  />
 
-                      {/* CTA row — compact on mobile */}
-                      <div className="hidden lg:flex items-center justify-between mt-3 pt-3 border-t border-white/[0.08]">
-                        <span className="text-[10px] text-white/50 font-medium">{card.plan}</span>
-                        <div className="flex items-center gap-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-all duration-200" style={{ color: card.accent }}>
-                          Try now <ArrowRight className="h-3 w-3" />
-                        </div>
-                      </div>
-                    </div>
+                  {/* Free / Pro badge — top-right of the card, floating on
+                      the image. Same mint / gold treatment as before. */}
+                  <span
+                    className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center h-[22px] px-2.5 rounded-md text-[10px] font-black uppercase tracking-[0.08em] leading-none whitespace-nowrap"
+                    style={
+                      isFree
+                        ? {
+                            color: '#022c1c',
+                            background: 'linear-gradient(135deg, #2effc0 0%, #18d6a4 100%)',
+                            border: '1px solid rgba(46,255,192,0.85)',
+                            boxShadow: '0 4px 12px -3px rgba(46,255,192,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+                          }
+                        : {
+                            color: '#2a1c00',
+                            background: 'linear-gradient(135deg, #ffe084 0%, #c9a84c 100%)',
+                            border: '1px solid rgba(201,168,76,0.9)',
+                            boxShadow: '0 4px 12px -3px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.45)',
+                          }
+                    }
+                  >
+                    {isFree ? 'Free' : 'Pro'}
+                  </span>
+
+                  {/* TEXT OVERLAY — sits at the bottom of the card on top of
+                      the dark gradient. Eyebrow (small accent caps) → metric
+                      → title. No icon. */}
+                  <div className="absolute bottom-0 left-0 right-0 z-10 p-3.5 lg:p-4">
+                    <p
+                      className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.18em] mb-1.5"
+                      style={{
+                        color: card.accent,
+                        textShadow: '0 1px 6px rgba(0,0,0,0.6)',
+                      }}
+                    >
+                      {card.metric} · {card.metricSub}
+                    </p>
+                    <h3 className="text-[14px] lg:text-base font-black text-white leading-tight mb-1"
+                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.55)' }}>
+                      {card.title}
+                    </h3>
+                    <p className="text-[10.5px] lg:text-[11.5px] text-white/75 leading-snug line-clamp-2"
+                       style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+                      {card.desc}
+                    </p>
                   </div>
                 </div>
               );
