@@ -107,7 +107,14 @@ function WatchlistContent() {
 
   const renderEmptyState = (type: string) => (
     <div className="glass-panel p-8 text-center">
-      <Bookmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+      <img
+        src="/images/empty/watchlist-empty.webp"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        aria-hidden="true"
+        className="w-32 h-32 sm:w-40 sm:h-40 mx-auto mb-3 select-none"
+      />
       <p className="text-muted-foreground text-sm mb-1">No saved {type} yet</p>
       <p className="text-muted-foreground/60 text-xs mb-4">
         Save {type} from other pages, or add them manually here

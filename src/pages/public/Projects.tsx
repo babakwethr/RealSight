@@ -222,6 +222,14 @@ export default function Projects() {
 
       {isFullyLoaded && !error && filteredProjects.length === 0 && (
         <div className="py-20 text-center glass-panel rounded-2xl border border-glass-border">
+          <img
+            src="/images/empty/no-results.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            aria-hidden="true"
+            className="w-36 h-36 sm:w-44 sm:h-44 mx-auto mb-4 select-none"
+          />
           <h3 className="text-lg font-medium text-foreground mb-2">No projects found</h3>
           <p className="text-sm text-foreground/60 mb-6">Adjust your filters to see more results.</p>
           <Button onClick={() => setFilters(INITIAL_FILTERS)} variant="outline">
