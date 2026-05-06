@@ -132,13 +132,11 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   const x = useMotionValue(0);
   const opacity = useMotionValue(0);
   const velocity = useVelocity(x);
-  // Velocity-driven horizontal stretch — v9, gentler max so the lens
-  // never looks like a stretched rectangle. ±1700 px/s maps to scaleX
-  // 1.22; 0 px/s (rest) maps to scaleX 1. Symmetric L/R.
-  const stretchTarget = useTransform(velocity, [-1700, 0, 1700], [1.22, 1, 1.22]);
-  // Critically-damped smoothing — the stretch settles fast at rest so
-  // the lens doesn't oscillate or hold a wide shape after landing.
-  const scaleX = useSpring(stretchTarget, { stiffness: 280, damping: 28, mass: 0.6 });
+  // Subtle velocity-driven stretch — gives the pill a hint of liquid
+  // motion as it slides, but never enough to read as a magnifier or
+  // stretched rectangle. Max scaleX 1.12 at full speed.
+  const stretchTarget = useTransform(velocity, [-1800, 0, 1800], [1.12, 1, 1.12]);
+  const scaleX = useSpring(stretchTarget, { stiffness: 300, damping: 30, mass: 0.5 });
 
   // Reposition the lens whenever the active route or container size changes.
   useLayoutEffect(() => {
@@ -330,18 +328,16 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
 /* -------------------------------- BITS -------------------------------- */
 
 /**
- * The Liquid Lens — a single magnifier bubble whose position and
- * horizontal stretch are driven by the parent's motion values.
+ * The Liquid Lens — v10, a clean glass capsule. No magnifier, no
+ * chromatic aberration, no outer halo. Just a translucent pill that
+ * slides between tabs with a hint of liquid stretch.
  *
- * Visual recipe (matches the WhatsApp iOS-26 reference):
- *   - Oval, 60×80 (taller than the bar so it bleeds top + bottom).
- *   - Soft white background tint over a strong backdrop blur + saturate
- *     for the magnifier feel.
- *   - 0.5 px white rim.
- *   - Bright top specular highlight; soft bottom inner shadow for depth.
- *   - Side-rim chromatic aberration (warm red on the left, cool cyan on
- *     the right) — visible most clearly while the lens is in flight.
- *   - Soft outer halo + drop shadow grounds the disc above the bar.
+ * Visual recipe:
+ *   - Oval, 60×56, sitting fully INSIDE the bar (no overflow).
+ *   - Soft white tint (~10%) over a backdrop blur + light saturate.
+ *   - 1 px white rim at low opacity for definition.
+ *   - One thin top inner highlight — the glass-rim cue, nothing more.
+ *   - No bright wash, no chromatic, no halo, no drop shadow.
  */
 function LiquidLens({
   x,
@@ -360,31 +356,18 @@ function LiquidLens({
         x,
         scaleX,
         opacity,
-        top: -8,
-        bottom: -8,
+        top: 8,
+        bottom: 8,
         left: 0,
         width: LENS_WIDTH,
         transformOrigin: 'center',
-        // Much brighter white tint — the lens MUST read as a distinct
-        // glass bubble against the dark bar, not a near-invisible patch.
-        background:
-          'radial-gradient(ellipse 80% 70% at 50% 25%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.22) 60%, rgba(255,255,255,0.16) 100%)',
-        backdropFilter: 'blur(20px) saturate(2.6) brightness(1.18)',
-        WebkitBackdropFilter: 'blur(20px) saturate(2.6) brightness(1.18)',
-        border: '1px solid rgba(255, 255, 255, 0.55)',
+        background: 'rgba(255, 255, 255, 0.10)',
+        backdropFilter: 'blur(18px) saturate(1.8)',
+        WebkitBackdropFilter: 'blur(18px) saturate(1.8)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
         boxShadow:
-          // Strong top specular — light catching the upper rim
-          'inset 0 3px 1.5px -1px rgba(255, 255, 255, 1.0),' +
-          // Soft inner bottom shadow — depth, the bottom curve
-          'inset 0 -2px 3px -1px rgba(0, 0, 0, 0.40),' +
-          // LEFT rim chromatic — warm red/orange refraction
-          'inset 2.5px 0 2px -1px rgba(255, 80, 110, 0.70),' +
-          // RIGHT rim chromatic — cool cyan/blue refraction
-          'inset -2.5px 0 2px -1px rgba(80, 170, 255, 0.70),' +
-          // Soft outer white halo — the magnifier's presence as it slides
-          '0 0 28px -4px rgba(255, 255, 255, 0.42),' +
-          // Drop shadow grounds the disc above the bar
-          '0 8px 22px -6px rgba(0, 0, 0, 0.65)',
+          // Single thin top inner highlight — the only "glass" cue.
+          'inset 0 1px 0 rgba(255, 255, 255, 0.32)',
       }}
     />
   );
