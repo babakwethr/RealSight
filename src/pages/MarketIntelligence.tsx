@@ -59,6 +59,7 @@ function getCardAccent(yoy: number, yield_: number) {
     stroke: '#22C55E',
     glow: 'rgba(16, 185, 129, 0.95)',
     glowSecondary: 'rgba(20, 184, 166, 0.80)',
+    primary: 'from-emerald-400 to-teal-500',
     label: 'High Growth',
   };
   if (yoy >= 10) return {
@@ -68,6 +69,7 @@ function getCardAccent(yoy: number, yield_: number) {
     stroke: '#3B82F6',
     glow: 'rgba(59, 130, 246, 0.95)',
     glowSecondary: 'rgba(99, 102, 241, 0.80)',
+    primary: 'from-blue-400 to-cyan-500',
     label: 'Growth',
   };
   if (yield_ >= 7) return {
@@ -77,6 +79,7 @@ function getCardAccent(yoy: number, yield_: number) {
     stroke: '#A855F7',
     glow: 'rgba(139, 92, 246, 0.95)',
     glowSecondary: 'rgba(168, 85, 247, 0.80)',
+    primary: 'from-violet-400 to-purple-500',
     label: 'High Yield',
   };
   return {
@@ -86,83 +89,202 @@ function getCardAccent(yoy: number, yield_: number) {
     stroke: '#64748B',
     glow: 'rgba(100, 116, 139, 0.85)',
     glowSecondary: 'rgba(148, 163, 184, 0.65)',
+    primary: 'from-slate-300 to-slate-400',
     label: 'Stable',
   };
 }
 
 /**
- * No-photo card decoration.
+ * NoPhotoAreaCard — faithful V3 + V2 implementation from the 21st.dev
+ * Magic MCP session (7 May 2026, locked design).
  *
- * The 21st.dev pick (7 May 2026): Variant 3 structure — grid pattern +
- * rotating geometric shapes — combined with Variant 2's bottom-corner
- * radial-gradient glow. Pure CSS / SVG. No per-area imagery. Scales
- * infinitely as DLD areas grow from 11 → 150+.
+ * Babak picked Variant 3's STRUCTURE (grid pattern, rotating geometric
+ * shapes, icon badge, big gradient metric, 3 sub-metric tiles, mini
+ * bar chart, bottom-line glow) and asked for Variant 2's GRADIENT
+ * COLOURS (the bottom-corner radial-glow gradient that floods the
+ * card with accent colour from below).
+ *
+ * Only used for areas without a curated photo. The 11 areas with
+ * photos (Marina, Downtown, Palm, JVC, etc.) keep the photo treatment.
+ * Scales to 150+ DLD areas without per-area imagery.
  */
-function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent> }) {
+function NoPhotoAreaCard({
+  area,
+  rank,
+  accent,
+  yoy,
+  pos,
+  trend,
+  minV,
+  maxV,
+  onClick,
+}: {
+  area: any;
+  rank?: number;
+  accent: ReturnType<typeof getCardAccent>;
+  yoy: number;
+  pos: boolean;
+  trend: { v: number }[];
+  minV: number;
+  maxV: number;
+  onClick: () => void;
+}) {
   return (
-    <>
-      {/* Variant 3 — grid pattern, more visible */}
-      <svg
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full opacity-50 pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <pattern id="area-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-white/30" />
-          </pattern>
-          <linearGradient id="area-grid-fade" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="white" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#area-grid)" />
-        <rect width="100%" height="100%" fill="url(#area-grid-fade)" />
-      </svg>
+    <div
+      onClick={onClick}
+      className={cn(
+        'relative w-full rounded-2xl overflow-hidden cursor-pointer group',
+        'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950',
+        'border shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:-translate-y-1 transition-all duration-200',
+        accent.border,
+      )}
+    >
+      {/* V3 — Decorative grid pattern, faded toward bottom */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id={`grid-${area.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
+            </pattern>
+            <linearGradient id={`fade-${area.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="white" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#grid-${area.id})`} />
+          <rect width="100%" height="100%" fill={`url(#fade-${area.id})`} />
+        </svg>
+      </div>
 
-      {/* Variant 3 — large blurred circular blob, top-right, accent-tinted */}
-      <div
-        aria-hidden="true"
-        className="absolute -top-4 -right-4 w-48 h-48 rounded-full opacity-90 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle, ${accent.glow}, transparent 70%)`,
-          filter: 'blur(40px)',
-        }}
-      />
+      {/* V3 — Decorative geometric shapes, top-right corner */}
+      <div className="absolute top-0 right-0 w-64 h-64 opacity-20 pointer-events-none">
+        <div
+          className="absolute top-8 right-8 w-32 h-32 rounded-full"
+          style={{
+            background: accent.glow,
+            filter: 'blur(40px)',
+            boxShadow: `0 0 80px ${accent.glow}`,
+          }}
+        />
+        <div
+          className="absolute top-16 right-16 w-24 h-24 border border-gray-700/30 rounded-lg"
+          style={{ transform: 'rotate(45deg)' }}
+        />
+      </div>
 
-      {/* Variant 3 — rotated square outline, brighter */}
+      {/* V2 — bottom-corner radial-gradient glow (the colourful "glow
+          from below" the user wanted from V2). Sits ABOVE the V3
+          decoration but BEHIND the content. */}
       <div
-        aria-hidden="true"
-        className="absolute top-10 right-8 w-24 h-24 border-2 border-white/25 rounded-lg pointer-events-none"
-        style={{ transform: 'rotate(45deg)' }}
-      />
-
-      {/* Variant 2 — DRAMATIC bottom-corner glow. The signature element
-          of V2. Two ellipses bleeding from the bottom corners, full
-          accent saturation, blurred to read as ambient lighting flooding
-          up the card from below. */}
-      <div
-        aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 top-1/3 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 90% 75% at 90% 100%, ${accent.glow} -20%, transparent 60%),
-            radial-gradient(ellipse 90% 75% at 10% 100%, ${accent.glowSecondary} -20%, transparent 60%)
+            radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%),
+            radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)
           `,
-          filter: 'blur(30px)',
+          filter: 'blur(50px)',
         }}
       />
 
-      {/* Variant 2 — bottom border glow line, very bright */}
+      {/* V3 — Card content */}
+      <div className="relative z-10 p-5 sm:p-6">
+        {/* Header — icon badge + name/sub + change pill */}
+        <div className="flex items-start justify-between gap-3 mb-5">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div
+              className="p-2.5 rounded-xl border shrink-0"
+              style={{
+                background: `${accent.stroke}1F`,
+                borderColor: `${accent.stroke}55`,
+                color: accent.stroke,
+              }}
+            >
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-[15px] sm:text-base font-semibold text-gray-100 leading-[1.15] line-clamp-2">{area.name}</h3>
+              <p className="text-[10px] text-gray-500 mt-0.5 truncate">Dubai, UAE</p>
+            </div>
+          </div>
+          <div
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0"
+            style={{
+              background: `${accent.stroke}1F`,
+              color: accent.stroke,
+            }}
+          >
+            {pos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {pos ? '+' : ''}{yoy.toFixed(1)}%
+          </div>
+        </div>
+
+        {/* Main metric — Price/sqft with gradient text */}
+        <div className="mb-5">
+          <p className="text-xs text-gray-400 mb-1">Price / sqft</p>
+          <h2 className={cn(
+            'text-3xl sm:text-4xl font-black bg-gradient-to-r bg-clip-text text-transparent leading-none',
+            accent.primary,
+          )}>
+            AED {fmtNum(area.avg_price_per_sqft_current)}
+          </h2>
+        </div>
+
+        {/* 3 sub-metric tiles, each with its own bg + border (V3 pattern) */}
+        <div className="grid grid-cols-3 gap-2 mb-5">
+          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
+            <p className="text-[10px] text-gray-500 mb-0.5">Yield</p>
+            <p className="text-base font-semibold text-emerald-400">{area.rental_yield_avg?.toFixed(1)}%</p>
+          </div>
+          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
+            <p className="text-[10px] text-gray-500 mb-0.5">Volume</p>
+            <p className="text-base font-semibold text-gray-100">{area.transaction_volume_30d || 0}</p>
+          </div>
+          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
+            <p className="text-[10px] text-gray-500 mb-0.5">Demand</p>
+            <p className="text-base font-semibold" style={{ color: accent.stroke }}>{area.demand_score || 50}<span className="text-gray-500 text-xs">/100</span></p>
+          </div>
+        </div>
+
+        {/* Mini bar chart from real trend data — last bar accent-tinted */}
+        <div className="flex items-end gap-1.5 h-12 mb-3">
+          {trend.map((d, i) => {
+            const range = (maxV - minV) || 1;
+            const heightPct = ((d.v - minV) / range) * 80 + 20;
+            const isLatest = i === trend.length - 1;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  'flex-1 rounded-t-sm',
+                  isLatest ? `bg-gradient-to-t ${accent.primary}` : 'bg-gray-700/40',
+                )}
+                style={{ height: `${heightPct}%` }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Footer — rank badge if top-3, else just a thin divider */}
+        {rank && rank <= 3 ? (
+          <div className="flex items-center gap-1.5 pt-3 border-t border-gray-800/50">
+            <Crown className="w-3 h-3 text-amber-400" />
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">#{rank} Top Area</span>
+          </div>
+        ) : (
+          <div className="pt-3 border-t border-gray-800/50">
+            <span className="text-[10px] text-gray-500">Live · DLD verified</span>
+          </div>
+        )}
+      </div>
+
+      {/* V3 — Bottom-line glow, accent-coloured */}
       <div
-        aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 h-[3px] pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
         style={{
           background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
-          boxShadow: `0 0 28px 6px ${accent.glow}, 0 0 16px 3px ${accent.glow}`,
         }}
       />
-    </>
+    </div>
   );
 }
 
@@ -223,9 +345,28 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             />
           </>
         )}
-        {/* No-photo branch — Variant 3 + Variant 2 glow decoration
-            (locked via 21st.dev Magic MCP, 7 May 2026). */}
-        {!photo && <NoPhotoDecoration accent={accent} />}
+        {/* No-photo hero — V3 grid pattern + V2 bottom-corner glow. */}
+        {!photo && (
+          <>
+            <div className="absolute inset-0 opacity-30 pointer-events-none">
+              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id={`hero-grid-${area.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
+                    <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill={`url(#hero-grid-${area.id})`} />
+              </svg>
+            </div>
+            <div
+              className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%), radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)`,
+                filter: 'blur(50px)',
+              }}
+            />
+          </>
+        )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
           <div className="flex-1 min-w-0">
@@ -270,13 +411,30 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
     );
   }
 
+  // No-photo cards use the V3 + V2 layout from 21st.dev (locked 7 May 2026).
+  // Photo cards keep the photo-as-background treatment.
+  if (!photo) {
+    return (
+      <NoPhotoAreaCard
+        area={area}
+        rank={rank}
+        accent={accent}
+        yoy={yoy}
+        pos={pos}
+        trend={trend}
+        minV={minV}
+        maxV={maxV}
+        onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
+      />
+    );
+  }
+
   return (
     <div
       onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
       className={cn(
         'relative rounded-2xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-200 border shadow-[0_4px_24px_rgba(0,0,0,0.2)]',
         accent.border,
-        !photo && `bg-gradient-to-br ${accent.bg}`,
       )}
     >
       {/* District photo as a low-opacity full-card background — replaces
@@ -307,10 +465,7 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
       {/* No-photo branch — shared decorative SVG so areas without a
           curated photo (the long tail once DLD lands ~150+ areas) still
           look intentional, not stripped down. Pure SVG, zero per-area
-          cost, scales to any number of areas. The accent stroke colour
-          tints the contour lines so each performance bucket stays
-          visually distinct. */}
-      {!photo && <NoPhotoDecoration accent={accent} />}
+          cost, scales to any number of areas. */}
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="relative p-5">
 
