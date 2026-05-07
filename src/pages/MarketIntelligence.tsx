@@ -16,7 +16,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import {
   TrendingUp, TrendingDown, Activity, BarChart3,
   Crown, Building, ArrowRight, Zap, MapPin,
-  Shield, Lock, Sparkles, Target,
+  Shield, Lock, Sparkles, Target, Home, DollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -95,23 +95,76 @@ function getCardAccent(yoy: number, yield_: number) {
 }
 
 /**
+ * Rotating accent palette for no-photo cards. Per Babak's 7 May 2026
+ * feedback: "I like it the way it is done with different colors, so each
+ * card could be a different color." Hashed by area.name so every area
+ * stably gets the same colour every render. Independent of the
+ * performance-bucket logic used elsewhere — visual variety wins here.
+ */
+const ROTATING_PALETTE = [
+  {
+    stroke: '#22C55E',
+    glow: 'rgba(16, 185, 129, 0.95)',
+    glowSecondary: 'rgba(20, 184, 166, 0.80)',
+    primary: 'from-emerald-400 to-teal-500',
+    text: 'text-emerald-400',
+    badgeBg: 'rgba(16, 185, 129, 0.15)',
+    badgeBorder: 'rgba(16, 185, 129, 0.40)',
+  },
+  {
+    stroke: '#4AA8FF',
+    glow: 'rgba(59, 130, 246, 0.95)',
+    glowSecondary: 'rgba(99, 102, 241, 0.80)',
+    primary: 'from-blue-400 to-cyan-500',
+    text: 'text-blue-400',
+    badgeBg: 'rgba(59, 130, 246, 0.15)',
+    badgeBorder: 'rgba(59, 130, 246, 0.40)',
+  },
+  {
+    stroke: '#A855F7',
+    glow: 'rgba(139, 92, 246, 0.95)',
+    glowSecondary: 'rgba(168, 85, 247, 0.80)',
+    primary: 'from-violet-400 to-purple-500',
+    text: 'text-violet-400',
+    badgeBg: 'rgba(139, 92, 246, 0.15)',
+    badgeBorder: 'rgba(139, 92, 246, 0.40)',
+  },
+  {
+    stroke: '#F59E0B',
+    glow: 'rgba(245, 158, 11, 0.95)',
+    glowSecondary: 'rgba(251, 146, 60, 0.80)',
+    primary: 'from-amber-400 to-orange-500',
+    text: 'text-amber-400',
+    badgeBg: 'rgba(245, 158, 11, 0.15)',
+    badgeBorder: 'rgba(245, 158, 11, 0.40)',
+  },
+];
+
+function rotatingPalette(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  return ROTATING_PALETTE[Math.abs(hash) % ROTATING_PALETTE.length];
+}
+
+/**
  * NoPhotoAreaCard — faithful V3 + V2 implementation from the 21st.dev
  * Magic MCP session (7 May 2026, locked design).
  *
  * Babak picked Variant 3's STRUCTURE (grid pattern, rotating geometric
  * shapes, icon badge, big gradient metric, 3 sub-metric tiles, mini
- * bar chart, bottom-line glow) and asked for Variant 2's GRADIENT
- * COLOURS (the bottom-corner radial-glow gradient that floods the
- * card with accent colour from below).
+ * bar chart, bottom-line glow) + Variant 2's GRADIENT COLOURS (the
+ * bottom-corner radial-glow gradient flooding the card from below).
  *
- * Only used for areas without a curated photo. The 11 areas with
- * photos (Marina, Downtown, Palm, JVC, etc.) keep the photo treatment.
+ * Each card's accent is rotated by area-name hash (mint / cobalt /
+ * violet / amber). Stable per area. Only used for areas without a
+ * curated photo — the 11 photo-areas keep their photo treatment.
  * Scales to 150+ DLD areas without per-area imagery.
  */
 function NoPhotoAreaCard({
   area,
   rank,
-  accent,
   yoy,
   pos,
   trend,
@@ -129,17 +182,20 @@ function NoPhotoAreaCard({
   maxV: number;
   onClick: () => void;
 }) {
+  // Each area gets a stable but rotated colour from mint/cobalt/violet/amber.
+  const palette = rotatingPalette(area.name || area.id);
+
   return (
     <div
       onClick={onClick}
       className={cn(
         'relative w-full rounded-2xl overflow-hidden cursor-pointer group',
         'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950',
-        'border shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:-translate-y-1 transition-all duration-200',
-        accent.border,
+        'border border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
+        'hover:-translate-y-1 transition-all duration-200',
       )}
     >
-      {/* V3 — Decorative grid pattern, faded toward bottom */}
+      {/* V3 — grid pattern, faded toward bottom */}
       <div className="absolute inset-0 opacity-30 pointer-events-none">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -156,14 +212,14 @@ function NoPhotoAreaCard({
         </svg>
       </div>
 
-      {/* V3 — Decorative geometric shapes, top-right corner */}
+      {/* V3 — geometric shapes top-right (blurred blob + rotated square) */}
       <div className="absolute top-0 right-0 w-64 h-64 opacity-20 pointer-events-none">
         <div
           className="absolute top-8 right-8 w-32 h-32 rounded-full"
           style={{
-            background: accent.glow,
+            background: palette.glow,
             filter: 'blur(40px)',
-            boxShadow: `0 0 80px ${accent.glow}`,
+            boxShadow: `0 0 80px ${palette.glow}`,
           }}
         />
         <div
@@ -172,46 +228,43 @@ function NoPhotoAreaCard({
         />
       </div>
 
-      {/* V2 — bottom-corner radial-gradient glow (the colourful "glow
-          from below" the user wanted from V2). Sits ABOVE the V3
-          decoration but BEHIND the content. */}
+      {/* V2 — bottom-corner radial glow (the colourful flood from below) */}
       <div
         className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%),
-            radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)
+            radial-gradient(ellipse at bottom right, ${palette.glow} -10%, transparent 70%),
+            radial-gradient(ellipse at bottom left, ${palette.glowSecondary} -10%, transparent 70%)
           `,
           filter: 'blur(50px)',
         }}
       />
 
-      {/* V3 — Card content */}
-      <div className="relative z-10 p-5 sm:p-6">
-        {/* Header — icon badge + name/sub + change pill */}
+      {/* V3 — content */}
+      <div className="relative z-10 p-4 sm:p-5">
+        {/* Header — icon badge + name + change pill */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div
-              className="p-2.5 rounded-xl border shrink-0"
+              className={cn('p-2.5 rounded-xl border shrink-0', palette.text)}
               style={{
-                background: `${accent.stroke}1F`,
-                borderColor: `${accent.stroke}55`,
-                color: accent.stroke,
+                background: palette.badgeBg,
+                borderColor: palette.badgeBorder,
               }}
             >
               <MapPin className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] sm:text-base font-semibold text-gray-100 leading-[1.15] line-clamp-2">{area.name}</h3>
+              <h3 className="text-[15px] sm:text-base font-semibold text-gray-100 leading-[1.2] line-clamp-2">{area.name}</h3>
               <p className="text-[10px] text-gray-500 mt-0.5 truncate">Dubai, UAE</p>
             </div>
           </div>
           <div
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0"
-            style={{
-              background: `${accent.stroke}1F`,
-              color: accent.stroke,
-            }}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0',
+              palette.text,
+            )}
+            style={{ background: palette.badgeBg }}
           >
             {pos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {pos ? '+' : ''}{yoy.toFixed(1)}%
@@ -222,41 +275,41 @@ function NoPhotoAreaCard({
         <div className="mb-5">
           <p className="text-xs text-gray-400 mb-1">Price / sqft</p>
           <h2 className={cn(
-            'text-3xl sm:text-4xl font-black bg-gradient-to-r bg-clip-text text-transparent leading-none',
-            accent.primary,
+            'text-3xl sm:text-[34px] font-black bg-gradient-to-r bg-clip-text text-transparent leading-none',
+            palette.primary,
           )}>
             AED {fmtNum(area.avg_price_per_sqft_current)}
           </h2>
         </div>
 
-        {/* 3 sub-metric tiles, each with its own bg + border (V3 pattern) */}
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        {/* 3 sub-metric tiles */}
+        <div className="grid grid-cols-3 gap-2.5 mb-5">
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-0.5">Yield</p>
+            <p className="text-[10px] text-gray-500 mb-1">Yield</p>
             <p className="text-base font-semibold text-emerald-400">{area.rental_yield_avg?.toFixed(1)}%</p>
           </div>
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-0.5">Volume</p>
-            <p className="text-base font-semibold text-gray-100">{area.transaction_volume_30d || 0}</p>
+            <p className="text-[10px] text-gray-500 mb-1">Volume</p>
+            <p className="text-base font-semibold text-gray-200">{area.transaction_volume_30d || 0}</p>
           </div>
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-0.5">Demand</p>
-            <p className="text-base font-semibold" style={{ color: accent.stroke }}>{area.demand_score || 50}<span className="text-gray-500 text-xs">/100</span></p>
+            <p className="text-[10px] text-gray-500 mb-1">Demand</p>
+            <p className={cn('text-base font-semibold', palette.text)}>{area.demand_score || 50}<span className="text-gray-500 text-xs">/100</span></p>
           </div>
         </div>
 
-        {/* Mini bar chart from real trend data — last bar accent-tinted */}
-        <div className="flex items-end gap-1.5 h-12 mb-3">
+        {/* Mini bar chart — V3 pattern, highlighted bar in card's accent */}
+        <div className="flex items-end gap-1.5 h-12 mb-4">
           {trend.map((d, i) => {
             const range = (maxV - minV) || 1;
             const heightPct = ((d.v - minV) / range) * 80 + 20;
-            const isLatest = i === trend.length - 1;
+            const isHighlight = i === trend.length - 1;
             return (
               <div
                 key={i}
                 className={cn(
                   'flex-1 rounded-t-sm',
-                  isLatest ? `bg-gradient-to-t ${accent.primary}` : 'bg-gray-700/40',
+                  isHighlight ? `bg-gradient-to-t ${palette.primary}` : 'bg-gray-700/40',
                 )}
                 style={{ height: `${heightPct}%` }}
               />
@@ -264,24 +317,37 @@ function NoPhotoAreaCard({
           })}
         </div>
 
-        {/* Footer — rank badge if top-3, else just a thin divider */}
-        {rank && rank <= 3 ? (
-          <div className="flex items-center gap-1.5 pt-3 border-t border-gray-800/50">
-            <Crown className="w-3 h-3 text-amber-400" />
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">#{rank} Top Area</span>
+        {/* Footer — V3 reference: home icon + "Updated X" + View Details */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500 min-w-0">
+            {rank && rank <= 3 ? (
+              <>
+                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-amber-400 font-semibold truncate">#{rank} Top Area</span>
+              </>
+            ) : (
+              <>
+                <Home className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Live · DLD verified</span>
+              </>
+            )}
           </div>
-        ) : (
-          <div className="pt-3 border-t border-gray-800/50">
-            <span className="text-[10px] text-gray-500">Live · DLD verified</span>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-gray-100 border border-gray-700/50 transition-all duration-200 shrink-0"
+          >
+            <DollarSign className="w-3 h-3" />
+            View Details
+          </button>
+        </div>
       </div>
 
-      {/* V3 — Bottom-line glow, accent-coloured */}
+      {/* V3 — bottom-line glow, accent-coloured */}
       <div
         className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
         style={{
-          background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${palette.glow}, transparent)`,
         }}
       />
     </div>
