@@ -191,6 +191,42 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
           />
         </>
       )}
+      {/* No-photo branch — shared decorative SVG so areas without a
+          curated photo (the long tail once DLD lands ~150+ areas) still
+          look intentional, not stripped down. Pure SVG, zero per-area
+          cost, scales to any number of areas. The accent stroke colour
+          tints the contour lines so each performance bucket stays
+          visually distinct. */}
+      {!photo && (
+        <svg
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full opacity-60 pointer-events-none"
+          viewBox="0 0 320 220"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <radialGradient id={`area-glow-${area.id}`} cx="0.85" cy="0.95" r="0.7">
+              <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.22" />
+              <stop offset="100%" stopColor={accent.stroke} stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          {/* Soft accent glow anchored at the bottom-right corner */}
+          <rect width="320" height="220" fill={`url(#area-glow-${area.id})`} />
+          {/* Topographic / contour curves — abstract 'mapping' feel */}
+          <g stroke={accent.stroke} strokeWidth="0.6" fill="none" opacity="0.30">
+            <path d="M -20 70 Q 80 50, 160 80 T 340 60" />
+            <path d="M -20 100 Q 80 80, 160 110 T 340 90" />
+            <path d="M -20 130 Q 80 110, 160 140 T 340 120" />
+            <path d="M -20 160 Q 80 140, 160 170 T 340 150" />
+            <path d="M -20 190 Q 80 170, 160 200 T 340 180" />
+          </g>
+          {/* A pair of brighter top-edge waves for hierarchy */}
+          <g stroke={accent.stroke} strokeWidth="0.8" fill="none" opacity="0.55">
+            <path d="M -20 40 Q 80 20, 160 50 T 340 30" />
+            <path d="M -20 55 Q 80 35, 160 65 T 340 45" strokeOpacity="0.35" />
+          </g>
+        </svg>
+      )}
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="relative p-5">
 

@@ -43,8 +43,6 @@ interface ShortcutCard {
   title: string;
   description: string;
   accent: string;
-  /** Slug under /images/admin/{slug}.webp — Lane B mint-accent illustration. */
-  illustration: string;
 }
 
 const SHORTCUTS: ShortcutCard[] = [
@@ -54,7 +52,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Investors',
     description: 'Onboard, manage and switch between every client in your workspace.',
     accent: '#7B5CFF',
-    illustration: 'investors',
   },
   {
     to: '/admin/users',
@@ -62,7 +59,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'User Roles',
     description: 'Add team members and control who has admin or read-only access.',
     accent: '#4AA8FF',
-    illustration: 'user-roles',
   },
   {
     to: '/admin/monthly-picks',
@@ -70,7 +66,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Top Picks',
     description: 'Curate monthly investment recommendations to push to all clients.',
     accent: '#FFD25E',
-    illustration: 'top-picks',
   },
   {
     to: '/admin/inventory',
@@ -78,7 +73,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Portal Inventory',
     description: 'Choose which off-plan projects appear inside your branded portal.',
     accent: '#18D6A4',
-    illustration: 'portal-inventory',
   },
   {
     to: '/admin/projects',
@@ -86,7 +80,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Manual Inventory',
     description: 'Add bespoke listings the public feeds don\'t cover (resale, exclusives).',
     accent: '#F472B6',
-    illustration: 'manual-inventory',
   },
   {
     to: '/admin/dld-analytics',
@@ -94,7 +87,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'DLD Analytics',
     description: 'Direct queries into the Dubai transaction database — your own ad-hoc cuts.',
     accent: '#22C55E',
-    illustration: 'dld-analytics',
   },
   {
     to: '/admin/market-pulse',
@@ -102,7 +94,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Market Pulse',
     description: 'Real-time area-level activity, momentum and inventory tightness signals.',
     accent: '#F59E0B',
-    illustration: 'market-pulse',
   },
   {
     to: '/admin/market-index',
@@ -110,7 +101,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Market Index',
     description: 'Composite score per area — the number you publish to your investors.',
     accent: '#8B5CF6',
-    illustration: 'market-index',
   },
   {
     to: '/admin/settings',
@@ -118,7 +108,6 @@ const SHORTCUTS: ShortcutCard[] = [
     title: 'Workspace Settings',
     description: 'Branding, subdomain, AI concierge persona and welcome message.',
     accent: '#9CA3AF',
-    illustration: 'settings',
   },
 ];
 
@@ -418,49 +407,70 @@ function KpiTile({
   );
 }
 
-function ShortcutTile({ to, icon: Icon, title, description, accent, illustration }: ShortcutCard) {
+function ShortcutTile({ to, icon: Icon, title, description, accent }: ShortcutCard) {
   return (
     <Link
       to={to}
-      className="group relative flex flex-col rounded-2xl p-3.5 sm:p-5 lg:p-6 overflow-hidden transition-all duration-200 hover:-translate-y-1 min-h-[124px] sm:min-h-[160px]"
+      className="group relative flex flex-col rounded-2xl pl-5 pr-4 py-4 sm:pl-6 sm:pr-5 sm:py-5 lg:pl-7 lg:pr-6 lg:py-6 overflow-hidden transition-all duration-200 hover:-translate-y-1 min-h-[136px] sm:min-h-[176px]"
       style={{
         background:
           'linear-gradient(160deg, rgba(255,255,255,0.05), rgba(15,18,40,0.85))',
         border: '1px solid rgba(255,255,255,0.07)',
       }}
     >
-      {/* Hover halo — accent-coloured glow that fades in */}
+      {/* Left-edge accent rail — 2 px stripe tinted with the card's
+          accent colour. Gives each card a clean stripe of identity
+          without any decorative graphic. */}
       <div
         aria-hidden="true"
-        className="absolute -top-12 -right-10 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full transition-opacity duration-200 group-hover:opacity-100 opacity-75"
+        style={{
+          background: `linear-gradient(180deg, ${accent}00, ${accent}, ${accent}00)`,
+          boxShadow: `0 0 12px 0 ${accent}80`,
+        }}
+      />
+
+      {/* Hover halo — accent-coloured glow that fades in (kept for warmth) */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-14 -right-12 w-44 h-44 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{ background: `${accent}40` }}
       />
 
-      <div className="relative flex items-start gap-2 sm:gap-3 mb-2 sm:mb-4">
+      {/* Header row — bigger dimensional icon + breathing room */}
+      <div className="relative flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
         <div
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 relative overflow-hidden"
           style={{
-            background: `${accent}1F`,
-            border: `1px solid ${accent}40`,
+            background: `linear-gradient(160deg, ${accent}33 0%, ${accent}14 100%)`,
+            border: `1px solid ${accent}45`,
             color: accent,
-            boxShadow: `0 4px 18px -6px ${accent}55`,
+            boxShadow: `0 6px 20px -6px ${accent}66, inset 0 1px 0 rgba(255,255,255,0.18)`,
           }}
         >
-          <Icon className="h-4 w-4" />
+          {/* Inner specular highlight — adds dimensionality without adding graphics */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,0.22) 0%, transparent 55%)`,
+            }}
+          />
+          <Icon className="relative h-6 w-6 sm:h-7 sm:w-7" strokeWidth={1.75} />
         </div>
         <h3
-          className="text-[14px] sm:text-base font-black tracking-tight text-foreground pt-1 sm:pt-1.5 leading-tight"
-          style={{ letterSpacing: '-0.015em' }}
+          className="text-[15px] sm:text-[18px] lg:text-[19px] font-black tracking-tight text-foreground pt-1 sm:pt-2 leading-[1.15]"
+          style={{ letterSpacing: '-0.018em' }}
         >
           {title}
         </h3>
       </div>
 
-      <p className="relative text-[11.5px] sm:text-[12.5px] text-muted-foreground/85 leading-snug sm:leading-relaxed flex-1 line-clamp-2 sm:line-clamp-none">
+      <p className="relative text-[12px] sm:text-[13px] text-muted-foreground/85 leading-snug sm:leading-relaxed flex-1 line-clamp-2 sm:line-clamp-none">
         {description}
       </p>
 
-      <div className="relative mt-2 sm:mt-4 flex items-center gap-1.5 text-[10.5px] sm:text-[11px] font-bold text-foreground/60 group-hover:text-foreground transition-colors">
+      <div className="relative mt-3 sm:mt-4 flex items-center gap-1.5 text-[10.5px] sm:text-[11px] font-bold text-foreground/60 group-hover:text-foreground transition-colors">
         Open
         <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
       </div>
