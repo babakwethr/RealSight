@@ -48,12 +48,124 @@ function PublicBar() {
   );
 }
 
-// Performance-based card accent color
+// Performance-based card accent colour. `glow` / `glowSecondary` drive the
+// no-photo decoration's bottom-corner radial gradients (Variant-2 pattern
+// from the 21st.dev pick on 7 May).
 function getCardAccent(yoy: number, yield_: number) {
-  if (yoy >= 15 && yield_ >= 7) return { bg: 'from-emerald-950/80 to-emerald-900/40', border: 'border-emerald-500/20', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', stroke: '#22C55E', label: 'High Growth' };
-  if (yoy >= 10) return { bg: 'from-blue-950/80 to-blue-900/30', border: 'border-blue-500/20', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30', stroke: '#3B82F6', label: 'Growth' };
-  if (yield_ >= 7) return { bg: 'from-purple-950/80 to-purple-900/30', border: 'border-purple-500/20', badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30', stroke: '#A855F7', label: 'High Yield' };
-  return { bg: 'from-slate-900/80 to-slate-800/30', border: 'border-white/[0.08]', badge: 'bg-white/10 text-muted-foreground border-white/10', stroke: '#64748B', label: 'Stable' };
+  if (yoy >= 15 && yield_ >= 7) return {
+    bg: 'from-emerald-950/80 to-emerald-900/40',
+    border: 'border-emerald-500/20',
+    badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    stroke: '#22C55E',
+    glow: 'rgba(16, 185, 129, 0.7)',
+    glowSecondary: 'rgba(20, 184, 166, 0.5)',
+    label: 'High Growth',
+  };
+  if (yoy >= 10) return {
+    bg: 'from-blue-950/80 to-blue-900/30',
+    border: 'border-blue-500/20',
+    badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    stroke: '#3B82F6',
+    glow: 'rgba(59, 130, 246, 0.7)',
+    glowSecondary: 'rgba(99, 102, 241, 0.5)',
+    label: 'Growth',
+  };
+  if (yield_ >= 7) return {
+    bg: 'from-purple-950/80 to-purple-900/30',
+    border: 'border-purple-500/20',
+    badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    stroke: '#A855F7',
+    glow: 'rgba(139, 92, 246, 0.7)',
+    glowSecondary: 'rgba(168, 85, 247, 0.5)',
+    label: 'High Yield',
+  };
+  return {
+    bg: 'from-slate-900/80 to-slate-800/30',
+    border: 'border-white/[0.08]',
+    badge: 'bg-white/10 text-muted-foreground border-white/10',
+    stroke: '#64748B',
+    glow: 'rgba(100, 116, 139, 0.55)',
+    glowSecondary: 'rgba(148, 163, 184, 0.35)',
+    label: 'Stable',
+  };
+}
+
+/**
+ * No-photo card decoration.
+ *
+ * The 21st.dev pick (7 May 2026): Variant 3 structure — grid pattern +
+ * rotating geometric shapes — combined with Variant 2's bottom-corner
+ * radial-gradient glow. Pure CSS / SVG. No per-area imagery. Scales
+ * infinitely as DLD areas grow from 11 → 150+.
+ */
+function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent> }) {
+  return (
+    <>
+      {/* Variant 3 — grid pattern at low opacity, faded toward bottom */}
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full opacity-30 pointer-events-none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern id="area-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
+          </pattern>
+          <linearGradient id="area-grid-fade" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#area-grid)" />
+        <rect width="100%" height="100%" fill="url(#area-grid-fade)" />
+      </svg>
+
+      {/* Variant 3 — rotating circular blob (subtle, top-right) */}
+      <div
+        aria-hidden="true"
+        className="absolute top-6 right-6 w-32 h-32 rounded-full opacity-25 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${accent.glow}, transparent 70%)`,
+          filter: 'blur(40px)',
+        }}
+      />
+
+      {/* Variant 3 — rotating square outline (subtle, top-right) */}
+      <div
+        aria-hidden="true"
+        className="absolute top-12 right-12 w-20 h-20 border border-white/10 rounded-lg pointer-events-none"
+        style={{ transform: 'rotate(45deg)' }}
+      />
+
+      {/* Variant 2 — bottom-corner radial-gradient glow.
+          THIS is the colourful "glow from below" that gives the card its
+          character. Two ellipses (one each corner) at high opacity, then
+          blurred heavily so they read as ambient lighting. */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%),
+            radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)
+          `,
+          filter: 'blur(50px)',
+          opacity: 0.7,
+        }}
+      />
+
+      {/* Variant 2 — bottom border glow line */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
+          boxShadow: `0 0 15px 2px ${accent.glow}`,
+          opacity: 0.6,
+        }}
+      />
+    </>
+  );
 }
 
 // Individual area stat card — performance-color coded
@@ -113,35 +225,9 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             />
           </>
         )}
-        {/* No-photo branch — same shared topographic decoration as the
-            standard cards, scaled to the hero proportions. */}
-        {!photo && (
-          <svg
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full opacity-90 pointer-events-none"
-            viewBox="0 0 800 220"
-            preserveAspectRatio="xMidYMid slice"
-          >
-            <defs>
-              <radialGradient id={`hero-glow-${area.id}`} cx="0.92" cy="0.95" r="0.55">
-                <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.35" />
-                <stop offset="100%" stopColor={accent.stroke} stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <rect width="800" height="220" fill={`url(#hero-glow-${area.id})`} />
-            <g stroke={accent.stroke} strokeWidth="0.9" fill="none" opacity="0.45">
-              <path d="M -40 80 Q 200 50, 400 90 T 840 70" />
-              <path d="M -40 110 Q 200 80, 400 120 T 840 100" />
-              <path d="M -40 140 Q 200 110, 400 150 T 840 130" />
-              <path d="M -40 170 Q 200 140, 400 180 T 840 160" />
-              <path d="M -40 200 Q 200 170, 400 210 T 840 190" />
-            </g>
-            <g stroke={accent.stroke} strokeWidth="1.2" fill="none" opacity="0.7">
-              <path d="M -40 45 Q 200 20, 400 55 T 840 35" />
-              <path d="M -40 60 Q 200 35, 400 70 T 840 50" strokeOpacity="0.5" />
-            </g>
-          </svg>
-        )}
+        {/* No-photo branch — Variant 3 + Variant 2 glow decoration
+            (locked via 21st.dev Magic MCP, 7 May 2026). */}
+        {!photo && <NoPhotoDecoration accent={accent} />}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
           <div className="flex-1 min-w-0">
@@ -226,38 +312,7 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
           cost, scales to any number of areas. The accent stroke colour
           tints the contour lines so each performance bucket stays
           visually distinct. */}
-      {!photo && (
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full opacity-95 pointer-events-none"
-          viewBox="0 0 320 220"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <defs>
-            <radialGradient id={`area-glow-${area.id}`} cx="0.85" cy="0.95" r="0.7">
-              <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.40" />
-              <stop offset="100%" stopColor={accent.stroke} stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          {/* Soft accent glow anchored at the bottom-right corner */}
-          <rect width="320" height="220" fill={`url(#area-glow-${area.id})`} />
-          {/* Topographic / contour curves — abstract 'mapping' feel.
-              Opacity bumped from 0.30 → 0.55 so the lines are clearly
-              visible (round 1 was too subtle to notice). */}
-          <g stroke={accent.stroke} strokeWidth="0.9" fill="none" opacity="0.55">
-            <path d="M -20 70 Q 80 50, 160 80 T 340 60" />
-            <path d="M -20 100 Q 80 80, 160 110 T 340 90" />
-            <path d="M -20 130 Q 80 110, 160 140 T 340 120" />
-            <path d="M -20 160 Q 80 140, 160 170 T 340 150" />
-            <path d="M -20 190 Q 80 170, 160 200 T 340 180" />
-          </g>
-          {/* A pair of brighter top-edge waves for hierarchy */}
-          <g stroke={accent.stroke} strokeWidth="1.1" fill="none" opacity="0.80">
-            <path d="M -20 40 Q 80 20, 160 50 T 340 30" />
-            <path d="M -20 55 Q 80 35, 160 65 T 340 45" strokeOpacity="0.55" />
-          </g>
-        </svg>
-      )}
+      {!photo && <NoPhotoDecoration accent={accent} />}
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       <div className="relative p-5">
 
