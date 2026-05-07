@@ -759,14 +759,14 @@ function MarketIntelligenceContent() {
             </h2>
           </div>
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-fr">
               <div className="col-span-full rounded-2xl bg-white/[0.04] border border-white/[0.08] animate-pulse h-36" />
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="rounded-2xl bg-white/[0.04] border border-white/[0.08] animate-pulse h-52" />
               ))}
             </div>
           ) : allAreas.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-fr">
               <AreaCard key={allAreas[0].id} area={allAreas[0]} rank={1} hero />
               {allAreas.slice(1, 8).map((area, i) => (
                 <AreaCard key={area.id} area={area} rank={i + 2} />

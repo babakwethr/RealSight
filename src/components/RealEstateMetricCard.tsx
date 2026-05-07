@@ -146,51 +146,53 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
           />
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 p-6">
+        {/* Content — compact sizing per Babak's 7 May feedback (cards
+            and fonts were too big). Padding and font scales reduced
+            ~25-35 % from V3's reference values. */}
+        <div className="relative z-10 p-4">
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className={cn('p-2.5 rounded-xl', colors.bg, colors.border, 'border')}>
-                <MapPin className={cn('w-5 h-5', colors.text)} />
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className={cn('p-1.5 rounded-lg shrink-0', colors.bg, colors.border, 'border')}>
+                <MapPin className={cn('w-4 h-4', colors.text)} />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
-                <p className="text-xs text-gray-500 mt-0.5 truncate">Real Estate Market</p>
+                <h3 className="text-sm font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
+                <p className="text-[10px] text-gray-500 mt-0.5 truncate">Real Estate Market</p>
               </div>
             </div>
-            <div className={cn('flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', colors.bg, colors.text)}>
-              <TrendingUp className="w-3 h-3" />
+            <div className={cn('flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0', colors.bg, colors.text)}>
+              <TrendingUp className="w-2.5 h-2.5" />
               {changePercent}
             </div>
           </div>
 
           {/* Main Metric */}
-          <div className="mb-6">
-            <p className="text-sm text-gray-400 mb-1">{metricLabel}</p>
-            <h2 className={cn('text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent', colors.primary)}>
+          <div className="mb-3">
+            <p className="text-[11px] text-gray-400 mb-0.5">{metricLabel}</p>
+            <h2 className={cn('text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent leading-none', colors.primary)}>
               {metricValue}
             </h2>
           </div>
 
           {/* Sub Metrics Grid */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-1.5 mb-3">
             {subMetrics.map((metric, index) => (
               <motion.div
                 key={metric.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 + 0.3 }}
-                className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-3 border border-gray-700/30"
+                className="bg-gray-800/40 backdrop-blur-sm rounded-md px-2 py-1.5 border border-gray-700/30 min-w-0"
               >
-                <p className="text-xs text-gray-500 mb-1">{metric.label}</p>
-                <p className="text-lg font-semibold text-gray-200">{metric.value}</p>
+                <p className="text-[9px] text-gray-500 mb-0.5 truncate">{metric.label}</p>
+                <p className="text-sm font-semibold text-gray-200 truncate">{metric.value}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Decorative Bar Chart */}
-          <div className="flex items-end gap-2 h-16 mb-4">
+          <div className="flex items-end gap-1 h-10 mb-2">
             {[65, 78, 45, 82, 58, 90, 72].map((height, index) => (
               <motion.div
                 key={index}
@@ -206,17 +208,17 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Home className="w-3.5 h-3.5" />
-              <span>Updated 2 hours ago</span>
+          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-gray-800/50">
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 min-w-0">
+              <Home className="w-3 h-3 shrink-0" />
+              <span className="truncate">Updated 2 hours ago</span>
             </div>
             <button className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+              'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shrink-0',
               'bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-gray-100',
               'border border-gray-700/50 transition-all duration-200'
             )}>
-              <DollarSign className="w-3.5 h-3.5" />
+              <DollarSign className="w-3 h-3" />
               View Details
             </button>
           </div>
