@@ -258,12 +258,14 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
           ]}
           className={cn(
             'max-w-none h-full',
-            // Liquid glass — overrides V3's opaque dark bg.
-            // tailwind-merge gives the user-supplied classes priority.
-            'bg-white/[0.04] backdrop-blur-2xl backdrop-saturate-150',
-            'border-white/10',
-            // inset top specular + soft outer drop shadow
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_36px_-8px_rgba(0,0,0,0.55)]',
+            // CI-aligned glass — same values as `.glass-card` in
+            // src/index.css, used everywhere else in the app. Keeps
+            // the new V3 cards visually consistent with the rest of
+            // RealSight (admin, watchlist, deal-analyzer, etc.).
+            'bg-white/[0.04]',
+            'backdrop-blur-[22px] backdrop-saturate-[1.2]',
+            'border-white/[0.12]',
+            'shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]',
           )}
         />
       </div>
