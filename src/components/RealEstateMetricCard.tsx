@@ -154,9 +154,9 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
               <div className={cn('p-2.5 rounded-xl', colors.bg, colors.border, 'border')}>
                 <MapPin className={cn('w-5 h-5', colors.text)} />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-100">{areaName}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Real Estate Market</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">Real Estate Market</p>
               </div>
             </div>
             <div className={cn('flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', colors.bg, colors.text)}>
