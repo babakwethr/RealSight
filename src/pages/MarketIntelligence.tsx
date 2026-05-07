@@ -236,6 +236,8 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
 
   // No-photo cards render V3 from 21st.dev verbatim (RealEstateMetricCard).
   // Photo cards keep the photo-as-background treatment below.
+  // Liquid-glass treatment is applied via className override on the V3
+  // outer container — V3's component code itself stays untouched.
   if (!photo) {
     return (
       <div
@@ -254,7 +256,15 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             { label: 'Volume', value: `${area.transaction_volume_30d || 0}` },
             { label: 'Demand', value: `${area.demand_score || 50}/100` },
           ]}
-          className="max-w-none h-full"
+          className={cn(
+            'max-w-none h-full',
+            // Liquid glass — overrides V3's opaque dark bg.
+            // tailwind-merge gives the user-supplied classes priority.
+            'bg-white/[0.04] backdrop-blur-2xl backdrop-saturate-150',
+            'border-white/10',
+            // inset top specular + soft outer drop shadow
+            'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_36px_-8px_rgba(0,0,0,0.55)]',
+          )}
         />
       </div>
     );
