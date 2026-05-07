@@ -120,27 +120,27 @@ function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent
         <rect width="100%" height="100%" fill="url(#area-grid-fade)" />
       </svg>
 
-      {/* Variant 3 — rotating circular blob (subtle, top-right) */}
+      {/* Variant 3 — rotating circular blob (top-right, accent-tinted) */}
       <div
         aria-hidden="true"
-        className="absolute top-6 right-6 w-32 h-32 rounded-full opacity-25 pointer-events-none"
+        className="absolute top-6 right-6 w-36 h-36 rounded-full opacity-50 pointer-events-none"
         style={{
           background: `radial-gradient(circle, ${accent.glow}, transparent 70%)`,
-          filter: 'blur(40px)',
+          filter: 'blur(35px)',
         }}
       />
 
-      {/* Variant 3 — rotating square outline (subtle, top-right) */}
+      {/* Variant 3 — rotated square outline (top-right) */}
       <div
         aria-hidden="true"
-        className="absolute top-12 right-12 w-20 h-20 border border-white/10 rounded-lg pointer-events-none"
+        className="absolute top-12 right-10 w-20 h-20 border border-white/15 rounded-lg pointer-events-none"
         style={{ transform: 'rotate(45deg)' }}
       />
 
       {/* Variant 2 — bottom-corner radial-gradient glow.
           THIS is the colourful "glow from below" that gives the card its
-          character. Two ellipses (one each corner) at high opacity, then
-          blurred heavily so they read as ambient lighting. */}
+          character. The rgba already encodes alpha (0.7); no extra opacity
+          on the wrapper so the glow reads at full intensity. */}
       <div
         aria-hidden="true"
         className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
@@ -149,19 +149,17 @@ function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent
             radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%),
             radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)
           `,
-          filter: 'blur(50px)',
-          opacity: 0.7,
+          filter: 'blur(40px)',
         }}
       />
 
-      {/* Variant 2 — bottom border glow line */}
+      {/* Variant 2 — bottom border glow line, full intensity */}
       <div
         aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-[2px] pointer-events-none"
         style={{
           background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
-          boxShadow: `0 0 15px 2px ${accent.glow}`,
-          opacity: 0.6,
+          boxShadow: `0 0 20px 4px ${accent.glow}`,
         }}
       />
     </>
