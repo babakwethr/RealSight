@@ -57,8 +57,8 @@ function getCardAccent(yoy: number, yield_: number) {
     border: 'border-emerald-500/20',
     badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     stroke: '#22C55E',
-    glow: 'rgba(16, 185, 129, 0.7)',
-    glowSecondary: 'rgba(20, 184, 166, 0.5)',
+    glow: 'rgba(16, 185, 129, 0.95)',
+    glowSecondary: 'rgba(20, 184, 166, 0.80)',
     label: 'High Growth',
   };
   if (yoy >= 10) return {
@@ -66,8 +66,8 @@ function getCardAccent(yoy: number, yield_: number) {
     border: 'border-blue-500/20',
     badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     stroke: '#3B82F6',
-    glow: 'rgba(59, 130, 246, 0.7)',
-    glowSecondary: 'rgba(99, 102, 241, 0.5)',
+    glow: 'rgba(59, 130, 246, 0.95)',
+    glowSecondary: 'rgba(99, 102, 241, 0.80)',
     label: 'Growth',
   };
   if (yield_ >= 7) return {
@@ -75,8 +75,8 @@ function getCardAccent(yoy: number, yield_: number) {
     border: 'border-purple-500/20',
     badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     stroke: '#A855F7',
-    glow: 'rgba(139, 92, 246, 0.7)',
-    glowSecondary: 'rgba(168, 85, 247, 0.5)',
+    glow: 'rgba(139, 92, 246, 0.95)',
+    glowSecondary: 'rgba(168, 85, 247, 0.80)',
     label: 'High Yield',
   };
   return {
@@ -84,8 +84,8 @@ function getCardAccent(yoy: number, yield_: number) {
     border: 'border-white/[0.08]',
     badge: 'bg-white/10 text-muted-foreground border-white/10',
     stroke: '#64748B',
-    glow: 'rgba(100, 116, 139, 0.55)',
-    glowSecondary: 'rgba(148, 163, 184, 0.35)',
+    glow: 'rgba(100, 116, 139, 0.85)',
+    glowSecondary: 'rgba(148, 163, 184, 0.65)',
     label: 'Stable',
   };
 }
@@ -101,18 +101,18 @@ function getCardAccent(yoy: number, yield_: number) {
 function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent> }) {
   return (
     <>
-      {/* Variant 3 — grid pattern at low opacity, faded toward bottom */}
+      {/* Variant 3 — grid pattern, more visible */}
       <svg
         aria-hidden="true"
-        className="absolute inset-0 w-full h-full opacity-30 pointer-events-none"
+        className="absolute inset-0 w-full h-full opacity-50 pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
           <pattern id="area-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-white/30" />
           </pattern>
           <linearGradient id="area-grid-fade" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="white" stopOpacity="0.10" />
+            <stop offset="0%" stopColor="white" stopOpacity="0.18" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -120,46 +120,46 @@ function NoPhotoDecoration({ accent }: { accent: ReturnType<typeof getCardAccent
         <rect width="100%" height="100%" fill="url(#area-grid-fade)" />
       </svg>
 
-      {/* Variant 3 — rotating circular blob (top-right, accent-tinted) */}
+      {/* Variant 3 — large blurred circular blob, top-right, accent-tinted */}
       <div
         aria-hidden="true"
-        className="absolute top-6 right-6 w-36 h-36 rounded-full opacity-50 pointer-events-none"
+        className="absolute -top-4 -right-4 w-48 h-48 rounded-full opacity-90 pointer-events-none"
         style={{
           background: `radial-gradient(circle, ${accent.glow}, transparent 70%)`,
-          filter: 'blur(35px)',
-        }}
-      />
-
-      {/* Variant 3 — rotated square outline (top-right) */}
-      <div
-        aria-hidden="true"
-        className="absolute top-12 right-10 w-20 h-20 border border-white/15 rounded-lg pointer-events-none"
-        style={{ transform: 'rotate(45deg)' }}
-      />
-
-      {/* Variant 2 — bottom-corner radial-gradient glow.
-          THIS is the colourful "glow from below" that gives the card its
-          character. The rgba already encodes alpha (0.7); no extra opacity
-          on the wrapper so the glow reads at full intensity. */}
-      <div
-        aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%),
-            radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)
-          `,
           filter: 'blur(40px)',
         }}
       />
 
-      {/* Variant 2 — bottom border glow line, full intensity */}
+      {/* Variant 3 — rotated square outline, brighter */}
       <div
         aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 h-[2px] pointer-events-none"
+        className="absolute top-10 right-8 w-24 h-24 border-2 border-white/25 rounded-lg pointer-events-none"
+        style={{ transform: 'rotate(45deg)' }}
+      />
+
+      {/* Variant 2 — DRAMATIC bottom-corner glow. The signature element
+          of V2. Two ellipses bleeding from the bottom corners, full
+          accent saturation, blurred to read as ambient lighting flooding
+          up the card from below. */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 top-1/3 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 90% 75% at 90% 100%, ${accent.glow} -20%, transparent 60%),
+            radial-gradient(ellipse 90% 75% at 10% 100%, ${accent.glowSecondary} -20%, transparent 60%)
+          `,
+          filter: 'blur(30px)',
+        }}
+      />
+
+      {/* Variant 2 — bottom border glow line, very bright */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 h-[3px] pointer-events-none"
         style={{
           background: `linear-gradient(90deg, transparent, ${accent.glow}, transparent)`,
-          boxShadow: `0 0 20px 4px ${accent.glow}`,
+          boxShadow: `0 0 28px 6px ${accent.glow}, 0 0 16px 3px ${accent.glow}`,
         }}
       />
     </>
