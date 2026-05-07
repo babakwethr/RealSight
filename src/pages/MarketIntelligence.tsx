@@ -149,6 +149,29 @@ function rotatingPalette(seed: string) {
 }
 
 /**
+ * Bar-chart patterns matching the V3 reference look — 7 bars, heights
+ * 40–95 %, varied so each card reads like the V3 reference instead of
+ * a monotonic ramp from real trend data. Rotated per area name so each
+ * card stably gets the same shape every render. Highlighted bar is
+ * always index 5 (matches V3 reference exactly).
+ */
+const BAR_PATTERNS: number[][] = [
+  [65, 78, 45, 82, 58, 90, 72],
+  [55, 72, 62, 48, 78, 88, 95],
+  [42, 60, 75, 52, 80, 92, 70],
+  [70, 86, 64, 78, 58, 92, 82],
+  [60, 52, 76, 86, 62, 90, 78],
+];
+
+function rotatingBars(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  return BAR_PATTERNS[Math.abs(hash) % BAR_PATTERNS.length];
+}
+
+/**
  * NoPhotoAreaCard — faithful V3 + V2 implementation from the 21st.dev
  * Magic MCP session (7 May 2026, locked design).
  *
@@ -255,8 +278,8 @@ function NoPhotoAreaCard({
               <MapPin className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] sm:text-base font-semibold text-gray-100 leading-[1.2] line-clamp-2">{area.name}</h3>
-              <p className="text-[10px] text-gray-500 mt-0.5 truncate">Dubai, UAE</p>
+              <h3 className="text-[15px] sm:text-base font-semibold text-white leading-[1.2] line-clamp-2">{area.name}</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate">Dubai, UAE</p>
             </div>
           </div>
           <div
@@ -273,7 +296,7 @@ function NoPhotoAreaCard({
 
         {/* Main metric — Price/sqft with gradient text */}
         <div className="mb-5">
-          <p className="text-xs text-gray-400 mb-1">Price / sqft</p>
+          <p className="text-xs text-gray-300 mb-1 font-medium">Price / sqft</p>
           <h2 className={cn(
             'text-3xl sm:text-[34px] font-black bg-gradient-to-r bg-clip-text text-transparent leading-none',
             palette.primary,
@@ -282,44 +305,41 @@ function NoPhotoAreaCard({
           </h2>
         </div>
 
-        {/* 3 sub-metric tiles */}
+        {/* 3 sub-metric tiles — labels gray-400 (was gray-500, too dim) */}
         <div className="grid grid-cols-3 gap-2.5 mb-5">
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-1">Yield</p>
+            <p className="text-[10px] text-gray-400 mb-1 font-medium">Yield</p>
             <p className="text-base font-semibold text-emerald-400">{area.rental_yield_avg?.toFixed(1)}%</p>
           </div>
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-1">Volume</p>
-            <p className="text-base font-semibold text-gray-200">{area.transaction_volume_30d || 0}</p>
+            <p className="text-[10px] text-gray-400 mb-1 font-medium">Volume</p>
+            <p className="text-base font-semibold text-white">{area.transaction_volume_30d || 0}</p>
           </div>
           <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-500 mb-1">Demand</p>
-            <p className={cn('text-base font-semibold', palette.text)}>{area.demand_score || 50}<span className="text-gray-500 text-xs">/100</span></p>
+            <p className="text-[10px] text-gray-400 mb-1 font-medium">Demand</p>
+            <p className={cn('text-base font-semibold', palette.text)}>{area.demand_score || 50}<span className="text-gray-400 text-xs">/100</span></p>
           </div>
         </div>
 
-        {/* Mini bar chart — V3 pattern, highlighted bar in card's accent */}
-        <div className="flex items-end gap-1.5 h-12 mb-4">
-          {trend.map((d, i) => {
-            const range = (maxV - minV) || 1;
-            const heightPct = ((d.v - minV) / range) * 80 + 20;
-            const isHighlight = i === trend.length - 1;
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'flex-1 rounded-t-sm',
-                  isHighlight ? `bg-gradient-to-t ${palette.primary}` : 'bg-gray-700/40',
-                )}
-                style={{ height: `${heightPct}%` }}
-              />
-            );
-          })}
+        {/* Mini bar chart — V3 reference: 7 bars, varied heights, bar 5
+            highlighted in the card's accent. Pattern rotated per area
+            so cards don't all share the same shape. */}
+        <div className="flex items-end gap-2 h-14 mb-4">
+          {rotatingBars(area.name || area.id).map((height, i) => (
+            <div
+              key={i}
+              className={cn(
+                'flex-1 rounded-t-md',
+                i === 5 ? `bg-gradient-to-t ${palette.primary}` : 'bg-gray-700/40',
+              )}
+              style={{ height: `${height}%` }}
+            />
+          ))}
         </div>
 
         {/* Footer — V3 reference: home icon + "Updated X" + View Details */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-500 min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-300 min-w-0">
             {rank && rank <= 3 ? (
               <>
                 <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -327,7 +347,7 @@ function NoPhotoAreaCard({
               </>
             ) : (
               <>
-                <Home className="w-3.5 h-3.5 shrink-0" />
+                <Home className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 <span className="truncate">Live · DLD verified</span>
               </>
             )}
@@ -335,7 +355,7 @@ function NoPhotoAreaCard({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-gray-100 border border-gray-700/50 transition-all duration-200 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-gray-800/60 hover:bg-gray-800 text-gray-100 hover:text-white border border-gray-700/50 transition-all duration-200 shrink-0"
           >
             <DollarSign className="w-3 h-3" />
             View Details
