@@ -177,7 +177,7 @@ function TopPicksContent() {
     const currency = project.currency || 'AED';
 
     return (
-      <div key={project.id || index} className="relative rounded-2xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col backdrop-blur-md bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+      <div key={project.id || index} className="relative rounded-2xl overflow-hidden group hover:-translate-y-1 transition-all duration-300 flex flex-col bg-white/[0.04] backdrop-blur-[22px] backdrop-saturate-[1.2] border border-white/[0.12] hover:border-white/[0.30] shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent z-10" />
 
         {/* Image */}

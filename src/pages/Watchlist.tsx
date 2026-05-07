@@ -265,7 +265,7 @@ function WatchlistContent() {
                     return (
                     <div
                       key={item.id}
-                      className="group rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.14] transition-all p-3 sm:p-3.5 flex items-center gap-3 sm:gap-3.5"
+                      className="group rounded-2xl bg-white/[0.04] backdrop-blur-[22px] backdrop-saturate-[1.2] border border-white/[0.12] hover:border-white/[0.30] hover:bg-white/[0.06] shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all p-3 sm:p-3.5 flex items-center gap-3 sm:gap-3.5"
                     >
                       {/* Photo thumb if we have one, else gradient + type icon */}
                       {photo ? (

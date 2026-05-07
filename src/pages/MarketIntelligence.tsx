@@ -841,7 +841,7 @@ function MarketIntelligenceContent() {
         {topDevs.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {topDevs.map((dev: any, i: number) => (
-              <div key={dev.id} className="flex items-center gap-4 p-4 rounded-2xl backdrop-blur-md bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.13] transition-all">
+              <div key={dev.id} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] backdrop-blur-[22px] backdrop-saturate-[1.2] border border-white/[0.12] hover:border-white/[0.30] shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-primary/20"
                   style={{ background: `linear-gradient(135deg, rgba(34,197,94,0.15), rgba(59,130,246,0.1))` }}>
                   <span className="text-primary font-black text-sm">#{i + 1}</span>
@@ -888,7 +888,7 @@ function MarketIntelligenceContent() {
             ] : [],
           },
         ].map(section => (
-          <div key={section.title} className="rounded-2xl backdrop-blur-md bg-white/[0.04] border border-white/[0.08] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+          <div key={section.title} className="relative rounded-2xl bg-white/[0.04] backdrop-blur-[22px] backdrop-saturate-[1.2] border border-white/[0.12] p-5 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
             <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             <h3 className="font-bold text-foreground mb-4 flex items-center gap-2 text-sm">
               <section.icon className="h-4 w-4 text-primary" />
