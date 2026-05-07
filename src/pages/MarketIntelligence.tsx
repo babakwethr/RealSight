@@ -16,8 +16,9 @@ import { useSubscription } from '@/hooks/useSubscription';
 import {
   TrendingUp, TrendingDown, Activity, BarChart3,
   Crown, Building, ArrowRight, Zap, MapPin,
-  Shield, Lock, Sparkles, Target, Home, DollarSign,
+  Shield, Lock, Sparkles, Target,
 } from 'lucide-react';
+import { RealEstateMetricCard } from '@/components/RealEstateMetricCard';
 import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
@@ -95,283 +96,19 @@ function getCardAccent(yoy: number, yield_: number) {
 }
 
 /**
- * Rotating accent palette for no-photo cards. Per Babak's 7 May 2026
- * feedback: "I like it the way it is done with different colors, so each
- * card could be a different color." Hashed by area.name so every area
- * stably gets the same colour every render. Independent of the
- * performance-bucket logic used elsewhere — visual variety wins here.
+ * Rotating accent for no-photo cards. The 4 V3 accents (mint / cobalt /
+ * violet / amber) are picked by stable hash of area.name so every area
+ * gets the same colour every render. Visual variety per area.
  */
-const ROTATING_PALETTE = [
-  {
-    stroke: '#22C55E',
-    glow: 'rgba(16, 185, 129, 0.95)',
-    glowSecondary: 'rgba(20, 184, 166, 0.80)',
-    primary: 'from-emerald-400 to-teal-500',
-    text: 'text-emerald-400',
-    badgeBg: 'rgba(16, 185, 129, 0.15)',
-    badgeBorder: 'rgba(16, 185, 129, 0.40)',
-  },
-  {
-    stroke: '#4AA8FF',
-    glow: 'rgba(59, 130, 246, 0.95)',
-    glowSecondary: 'rgba(99, 102, 241, 0.80)',
-    primary: 'from-blue-400 to-cyan-500',
-    text: 'text-blue-400',
-    badgeBg: 'rgba(59, 130, 246, 0.15)',
-    badgeBorder: 'rgba(59, 130, 246, 0.40)',
-  },
-  {
-    stroke: '#A855F7',
-    glow: 'rgba(139, 92, 246, 0.95)',
-    glowSecondary: 'rgba(168, 85, 247, 0.80)',
-    primary: 'from-violet-400 to-purple-500',
-    text: 'text-violet-400',
-    badgeBg: 'rgba(139, 92, 246, 0.15)',
-    badgeBorder: 'rgba(139, 92, 246, 0.40)',
-  },
-  {
-    stroke: '#F59E0B',
-    glow: 'rgba(245, 158, 11, 0.95)',
-    glowSecondary: 'rgba(251, 146, 60, 0.80)',
-    primary: 'from-amber-400 to-orange-500',
-    text: 'text-amber-400',
-    badgeBg: 'rgba(245, 158, 11, 0.15)',
-    badgeBorder: 'rgba(245, 158, 11, 0.40)',
-  },
-];
+const ROTATING_ACCENT_COLORS = ['mint', 'cobalt', 'violet', 'amber'] as const;
+type RotatingAccentColor = typeof ROTATING_ACCENT_COLORS[number];
 
-function rotatingPalette(seed: string) {
+function rotatingAccentColor(seed: string): RotatingAccentColor {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
   }
-  return ROTATING_PALETTE[Math.abs(hash) % ROTATING_PALETTE.length];
-}
-
-/**
- * Bar-chart patterns matching the V3 reference look — 7 bars, heights
- * 40–95 %, varied so each card reads like the V3 reference instead of
- * a monotonic ramp from real trend data. Rotated per area name so each
- * card stably gets the same shape every render. Highlighted bar is
- * always index 5 (matches V3 reference exactly).
- */
-const BAR_PATTERNS: number[][] = [
-  [65, 78, 45, 82, 58, 90, 72],
-  [55, 72, 62, 48, 78, 88, 95],
-  [42, 60, 75, 52, 80, 92, 70],
-  [70, 86, 64, 78, 58, 92, 82],
-  [60, 52, 76, 86, 62, 90, 78],
-];
-
-function rotatingBars(seed: string) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-  }
-  return BAR_PATTERNS[Math.abs(hash) % BAR_PATTERNS.length];
-}
-
-/**
- * NoPhotoAreaCard — faithful V3 + V2 implementation from the 21st.dev
- * Magic MCP session (7 May 2026, locked design).
- *
- * Babak picked Variant 3's STRUCTURE (grid pattern, rotating geometric
- * shapes, icon badge, big gradient metric, 3 sub-metric tiles, mini
- * bar chart, bottom-line glow) + Variant 2's GRADIENT COLOURS (the
- * bottom-corner radial-glow gradient flooding the card from below).
- *
- * Each card's accent is rotated by area-name hash (mint / cobalt /
- * violet / amber). Stable per area. Only used for areas without a
- * curated photo — the 11 photo-areas keep their photo treatment.
- * Scales to 150+ DLD areas without per-area imagery.
- */
-function NoPhotoAreaCard({
-  area,
-  rank,
-  yoy,
-  pos,
-  trend,
-  minV,
-  maxV,
-  onClick,
-}: {
-  area: any;
-  rank?: number;
-  accent: ReturnType<typeof getCardAccent>;
-  yoy: number;
-  pos: boolean;
-  trend: { v: number }[];
-  minV: number;
-  maxV: number;
-  onClick: () => void;
-}) {
-  // Each area gets a stable but rotated colour from mint/cobalt/violet/amber.
-  const palette = rotatingPalette(area.name || area.id);
-
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'relative w-full rounded-2xl overflow-hidden cursor-pointer group',
-        'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950',
-        'border border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
-        'hover:-translate-y-1 transition-all duration-200',
-      )}
-    >
-      {/* V3 — grid pattern, faded toward bottom */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id={`grid-${area.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
-            </pattern>
-            <linearGradient id={`fade-${area.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.10" />
-              <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <rect width="100%" height="100%" fill={`url(#grid-${area.id})`} />
-          <rect width="100%" height="100%" fill={`url(#fade-${area.id})`} />
-        </svg>
-      </div>
-
-      {/* V3 — geometric shapes top-right (blurred blob + rotated square) */}
-      <div className="absolute top-0 right-0 w-64 h-64 opacity-20 pointer-events-none">
-        <div
-          className="absolute top-8 right-8 w-32 h-32 rounded-full"
-          style={{
-            background: palette.glow,
-            filter: 'blur(40px)',
-            boxShadow: `0 0 80px ${palette.glow}`,
-          }}
-        />
-        <div
-          className="absolute top-16 right-16 w-24 h-24 border border-gray-700/30 rounded-lg"
-          style={{ transform: 'rotate(45deg)' }}
-        />
-      </div>
-
-      {/* V2 — bottom-corner radial glow (the colourful flood from below) */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(ellipse at bottom right, ${palette.glow} -10%, transparent 70%),
-            radial-gradient(ellipse at bottom left, ${palette.glowSecondary} -10%, transparent 70%)
-          `,
-          filter: 'blur(50px)',
-        }}
-      />
-
-      {/* V3 — content */}
-      <div className="relative z-10 p-4 sm:p-5">
-        {/* Header — icon badge + name + change pill */}
-        <div className="flex items-start justify-between gap-3 mb-5">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div
-              className={cn('p-2.5 rounded-xl border shrink-0', palette.text)}
-              style={{
-                background: palette.badgeBg,
-                borderColor: palette.badgeBorder,
-              }}
-            >
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-[15px] sm:text-base font-semibold text-white leading-[1.2] line-clamp-2">{area.name}</h3>
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate">Dubai, UAE</p>
-            </div>
-          </div>
-          <div
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0',
-              palette.text,
-            )}
-            style={{ background: palette.badgeBg }}
-          >
-            {pos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {pos ? '+' : ''}{yoy.toFixed(1)}%
-          </div>
-        </div>
-
-        {/* Main metric — Price/sqft with gradient text */}
-        <div className="mb-5">
-          <p className="text-xs text-gray-300 mb-1 font-medium">Price / sqft</p>
-          <h2 className={cn(
-            'text-3xl sm:text-[34px] font-black bg-gradient-to-r bg-clip-text text-transparent leading-none',
-            palette.primary,
-          )}>
-            AED {fmtNum(area.avg_price_per_sqft_current)}
-          </h2>
-        </div>
-
-        {/* 3 sub-metric tiles — labels gray-400 (was gray-500, too dim) */}
-        <div className="grid grid-cols-3 gap-2.5 mb-5">
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-400 mb-1 font-medium">Yield</p>
-            <p className="text-base font-semibold text-emerald-400">{area.rental_yield_avg?.toFixed(1)}%</p>
-          </div>
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-400 mb-1 font-medium">Volume</p>
-            <p className="text-base font-semibold text-white">{area.transaction_volume_30d || 0}</p>
-          </div>
-          <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700/30">
-            <p className="text-[10px] text-gray-400 mb-1 font-medium">Demand</p>
-            <p className={cn('text-base font-semibold', palette.text)}>{area.demand_score || 50}<span className="text-gray-400 text-xs">/100</span></p>
-          </div>
-        </div>
-
-        {/* Mini bar chart — V3 reference: 7 bars, varied heights, bar 5
-            highlighted in the card's accent. Pattern rotated per area
-            so cards don't all share the same shape. */}
-        <div className="flex items-end gap-2 h-14 mb-4">
-          {rotatingBars(area.name || area.id).map((height, i) => (
-            <div
-              key={i}
-              className={cn(
-                'flex-1 rounded-t-md',
-                i === 5 ? `bg-gradient-to-t ${palette.primary}` : 'bg-gray-700/40',
-              )}
-              style={{ height: `${height}%` }}
-            />
-          ))}
-        </div>
-
-        {/* Footer — V3 reference: home icon + "Updated X" + View Details */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800/50">
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-300 min-w-0">
-            {rank && rank <= 3 ? (
-              <>
-                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="text-amber-400 font-semibold truncate">#{rank} Top Area</span>
-              </>
-            ) : (
-              <>
-                <Home className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span className="truncate">Live · DLD verified</span>
-              </>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-gray-800/60 hover:bg-gray-800 text-gray-100 hover:text-white border border-gray-700/50 transition-all duration-200 shrink-0"
-          >
-            <DollarSign className="w-3 h-3" />
-            View Details
-          </button>
-        </div>
-      </div>
-
-      {/* V3 — bottom-line glow, accent-coloured */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${palette.glow}, transparent)`,
-        }}
-      />
-    </div>
-  );
+  return ROTATING_ACCENT_COLORS[Math.abs(hash) % ROTATING_ACCENT_COLORS.length];
 }
 
 // Individual area stat card — performance-color coded
@@ -497,21 +234,29 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
     );
   }
 
-  // No-photo cards use the V3 + V2 layout from 21st.dev (locked 7 May 2026).
-  // Photo cards keep the photo-as-background treatment.
+  // No-photo cards render V3 from 21st.dev verbatim (RealEstateMetricCard).
+  // Photo cards keep the photo-as-background treatment below.
   if (!photo) {
     return (
-      <NoPhotoAreaCard
-        area={area}
-        rank={rank}
-        accent={accent}
-        yoy={yoy}
-        pos={pos}
-        trend={trend}
-        minV={minV}
-        maxV={maxV}
+      <div
         onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
-      />
+        className="cursor-pointer hover:-translate-y-1 transition-transform duration-200"
+      >
+        <RealEstateMetricCard
+          areaName={area.name}
+          metricLabel="Price / sqft"
+          metricValue={`AED ${fmtNum(area.avg_price_per_sqft_current)}`}
+          changePercent={`${pos ? '+' : ''}${yoy.toFixed(1)}%`}
+          changeDirection={pos ? 'up' : 'down'}
+          accentColor={rotatingAccentColor(area.name || String(area.id))}
+          subMetrics={[
+            { label: 'Yield', value: `${(area.rental_yield_avg ?? 0).toFixed(1)}%` },
+            { label: 'Volume', value: `${area.transaction_volume_30d || 0}` },
+            { label: 'Demand', value: `${area.demand_score || 50}/100` },
+          ]}
+          className="max-w-none h-full"
+        />
+      </div>
     );
   }
 
