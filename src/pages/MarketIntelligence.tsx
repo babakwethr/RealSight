@@ -113,6 +113,35 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             />
           </>
         )}
+        {/* No-photo branch — same shared topographic decoration as the
+            standard cards, scaled to the hero proportions. */}
+        {!photo && (
+          <svg
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full opacity-90 pointer-events-none"
+            viewBox="0 0 800 220"
+            preserveAspectRatio="xMidYMid slice"
+          >
+            <defs>
+              <radialGradient id={`hero-glow-${area.id}`} cx="0.92" cy="0.95" r="0.55">
+                <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={accent.stroke} stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <rect width="800" height="220" fill={`url(#hero-glow-${area.id})`} />
+            <g stroke={accent.stroke} strokeWidth="0.9" fill="none" opacity="0.45">
+              <path d="M -40 80 Q 200 50, 400 90 T 840 70" />
+              <path d="M -40 110 Q 200 80, 400 120 T 840 100" />
+              <path d="M -40 140 Q 200 110, 400 150 T 840 130" />
+              <path d="M -40 170 Q 200 140, 400 180 T 840 160" />
+              <path d="M -40 200 Q 200 170, 400 210 T 840 190" />
+            </g>
+            <g stroke={accent.stroke} strokeWidth="1.2" fill="none" opacity="0.7">
+              <path d="M -40 45 Q 200 20, 400 55 T 840 35" />
+              <path d="M -40 60 Q 200 35, 400 70 T 840 50" strokeOpacity="0.5" />
+            </g>
+          </svg>
+        )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
           <div className="flex-1 min-w-0">
@@ -200,20 +229,22 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
       {!photo && (
         <svg
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full opacity-60 pointer-events-none"
+          className="absolute inset-0 w-full h-full opacity-95 pointer-events-none"
           viewBox="0 0 320 220"
           preserveAspectRatio="xMidYMid slice"
         >
           <defs>
             <radialGradient id={`area-glow-${area.id}`} cx="0.85" cy="0.95" r="0.7">
-              <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.22" />
+              <stop offset="0%" stopColor={accent.stroke} stopOpacity="0.40" />
               <stop offset="100%" stopColor={accent.stroke} stopOpacity="0" />
             </radialGradient>
           </defs>
           {/* Soft accent glow anchored at the bottom-right corner */}
           <rect width="320" height="220" fill={`url(#area-glow-${area.id})`} />
-          {/* Topographic / contour curves — abstract 'mapping' feel */}
-          <g stroke={accent.stroke} strokeWidth="0.6" fill="none" opacity="0.30">
+          {/* Topographic / contour curves — abstract 'mapping' feel.
+              Opacity bumped from 0.30 → 0.55 so the lines are clearly
+              visible (round 1 was too subtle to notice). */}
+          <g stroke={accent.stroke} strokeWidth="0.9" fill="none" opacity="0.55">
             <path d="M -20 70 Q 80 50, 160 80 T 340 60" />
             <path d="M -20 100 Q 80 80, 160 110 T 340 90" />
             <path d="M -20 130 Q 80 110, 160 140 T 340 120" />
@@ -221,9 +252,9 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             <path d="M -20 190 Q 80 170, 160 200 T 340 180" />
           </g>
           {/* A pair of brighter top-edge waves for hierarchy */}
-          <g stroke={accent.stroke} strokeWidth="0.8" fill="none" opacity="0.55">
+          <g stroke={accent.stroke} strokeWidth="1.1" fill="none" opacity="0.80">
             <path d="M -20 40 Q 80 20, 160 50 T 340 30" />
-            <path d="M -20 55 Q 80 35, 160 65 T 340 45" strokeOpacity="0.35" />
+            <path d="M -20 55 Q 80 35, 160 65 T 340 45" strokeOpacity="0.55" />
           </g>
         </svg>
       )}

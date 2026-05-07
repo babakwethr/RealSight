@@ -16,35 +16,52 @@
  */
 
 const SLUG_BY_NAME: Record<string, string> = {
-  'dubai marina':                'marina',
-  'marina':                      'marina',
-  'downtown':                    'downtown',
-  'downtown dubai':              'downtown',
-  'palm jumeirah':               'palm-jumeirah',
-  'palm':                        'palm-jumeirah',
-  'jbr':                         'jbr',
-  'jumeirah beach residence':    'jbr',
-  'business bay':                'business-bay',
-  'jvc':                         'jvc',
-  'jumeirah village circle':     'jvc',
-  'jlt':                         'jlt',
-  'jumeirah lakes towers':       'jlt',
-  'dubai hills':                 'dubai-hills',
-  'dubai hills estate':          'dubai-hills',
-  'damac lagoons':               'damac-lagoons',
-  'mbr city':                    'mbr-city',
-  'mohammed bin rashid city':    'mbr-city',
-  'mohammed bin rashid':         'mbr-city',
-  'mbr':                         'mbr-city',
-  'creek harbour':               'creek-harbour',
-  'dubai creek harbour':         'creek-harbour',
+  'dubai marina':                       'marina',
+  'marina':                             'marina',
+  'downtown':                           'downtown',
+  'downtown dubai':                     'downtown',
+  'palm jumeirah':                      'palm-jumeirah',
+  'palm':                               'palm-jumeirah',
+  'jbr':                                'jbr',
+  'jumeirah beach residence':           'jbr',
+  'jumeirah beach residence (jbr)':     'jbr',
+  'business bay':                       'business-bay',
+  'jvc':                                'jvc',
+  'jumeirah village circle':            'jvc',
+  'jumeirah village circle (jvc)':      'jvc',
+  'jlt':                                'jlt',
+  'jumeirah lakes towers':              'jlt',
+  'jumeirah lakes towers (jlt)':        'jlt',
+  'dubai hills':                        'dubai-hills',
+  'dubai hills estate':                 'dubai-hills',
+  'damac lagoons':                      'damac-lagoons',
+  'mbr city':                           'mbr-city',
+  'mohammed bin rashid city':           'mbr-city',
+  'mohammed bin rashid city (mbr)':     'mbr-city',
+  'mohammed bin rashid':                'mbr-city',
+  'mbr':                                'mbr-city',
+  'creek harbour':                      'creek-harbour',
+  'dubai creek harbour':                'creek-harbour',
 };
+
+/**
+ * Normalises a DLD area name to a lookup key.
+ * Strips trailing "(XYZ)" suffixes, collapses whitespace, lowercases.
+ * "Jumeirah Village Circle (JVC)" → "jumeirah village circle"
+ * "  Dubai Marina  " → "dubai marina"
+ */
+function normalize(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, ' ').trim();
+}
 
 /** Returns a public path to the area photo, or `null` if we don't have one. */
 export function getAreaPhotoUrl(name: string | undefined | null): string | null {
   if (!name) return null;
-  const key = name.toLowerCase().trim();
-  const slug = SLUG_BY_NAME[key];
+  const normalized = normalize(name);
+  // First try the exact normalized key, then strip a trailing "(...)" alias
+  // so "Foo (FOO)" → "foo" still hits the map.
+  const stripped = normalized.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const slug = SLUG_BY_NAME[normalized] ?? SLUG_BY_NAME[stripped];
   return slug ? `/images/areas/${slug}.webp` : null;
 }
 
