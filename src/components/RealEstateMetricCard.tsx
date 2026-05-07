@@ -146,20 +146,19 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
           />
         </div>
 
-        {/* Content — compact sizing per Babak's 7 May feedback (cards
-            and fonts were too big). Padding and font scales reduced
-            ~25-35 % from V3's reference values. */}
-        <div className="relative z-10 p-4">
-          {/* Header */}
+        {/* Content — compact sizing per Babak's 7 May feedback. Uses
+            flex flex-col h-full so the bottom section (chart + footer)
+            sticks to the card's bottom edge regardless of header
+            length. Without this, the photo bled through below the
+            V3 content on mobile (cards stretched in the grid; V3
+            content didn't fill the height). */}
+        <div className="relative z-10 p-4 flex flex-col h-full">
+          {/* Header — no icon badge. Title gets full row width so it
+              can wrap to 2 lines without crowding. */}
           <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className={cn('p-1.5 rounded-lg shrink-0', colors.bg, colors.border, 'border')}>
-                <MapPin className={cn('w-4 h-4', colors.text)} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5 truncate">Real Estate Market</p>
-              </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
+              <p className="text-[10px] text-gray-500 mt-0.5 truncate">Real Estate Market</p>
             </div>
             <div className={cn('flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0', colors.bg, colors.text)}>
               <TrendingUp className="w-2.5 h-2.5" />
@@ -191,36 +190,41 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
             ))}
           </div>
 
-          {/* Decorative Bar Chart */}
-          <div className="flex items-end gap-1 h-10 mb-2">
-            {[65, 78, 45, 82, 58, 90, 72].map((height, index) => (
-              <motion.div
-                key={index}
-                initial={{ height: 0 }}
-                animate={{ height: `${height}%` }}
-                transition={{ delay: index * 0.05 + 0.5, duration: 0.6, ease: 'easeOut' }}
-                className={cn(
-                  'flex-1 rounded-t-sm',
-                  index === 5 ? `bg-gradient-to-t ${colors.primary}` : 'bg-gray-700/40'
-                )}
-              />
-            ))}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-gray-800/50">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 min-w-0">
-              <Home className="w-3 h-3 shrink-0" />
-              <span className="truncate">Updated 2 hours ago</span>
+          {/* Bar chart + footer pinned to the bottom of the card via
+              mt-auto. This is what eliminates the photo-bleed strip
+              under the View Details button on mobile. */}
+          <div className="mt-auto">
+            {/* Decorative Bar Chart */}
+            <div className="flex items-end gap-1 h-10 mb-2">
+              {[65, 78, 45, 82, 58, 90, 72].map((height, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${height}%` }}
+                  transition={{ delay: index * 0.05 + 0.5, duration: 0.6, ease: 'easeOut' }}
+                  className={cn(
+                    'flex-1 rounded-t-sm',
+                    index === 5 ? `bg-gradient-to-t ${colors.primary}` : 'bg-gray-700/40'
+                  )}
+                />
+              ))}
             </div>
-            <button className={cn(
-              'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shrink-0',
-              'bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-gray-100',
-              'border border-gray-700/50 transition-all duration-200'
-            )}>
-              <DollarSign className="w-3 h-3" />
-              View Details
-            </button>
+
+            {/* Footer — text-only View Details button (no $ icon) so
+                "Updated X hours ago" gets more room. */}
+            <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-gray-800/50">
+              <div className="flex items-center gap-1 text-[10px] text-gray-500 min-w-0">
+                <Home className="w-3 h-3 shrink-0" />
+                <span className="truncate">Updated 2 hours ago</span>
+              </div>
+              <button className={cn(
+                'px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shrink-0',
+                'bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-gray-100',
+                'border border-gray-700/50 transition-all duration-200'
+              )}>
+                View Details
+              </button>
+            </div>
           </div>
         </div>
 
