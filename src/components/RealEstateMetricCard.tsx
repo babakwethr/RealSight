@@ -153,11 +153,12 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
             V3 content on mobile (cards stretched in the grid; V3
             content didn't fill the height). */}
         <div className="relative z-10 p-4 flex flex-col h-full">
-          {/* Header — no icon badge. Title gets full row width so it
-              can wrap to 2 lines without crowding. */}
+          {/* Header — no icon badge. Title gets full row width and a
+              fixed min-height so 1-line and 2-line titles reserve the
+              same vertical space across all cards in the grid. */}
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-gray-100 line-clamp-2 leading-tight">{areaName}</h3>
+              <h3 className="text-sm font-semibold text-gray-100 line-clamp-2 leading-tight min-h-[2.25rem]">{areaName}</h3>
               <p className="text-[10px] text-gray-500 mt-0.5 truncate">Real Estate Market</p>
             </div>
             <div className={cn('flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0', colors.bg, colors.text)}>

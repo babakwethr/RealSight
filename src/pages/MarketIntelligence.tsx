@@ -296,8 +296,10 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
         className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/70 to-black/90"
       />
       {/* V3 component, transparent container so the photo+scrim show through.
-          tailwind-merge with `!` modifiers neutralises V3's opaque bg / shadow. */}
-      <div className="relative">
+          tailwind-merge with `!` modifiers neutralises V3's opaque bg / shadow.
+          h-full on this wrapper is critical — without it V3 sits at content
+          height and the photo bleeds below the View Details button. */}
+      <div className="relative h-full">
         <RealEstateMetricCard
           areaName={area.name}
           metricLabel="Price / sqft"
