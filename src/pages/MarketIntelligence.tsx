@@ -272,103 +272,50 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
     );
   }
 
+  // Photo cards — V3 layout with district photo as the background. Same
+  // RealEstateMetricCard component as the no-photo case, just with the
+  // photo + dark scrim painted behind V3's transparent container. This
+  // makes EVERY area card on Markets look identical structurally; only
+  // the back layer differs (photo vs glass).
   return (
     <div
       onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
-      className={cn(
-        'relative rounded-2xl overflow-hidden cursor-pointer group hover:-translate-y-1 transition-all duration-200 border shadow-[0_4px_24px_rgba(0,0,0,0.2)]',
-        accent.border,
-      )}
+      className="relative rounded-2xl overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform duration-200 group"
     >
-      {/* District photo as a low-opacity full-card background — replaces
-          the previous thumb in the header, which squeezed the title text.
-          A strong dark scrim keeps the metrics readable on top. */}
-      {photo && (
-        <>
-          <img
-            src={photo}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          {/* Brand-colour wash carries the performance accent. */}
-          <div
-            aria-hidden="true"
-            className={`absolute inset-0 bg-gradient-to-br ${accent.bg} mix-blend-soft-light`}
-          />
-          {/* Heavy bottom-up scrim so the data on top of the photo is
-              legible without the photo disappearing entirely. */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/75 to-black/90"
-          />
-        </>
-      )}
-      {/* No-photo branch — shared decorative SVG so areas without a
-          curated photo (the long tail once DLD lands ~150+ areas) still
-          look intentional, not stripped down. Pure SVG, zero per-area
-          cost, scales to any number of areas. */}
-      <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-      <div className="relative p-5">
-
-        {/* Header: rank eyebrow + name + Dubai/UAE + YoY badge.
-            Strict line caps so titles like "Dubai Creek Harbour" don't
-            wrap to 3 lines and crush the layout: title ≤ 2 lines,
-            subtitle ≤ 1 line, eyebrow ≤ 1 line. */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0 flex-1">
-            {rank && rank <= 3 && (
-              <div className="text-[9px] font-black text-amber-400 mb-1 flex items-center gap-1 truncate">
-                <Crown className="h-2.5 w-2.5 shrink-0" />#{rank} Top
-              </div>
-            )}
-            <h3 className="font-bold text-white text-sm leading-tight line-clamp-2">{area.name}</h3>
-            <p className="text-[10px] text-white/55 mt-0.5 truncate">Dubai, UAE</p>
-          </div>
-          <div className={`flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${pos ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
-            {pos ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-            {pos ? '+' : ''}{yoy.toFixed(1)}%
-          </div>
-        </div>
-
-        {/* HERO stat — Price/sqft is the most important number, largest element */}
-        <div className="mb-4">
-          <p className="text-[9px] text-white/40 font-medium uppercase tracking-wider mb-1">Price / sqft</p>
-          <p className="text-2xl font-black text-white leading-none" style={{ fontFamily: 'Berkeley Mono, SF Mono, monospace', letterSpacing: '-0.03em' }}>
-            AED {fmtNum(area.avg_price_per_sqft_current)}
-          </p>
-        </div>
-
-        {/* Subtle trend bar — replaces repetitive sparkline */}
-        <div className="mb-4">
-          <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${Math.min(100, Math.max(10, ((yoy + 5) / 25) * 100))}%`,
-                backgroundColor: accent.stroke,
-              }} />
-          </div>
-          <p className="text-[9px] text-white/40 mt-1">
-            {pos ? 'Growth trajectory' : 'Price pressure'} · 12 months
-          </p>
-        </div>
-
-        {/* Secondary stats — smaller, supporting role */}
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/[0.08]">
-          <div>
-            <p className="text-[9px] text-white/40 font-medium mb-0.5">Yield</p>
-            <p className="text-xs font-bold text-emerald-400">{area.rental_yield_avg?.toFixed(1)}%</p>
-          </div>
-          <div>
-            <p className="text-[9px] text-white/40 font-medium mb-0.5">Volume</p>
-            <p className="text-xs font-bold text-white">{area.transaction_volume_30d || 0}</p>
-          </div>
-          <div>
-            <p className="text-[9px] text-white/40 font-medium mb-0.5">Demand</p>
-            <p className="text-xs font-bold" style={{ color: accent.stroke }}>{area.demand_score || 50}/100</p>
-          </div>
-        </div>
+      {/* District photo */}
+      <img
+        src={photo}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      {/* Dark scrim — top-to-bottom darken so V3 content is readable. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/70 to-black/90"
+      />
+      {/* V3 component, transparent container so the photo+scrim show through.
+          tailwind-merge with `!` modifiers neutralises V3's opaque bg / shadow. */}
+      <div className="relative">
+        <RealEstateMetricCard
+          areaName={area.name}
+          metricLabel="Price / sqft"
+          metricValue={`AED ${fmtNum(area.avg_price_per_sqft_current)}`}
+          changePercent={`${pos ? '+' : ''}${yoy.toFixed(1)}%`}
+          changeDirection={pos ? 'up' : 'down'}
+          accentColor={rotatingAccentColor(area.name || String(area.id))}
+          subMetrics={[
+            { label: 'Yield', value: `${(area.rental_yield_avg ?? 0).toFixed(1)}%` },
+            { label: 'Volume', value: `${area.transaction_volume_30d || 0}` },
+            { label: 'Demand', value: `${area.demand_score || 50}/100` },
+          ]}
+          className={cn(
+            'max-w-none',
+            '!bg-transparent !border-white/[0.12] !rounded-2xl',
+            '!shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+          )}
+        />
       </div>
     </div>
   );
