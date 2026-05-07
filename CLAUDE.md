@@ -207,3 +207,49 @@ supabase/functions/         # Edge functions
 - Shrunk mobile area pills and added a compact filter row
   (Sales/Rental + Beds/Status/Type) on `MarketHome`.
 - Generated `RealSight-Color-Palette.html` as the design-system reference.
+
+---
+
+## 10. Magic MCP / 21st.dev — when and how to use it
+
+Magic MCP (21st.dev) generates React component variants in a hosted chat
+session. **Use it ONLY when Babak explicitly asks for it** — phrases like
+"use Magic MCP", "use 21st.dev for this card", "give me variants for this
+element". **Do NOT** reach for it for routine UI work you can just code
+yourself.
+
+### The locked workflow (every time)
+
+1. **Generate variants.** Call `mcp__magic__21st_magic_component_builder`
+   with a clear, specific brief — what the component is, what data it
+   shows, what context it lives in, accent palette, dark mode, etc.
+2. **Send Babak the chat URL.** The tool returns a
+   `https://21st.dev/magic-chat/<id>?mcp=true&port=...` URL with 4–5 rendered
+   variants in the right-hand sidebar. **Send him that URL directly in
+   chat.** Do NOT build your own HTML preview file. Do NOT try to render the
+   variants yourself.
+3. **Wait for Babak to pick.** He opens the URL, browses Variants 1–5, and
+   clicks the blue "Open in MCP" button on the one he likes. That action
+   gives him a copy-paste prompt block. He pastes that prompt back to you
+   in chat.
+4. **Integrate.** Use the pasted prompt — it tells the MCP exactly which
+   variant to pull. Fetch the chosen variant's code, adapt it to
+   RealSight's data shape (props, types, store/query bindings), and place
+   it in the right file.
+
+### What NOT to do
+
+- ❌ Build your own HTML samples copying ideas from the `inspiration`
+  tool output (this happened once with `markets-card-samples.html` —
+  never again).
+- ❌ Pick a variant yourself — always wait for Babak's selection.
+- ❌ Dismiss malformed tool output (`[object Object]`) — retry the call,
+  inspect the saved file if the response was truncated.
+- ❌ Use Magic MCP unprompted for routine UI changes.
+
+### Trigger phrases that mean "use Magic MCP"
+
+- "Use Magic MCP for this"
+- "Use 21st.dev for this card / element / design"
+- "Give me variants from Magic"
+- Any direct mention of `21st.dev` or `Magic MCP` in the request
