@@ -161,10 +161,13 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
               aria-hidden="true"
               className={`absolute inset-0 bg-gradient-to-br ${accent.bg} mix-blend-soft-light`}
             />
-            {/* Left-to-right dark scrim — text on the left, photo bleeds right. */}
+            {/* Left-to-right gradient: photo VISIBLE on the left where
+                content sits, fading to near-OPAQUE black on the right
+                so the chart can sit on a clean dark background (no photo
+                bleed under the chart). Per Babak's 8 May spec. */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/15"
+              className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/65 to-black/95"
             />
           </>
         )}
@@ -192,37 +195,38 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
         )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-        {/* Hero card layout (redesigned 8 May per awesome-design-md /
-            Linear analytics-card guidance):
-              ┌──────────────────────────────────┐
-              │  Title + rank + Dubai/UAE        │
-              │  KPI row · KPI row · KPI · KPI   │  ← stats sit on TOP
-              │ ──────────────────────────────── │
-              │ ▂▃▄▅▆▇█▇▆▅                      │  ← chart full-width
-              └──────────────────────────────────┘                    BOTTOM
-            Chart is the hero — full width, taller (96-128px) so it
-            actually reads as a "growth trajectory" feature instead
-            of a tiny sidebar sparkline. */}
-        <div className="relative p-4 sm:p-5 flex flex-col gap-4">
-          {/* Top section — title + KPIs */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                {rank && (
-                  <div className="flex items-center gap-1 text-amber-400 text-[11px] font-black uppercase tracking-wider">
-                    <Crown className="h-3 w-3" />#{rank} Top Area
-                  </div>
-                )}
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${accent.badge}`}>
-                  {accent.label}
-                </span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight line-clamp-2">{area.name}</h3>
-              <p className="text-[11px] text-white/50 mt-1 flex items-center gap-1">
-                <MapPin className="h-3 w-3" />Dubai, UAE
-              </p>
+        {/* Hero card layout (8 May redesign per Babak's spec):
+              ┌────────────────────────────────────────┐
+              │ #1 Top · High Growth                   │
+              │ Jumeirah Village Circle (JVC)          │
+              │ 📍 Dubai, UAE                           │
+              │                                        │
+              │ Price · YoY · Yield · Demand   [chart] │
+              │   on photo (fading)            on dark │
+              │                                        │
+              └────────────────────────────────────────┘
+            Photo on the LEFT under content, gradient fades to near-
+            opaque black on the RIGHT so the chart sits on a clean
+            dark surface. */}
+        <div className="relative p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-6 sm:items-center">
+          {/* LEFT — title + Dubai/UAE + KPIs underneath */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {rank && (
+                <div className="flex items-center gap-1 text-amber-400 text-[11px] font-black uppercase tracking-wider">
+                  <Crown className="h-3 w-3" />#{rank} Top Area
+                </div>
+              )}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${accent.badge}`}>
+                {accent.label}
+              </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-5 gap-y-2 sm:gap-x-6 shrink-0">
+            <h3 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight line-clamp-2">{area.name}</h3>
+            <p className="text-[11px] text-white/55 mt-1 mb-4 flex items-center gap-1">
+              <MapPin className="h-3 w-3" />Dubai, UAE
+            </p>
+            {/* Stats grid UNDER the title */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-5 gap-y-3">
               {[
                 { label: 'Price / sqft', value: `AED ${fmtNum(area.avg_price_per_sqft_current)}`, color: 'text-white' },
                 { label: 'YoY Growth', value: `${pos ? '+' : ''}${yoy.toFixed(1)}%`, color: pos ? 'text-emerald-400' : 'text-red-400' },
@@ -239,12 +243,12 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
             </div>
           </div>
 
-          {/* Bottom — full-width sparkline, the visual centerpiece.
-              Margin-negative on x so it bleeds to the card edges,
-              taller (h-24 → h-28) so the trajectory reads clearly. */}
-          <div className="-mx-4 sm:-mx-5 -mb-4 sm:-mb-5 h-24 sm:h-28 overflow-hidden">
+          {/* RIGHT — chart on the dark side of the gradient.
+              Sits over the near-opaque black portion of the photo
+              gradient so no photo bleeds under it. */}
+          <div className="w-full sm:w-2/5 lg:w-1/3 h-24 sm:h-32 shrink-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <AreaChart data={trend} margin={{ top: 6, right: 4, left: 4, bottom: 6 }}>
                 <defs>
                   <linearGradient id={`hero-grad-${area.id}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={accent.stroke} stopOpacity={0.45} />
