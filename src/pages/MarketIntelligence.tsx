@@ -191,7 +191,7 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
           </>
         )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 sm:items-center">
+        <div className="relative p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-3 flex-wrap">
               {rank && <div className="flex items-center gap-1 text-amber-400 text-xs font-black"><Crown className="h-3.5 w-3.5" />#{rank} Top Area</div>}
@@ -213,10 +213,11 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
               ))}
             </div>
           </div>
-          {/* Hero sparkline — full-width on mobile, fixed-width sidebar on desktop */}
-          <div className="w-full h-20 sm:w-48 sm:h-24 shrink-0">
+          {/* Hero sparkline — fixed compact size, overflow-hidden so the
+              area path can't escape its box. */}
+          <div className="w-full h-16 sm:w-44 sm:h-20 shrink-0 overflow-hidden rounded-lg">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+              <AreaChart data={trend} margin={{ top: 6, right: 6, left: 6, bottom: 6 }}>
                 <defs>
                   <linearGradient id={`hero-grad-${area.id}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={accent.stroke} stopOpacity={0.4} />
@@ -224,8 +225,8 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
                   </linearGradient>
                 </defs>
                 <YAxis domain={[minV, maxV]} hide />
-                <Area type="monotone" dataKey="v" stroke={accent.stroke} strokeWidth={2.5}
-                  fill={`url(#hero-grad-${area.id})`} dot={false} />
+                <Area type="monotone" dataKey="v" stroke={accent.stroke} strokeWidth={2}
+                  fill={`url(#hero-grad-${area.id})`} dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -768,11 +769,16 @@ function MarketIntelligenceContent() {
               ))}
             </div>
           ) : allAreas.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-fr">
+            <div className="space-y-3">
+              {/* Hero card OUTSIDE the grid — sizes to its content rather
+                  than stretching to the grid's auto-rows-fr height. */}
               <AreaCard key={allAreas[0].id} area={allAreas[0]} rank={1} hero />
-              {allAreas.slice(1, 8).map((area, i) => (
-                <AreaCard key={area.id} area={area} rank={i + 2} />
-              ))}
+              {/* Standard cards inside the equalising grid. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-fr">
+                {allAreas.slice(1, 8).map((area, i) => (
+                  <AreaCard key={area.id} area={area} rank={i + 2} />
+                ))}
+              </div>
             </div>
           ) : (
             <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-10 text-center">
