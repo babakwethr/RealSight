@@ -179,12 +179,12 @@ function WatchlistContent() {
       <GuidanceCard
         storageKey="watchlist-v1"
         tone="info"
-        title="Save anything worth tracking"
-        description="Add projects, areas, or market signals you want to keep an eye on. We surface fresh data on each item the next time you visit."
+        title="Track what matters"
+        description="Save projects, areas, or market signals to monitor."
         bullets={[
-          'Add a project (e.g. "Creek Rise Tower 1") — we\'ll track its price + sales velocity.',
-          'Add an area (e.g. "JVC") — get notified when DLD prices or yields shift.',
-          'Add a signal (e.g. "Price drops in Damac Lagoons") — we monitor and alert.',
+          'Project — price + sales velocity',
+          'Area — DLD price and yield alerts',
+          'Signal — auto-monitored notifications',
         ]}
       />
 

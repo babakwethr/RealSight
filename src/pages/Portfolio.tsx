@@ -215,13 +215,13 @@ export default function Portfolio() {
       <GuidanceCard
         storageKey="portfolio-v1"
         tone="info"
-        title="Your investment portfolio — at a glance"
-        description="Every property you own (or are tracking) lives here. We pull the latest DLD market value for each unit so you see how your wealth is growing in real time."
+        title="Your portfolio at a glance"
+        description="Every property — current DLD value, live ROI."
         bullets={[
-          'Add a property — log a unit you bought (or are about to buy) so we can track its value.',
-          'See ROI live — current value vs invested capital, updated against DLD comparables.',
-          'Export Statement — download a CSV of your holdings for your accountant or family office.',
-          'Compare Holdings — side-by-side ROI between properties (left sidebar).',
+          'Add a property to track its value',
+          'Live ROI vs invested capital',
+          'Export CSV for your accountant',
+          'Compare two holdings side by side',
         ]}
       />
 

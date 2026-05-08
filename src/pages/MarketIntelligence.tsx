@@ -495,12 +495,12 @@ function MarketIntelligenceContent() {
       <GuidanceCard
         storageKey="market-intelligence-v1"
         tone="info"
-        title="Live Dubai market intelligence"
-        description="Pick an area chip above (or stay on All Dubai) to see prices, yields, transaction volume and the year-on-year trend — sourced from real DLD records."
+        title="Live Dubai market data"
+        description="Pick an area for prices, yields, and volume — straight from DLD."
         bullets={[
-          'Pick an area chip above to drill into a specific neighbourhood.',
-          'Hero card shows the headline market score + price growth at a glance.',
-          'Use what you see here when you run the Deal Analyzer — context matters.',
+          'Pick an area chip above',
+          'Hero shows the market score',
+          'Use this in Deal Analyzer',
         ]}
       />
 

@@ -209,12 +209,12 @@ function CompareContent() {
       <GuidanceCard
         storageKey="compare-v1"
         tone="info"
-        title="Compare two of your properties side by side"
-        description="Pick any two holdings from your portfolio. We line up the same metrics — ROI, rental yield, area trend, demand — so you can see which one is pulling its weight."
+        title="Compare two properties"
+        description="Pick two holdings — same metrics, side by side."
         bullets={[
-          'Pick Project 1 and Project 2 below — they\'re drawn from your portfolio.',
-          'We compare ROI, rental yield, YoY growth, demand and liquidity side by side.',
-          'Click "Ask AI to Compare" for a written verdict on which is the stronger hold.',
+          'Choose Project 1 and Project 2',
+          'ROI, yield, YoY growth, demand',
+          'AI verdict on the stronger hold',
         ]}
       />
 
