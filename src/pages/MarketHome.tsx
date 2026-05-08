@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { ParallaxImage } from '@/components/ParallaxImage';
+import { PhoneFrame } from '@/components/PhoneFrame';
 import { getAreaPhotoUrl } from '@/lib/areaPhotos';
 import { AIVerdict } from '@/components/AIVerdict';
 import {
@@ -351,8 +352,13 @@ const FEATURE_CARDS = [
     publicCta: '/login?mode=signup',
     plan: 'Free for all accounts',
     popupDesc: 'Analyse any Dubai property against real DLD market data. Get an AI investment verdict, area comps, yield scenarios and a professional PDF report.',
-    image: '/dashboard-preview.png',
-    imageObjectPosition: 'center top',
+    // Card BG photo. The phone mockup floats over this with the actual
+    // screenshot inside.
+    image: '/images/areas/business-bay.webp',
+    imageObjectPosition: 'center',
+    // When set, renders a tilted iPhone mockup on the right side of the
+    // card containing this screenshot.
+    screenshot: '/dashboard-preview.png',
     format: 'horizontal' as const,
   },
   {
@@ -389,9 +395,10 @@ const FEATURE_CARDS = [
     publicCta: '/login?mode=signup',
     plan: 'Adviser Pro · $199/mo',
     popupDesc: 'Create a professional 8-slide investor presentation for any Dubai property. Branded with your name, phone, and agency. Share with clients in one click.',
-    image: '/dashboard-preview.png',
-    imageObjectPosition: 'center 30%',
-    format: 'vertical' as const,
+    image: '/images/areas/downtown.webp',
+    imageObjectPosition: 'center',
+    screenshot: '/dashboard-preview.png',
+    format: 'horizontal' as const,
   },
   {
     id: 'portfolio',
@@ -410,7 +417,7 @@ const FEATURE_CARDS = [
     popupDesc: 'Track every property you own in one place. Monitor payment schedules, store contracts, track capital gain, and get AI-powered portfolio health reports.',
     image: '/pdf-bg/dubai-marina.jpg',
     imageObjectPosition: 'center 40%',
-    format: 'vertical' as const,
+    format: 'horizontal' as const,
   },
 ];
 
@@ -524,6 +531,24 @@ function FeatureToolCard({
       >
         {isFree ? 'Free' : 'Pro'}
       </span>
+
+      {/* iPhone mockup floating on the right when this card has a real
+          screenshot. Sits over the dark scrim's clearer-right region so
+          the phone is visible against the photo BG. Uses CSS scale to
+          adapt to card size at different breakpoints. */}
+      {format === 'horizontal' && 'screenshot' in card && card.screenshot && (
+        <div
+          aria-hidden="true"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[5] pointer-events-none origin-right scale-[0.75] sm:scale-[0.85] lg:scale-100"
+        >
+          <PhoneFrame
+            src={card.screenshot}
+            alt=""
+            tilt={-8}
+            width={100}
+          />
+        </div>
+      )}
 
       {/* Text overlay — placement depends on format. */}
       {format === 'horizontal' ? (
@@ -1242,22 +1267,11 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               Intelligence tools built for <span className="gradient-word">global investors</span>
             </h2>
           </div>
-          {/* Two formats so we can A/B compare:
-              - Horizontals on top (wider, image-first banner) — 2 across
-              - Verticals below (taller, narrow, image fills) — 2 across */}
-          <div className="space-y-3 sm:space-y-4">
-            {/* HORIZONTAL pair (16:9 aspect — landscape) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {FEATURE_CARDS.filter(c => c.format === 'horizontal').map(card => (
-                <FeatureToolCard key={card.id} card={card} onClick={() => handleFeatureClick(card)} format="horizontal" />
-              ))}
-            </div>
-            {/* VERTICAL pair (3:4 aspect — portrait) */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {FEATURE_CARDS.filter(c => c.format === 'vertical').map(card => (
-                <FeatureToolCard key={card.id} card={card} onClick={() => handleFeatureClick(card)} format="vertical" />
-              ))}
-            </div>
+          {/* All 4 cards same size — small horizontal style, 2×2 grid. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {FEATURE_CARDS.map(card => (
+              <FeatureToolCard key={card.id} card={card} onClick={() => handleFeatureClick(card)} format="horizontal" />
+            ))}
           </div>
         </div>
 
