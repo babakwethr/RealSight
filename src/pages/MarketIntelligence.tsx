@@ -191,41 +191,68 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
           </>
         )}
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="relative p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-3 flex-wrap">
-              {rank && <div className="flex items-center gap-1 text-amber-400 text-xs font-black"><Crown className="h-3.5 w-3.5" />#{rank} Top Area</div>}
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${accent.badge}`}>{accent.label}</span>
+
+        {/* Hero card layout (redesigned 8 May per awesome-design-md /
+            Linear analytics-card guidance):
+              ┌──────────────────────────────────┐
+              │  Title + rank + Dubai/UAE        │
+              │  KPI row · KPI row · KPI · KPI   │  ← stats sit on TOP
+              │ ──────────────────────────────── │
+              │ ▂▃▄▅▆▇█▇▆▅                      │  ← chart full-width
+              └──────────────────────────────────┘                    BOTTOM
+            Chart is the hero — full width, taller (96-128px) so it
+            actually reads as a "growth trajectory" feature instead
+            of a tiny sidebar sparkline. */}
+        <div className="relative p-4 sm:p-5 flex flex-col gap-4">
+          {/* Top section — title + KPIs */}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {rank && (
+                  <div className="flex items-center gap-1 text-amber-400 text-[11px] font-black uppercase tracking-wider">
+                    <Crown className="h-3 w-3" />#{rank} Top Area
+                  </div>
+                )}
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${accent.badge}`}>
+                  {accent.label}
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight line-clamp-2">{area.name}</h3>
+              <p className="text-[11px] text-white/50 mt-1 flex items-center gap-1">
+                <MapPin className="h-3 w-3" />Dubai, UAE
+              </p>
             </div>
-            <h3 className="text-xl font-black text-white mb-1">{area.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1"><MapPin className="h-3 w-3" />Dubai, UAE</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-5 gap-y-2 sm:gap-x-6 shrink-0">
               {[
-                { label: 'Price / sqft', value: `AED ${fmtNum(area.avg_price_per_sqft_current)}`, big: true },
-                { label: 'YoY Growth', value: `${pos ? '+' : ''}${yoy.toFixed(1)}%`, color: pos ? 'text-emerald-400' : 'text-red-400', big: true },
+                { label: 'Price / sqft', value: `AED ${fmtNum(area.avg_price_per_sqft_current)}`, color: 'text-white' },
+                { label: 'YoY Growth', value: `${pos ? '+' : ''}${yoy.toFixed(1)}%`, color: pos ? 'text-emerald-400' : 'text-red-400' },
                 { label: 'Rental Yield', value: `${area.rental_yield_avg?.toFixed(1)}%`, color: 'text-emerald-400' },
-                { label: 'Demand', value: `${area.demand_score || 50}/100` },
+                { label: 'Demand', value: `${area.demand_score || 50}/100`, color: 'text-white' },
               ].map(s => (
                 <div key={s.label}>
-                  <p className="text-[10px] text-muted-foreground/70 mb-1 font-medium">{s.label}</p>
-                  <p className={`${s.big ? 'text-lg font-black' : 'text-sm font-bold'} ${s.color || 'text-white'}`}>{s.value}</p>
+                  <p className="text-[10px] text-white/55 mb-0.5 font-medium uppercase tracking-wider">{s.label}</p>
+                  <p className={`text-base sm:text-lg font-black ${s.color}`} style={{ letterSpacing: '-0.02em' }}>
+                    {s.value}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
-          {/* Hero sparkline — fixed compact size, overflow-hidden so the
-              area path can't escape its box. */}
-          <div className="w-full h-16 sm:w-44 sm:h-20 shrink-0 overflow-hidden rounded-lg">
+
+          {/* Bottom — full-width sparkline, the visual centerpiece.
+              Margin-negative on x so it bleeds to the card edges,
+              taller (h-24 → h-28) so the trajectory reads clearly. */}
+          <div className="-mx-4 sm:-mx-5 -mb-4 sm:-mb-5 h-24 sm:h-28 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 6, right: 6, left: 6, bottom: 6 }}>
+              <AreaChart data={trend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`hero-grad-${area.id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={accent.stroke} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={accent.stroke} stopOpacity={0} />
+                    <stop offset="0%" stopColor={accent.stroke} stopOpacity={0.45} />
+                    <stop offset="100%" stopColor={accent.stroke} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <YAxis domain={[minV, maxV]} hide />
-                <Area type="monotone" dataKey="v" stroke={accent.stroke} strokeWidth={2}
+                <Area type="monotone" dataKey="v" stroke={accent.stroke} strokeWidth={2.5}
                   fill={`url(#hero-grad-${area.id})`} dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
