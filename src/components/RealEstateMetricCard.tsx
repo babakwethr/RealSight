@@ -175,7 +175,9 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
             </h2>
           </div>
 
-          {/* Sub Metrics Grid */}
+          {/* Sub Metrics Grid — values must always read in full at any
+              card width (no `truncate` on the value). Tighter padding +
+              text-xs so all three numbers fit on a 5-col-grid xl card. */}
           <div className="grid grid-cols-3 gap-1.5 mb-3">
             {subMetrics.map((metric, index) => (
               <motion.div
@@ -183,10 +185,10 @@ const RealEstateMetricCard = React.forwardRef<HTMLDivElement, RealEstateMetricCa
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 + 0.3 }}
-                className="bg-gray-800/40 backdrop-blur-sm rounded-md px-2 py-1.5 border border-gray-700/30 min-w-0"
+                className="bg-gray-800/40 backdrop-blur-sm rounded-md px-1.5 py-1.5 border border-gray-700/30 min-w-0"
               >
                 <p className="text-[9px] text-gray-500 mb-0.5 truncate">{metric.label}</p>
-                <p className="text-sm font-semibold text-gray-200 truncate">{metric.value}</p>
+                <p className="text-xs font-semibold text-gray-100 whitespace-nowrap">{metric.value}</p>
               </motion.div>
             ))}
           </div>

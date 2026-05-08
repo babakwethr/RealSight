@@ -135,64 +135,37 @@ function AreaCard({ area, rank, hero }: { area: any; rank?: number; hero?: boole
   const maxV = Math.max(...trend.map(d => d.v)) * 1.005;
 
   if (hero) {
-    // Hero card — full width, horizontal layout. When we have a district
-    // photo we drop the gradient backdrop in favour of a real image with a
-    // left-to-right dark scrim (text-readable left, photo bleeds right).
+    // Hero card — Babak's 8-May spec: drop the photo background entirely,
+    // use only the dark glass + grid pattern + accent glow. Photo competed
+    // visually with the chart and made content harder to read.
     return (
       <div
         onClick={() => navigate(`/market-intelligence?area=${encodeURIComponent(area.name)}`)}
         className={cn(
           'relative rounded-2xl overflow-hidden cursor-pointer group col-span-full border hover:scale-[1.005] transition-all duration-300',
           accent.border,
-          !photo && `bg-gradient-to-br ${accent.bg}`,
+          'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950',
         )}
       >
-        {photo && (
-          <>
-            <img
-              src={photo}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Brand-colour wash so the photo carries the performance accent. */}
-            <div
-              aria-hidden="true"
-              className={`absolute inset-0 bg-gradient-to-br ${accent.bg} mix-blend-soft-light`}
-            />
-            {/* Left-to-right gradient: photo VISIBLE on the left where
-                content sits, fading to near-OPAQUE black on the right
-                so the chart can sit on a clean dark background (no photo
-                bleed under the chart). Per Babak's 8 May spec. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/65 to-black/95"
-            />
-          </>
-        )}
-        {/* No-photo hero — V3 grid pattern + V2 bottom-corner glow. */}
-        {!photo && (
-          <>
-            <div className="absolute inset-0 opacity-30 pointer-events-none">
-              <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id={`hero-grid-${area.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
-                    <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill={`url(#hero-grid-${area.id})`} />
-              </svg>
-            </div>
-            <div
-              className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
-              style={{
-                background: `radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%), radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)`,
-                filter: 'blur(50px)',
-              }}
-            />
-          </>
-        )}
+        {/* Grid pattern decoration */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id={`hero-grid-${area.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
+                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-700" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#hero-grid-${area.id})`} />
+          </svg>
+        </div>
+        {/* Accent corner glow */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-2/3 pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse at bottom right, ${accent.glow} -10%, transparent 70%), radial-gradient(ellipse at bottom left, ${accent.glowSecondary} -10%, transparent 70%)`,
+            filter: 'blur(50px)',
+          }}
+        />
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
         {/* Hero card layout (8 May redesign per Babak's spec):
