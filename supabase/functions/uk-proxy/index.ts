@@ -104,6 +104,10 @@ function fallbackResponse(reason: string, status = 503) {
       source: "cache",
       message: "UK live data not yet active — serving cached estimates.",
       reason,
+      // Diagnostic field — exposes what the upstream fetch actually
+      // returned (status / parse error / etc.). Removed in v1.1 once
+      // we trust the fetch path.
+      diagnostic: lastFetchDiagnostic,
     }),
     {
       status,
@@ -155,19 +159,54 @@ interface Ukhpi {
   refRegion: string;
 }
 
+/** Module-level diagnostic — populated on each failed fetch so the
+ * proxy can surface what actually went wrong without us needing access
+ * to the Supabase edge function logs. Wiped on every successful fetch. */
+let lastFetchDiagnostic: {
+  url: string;
+  status?: number;
+  reason: string;
+  bodyPreview?: string;
+} | null = null;
+
 async function fetchUkhpiMonth(region: string, month: string): Promise<Ukhpi | null> {
   const cacheKey = `ukhpi:${region}:${month}`;
   const cached = cacheGet<Ukhpi>(cacheKey);
   if (cached) return cached;
 
   const url = `${LR_BASE}/${encodeURIComponent(region)}/month/${encodeURIComponent(month)}.json`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) return null;
-  const json = await res.json() as { result?: { primaryTopic?: unknown } };
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        // Some .gov.uk endpoints reject requests without a UA.
+        "User-Agent": "RealSight-uk-proxy/1.0 (+realsight.app)",
+      },
+    });
+  } catch (e) {
+    lastFetchDiagnostic = { url, reason: `fetch_threw:${(e as Error).message}` };
+    return null;
+  }
+  if (!res.ok) {
+    lastFetchDiagnostic = { url, status: res.status, reason: "non_2xx" };
+    return null;
+  }
+  let json: { result?: { primaryTopic?: unknown } };
+  const rawText = await res.text();
+  try {
+    json = JSON.parse(rawText);
+  } catch (e) {
+    lastFetchDiagnostic = { url, status: res.status, reason: `json_parse:${(e as Error).message}`, bodyPreview: rawText.slice(0, 200) };
+    return null;
+  }
   const pt = json.result?.primaryTopic;
   // When the month isn't published yet the API returns a literal
   // "elda:missingEndpoint" string instead of an object — skip those.
-  if (!pt || typeof pt !== "object") return null;
+  if (!pt || typeof pt !== "object") {
+    lastFetchDiagnostic = { url, status: res.status, reason: `bad_primary_topic:${typeof pt}:${String(pt).slice(0, 80)}` };
+    return null;
+  }
   const o = pt as Record<string, unknown>;
 
   const out: Ukhpi = {
