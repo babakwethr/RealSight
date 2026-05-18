@@ -784,18 +784,26 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
           <div className="relative mx-auto max-w-3xl">
             {isPublic ? (
               <div className="mb-7">
-                {/* Per LAUNCH_PLAN.md §17 — lean on "global · live in Dubai"
-                    framing rather than "Dubai's leading X". The rotating city
-                    already telegraphs the international ambition; eyebrow + sub
-                    headline back it up without overclaiming coverage. */}
+                {/* Phase 4 of the global-launch plan — three live markets.
+                    Order matters: US first → UK → UAE (ADRO LAB founder
+                    narrative). The rotating city below cycles through the
+                    live markets to keep the hero feeling alive. */}
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4">
-                  <Zap className="h-3 w-3" /> Global Property Intelligence · Live in Dubai
+                  <Zap className="h-3 w-3" /> Live in
+                  <span className="inline-flex items-center gap-1">
+                    <span>🇺🇸 US</span>
+                    <span className="text-primary/50">·</span>
+                    <span>🇬🇧 UK</span>
+                    <span className="text-primary/50">·</span>
+                    <span>🇦🇪 UAE</span>
+                  </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-foreground mb-3 tracking-tight">
                   <RotatingCity /> <span className="text-white">Property Market</span>
                 </h1>
                 <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
-                  Search, analyse and track any area — starting with the deepest live data on Dubai.
+                  Property intelligence backed by official government registries —
+                  FHFA, HM Land Registry, and DLD. Built for serious investors.
                 </p>
               </div>
             ) : (
@@ -813,6 +821,42 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             <div style={{ position: 'relative', zIndex: 50 }}>
               <SearchFilterBar areas={allAreaNames} onSearch={name => setSelectedArea(name === 'Dubai' ? '' : name)} />
             </div>
+
+            {/* Phase 4 of the global-launch plan — live-market pills directly
+                below the search, so the rebrand is visible without needing to
+                click the MarketSwitcher. US first → UK → UAE order. */}
+            {isPublic && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                <Link
+                  to="/market/us"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-violet-500/10 border border-violet-400/20 text-violet-200 hover:bg-violet-500/20 transition-colors"
+                >
+                  <span>🇺🇸</span> US Market
+                  <span className="text-[10px] font-normal text-violet-300/70">· FHFA + Case-Shiller</span>
+                </Link>
+                <Link
+                  to="/market/uk"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/20 transition-colors"
+                >
+                  <span>🇬🇧</span> UK Market
+                  <span className="text-[10px] font-normal text-emerald-300/70">· HM Land Registry</span>
+                </Link>
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <span>🇦🇪</span> UAE Market
+                  <span className="text-[10px] font-normal text-primary/70">· DLD</span>
+                </Link>
+                <Link
+                  to="/off-plan"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-400/20 text-amber-200 hover:bg-amber-500/20 transition-colors"
+                >
+                  <span>🌏</span> Off-Plan
+                  <span className="text-[10px] font-normal text-amber-300/70">· UAE · Bali · Phuket</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Area pills — small, colour-coded chips.
