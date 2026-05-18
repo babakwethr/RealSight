@@ -55,11 +55,20 @@ export function PublicFooter() {
           </div>
 
           {/* Link columns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35 mb-3">Markets</p>
+              <ul className="space-y-2 text-xs">
+                <li><Link to="/market/us" className="text-white/60 hover:text-white transition-colors">🇺🇸 United States</Link></li>
+                <li><Link to="/market/uk" className="text-white/60 hover:text-white transition-colors">🇬🇧 United Kingdom</Link></li>
+                <li><Link to="/" className="text-white/60 hover:text-white transition-colors">🇦🇪 United Arab Emirates</Link></li>
+                <li><Link to="/off-plan" className="text-white/60 hover:text-white transition-colors">🌏 Off-Plan Inventory</Link></li>
+                <li><Link to="/radar" className="text-white/60 hover:text-white transition-colors">Global Radar</Link></li>
+              </ul>
+            </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35 mb-3">Product</p>
               <ul className="space-y-2 text-xs">
-                <li><Link to="/" className="text-white/60 hover:text-white transition-colors">Markets</Link></li>
                 <li><Link to="/deal-analyzer" className="text-white/60 hover:text-white transition-colors">Deal Analyzer</Link></li>
                 <li><Link to="/projects" className="text-white/60 hover:text-white transition-colors">New Launches</Link></li>
                 <li><Link to="/for-advisers" className="text-white/60 hover:text-white transition-colors">For Advisers</Link></li>
