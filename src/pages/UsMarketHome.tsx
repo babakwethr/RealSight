@@ -18,9 +18,10 @@
  */
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, MapPin, Building2, ArrowUpRight } from 'lucide-react';
-import { useNycSales, useChicagoSales, useFredSeries } from '@/hooks/useUsMarketData';
+import { useNycSales, useChicagoSales, useFredSeries, useUsMetrosSnapshot } from '@/hooks/useUsMarketData';
 import { Logo } from '@/components/Logo';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { UsMetroSnapshot } from '@/lib/usApi';
 
 const DOLLAR = '$';
 
@@ -46,6 +47,7 @@ export default function UsMarketHome() {
   const chicagoSales = useChicagoSales({ limit: 6, minPrice: 500_000 });
   const mortgage30 = useFredSeries('MORTGAGE30US', 1);
   const caseShiller = useFredSeries('CSUSHPINSA', 13); // 12mo + 1 for YoY
+  const metros = useUsMetrosSnapshot();
 
   // Compute YoY HPI change if FRED key is configured
   const hpiTrend = computeYoY(caseShiller.data?.observations);
@@ -103,11 +105,53 @@ export default function UsMarketHome() {
               positive={hpiTrend == null ? undefined : hpiTrend >= 0}
             />
             <MacroTile
-              label="Coverage"
-              value="NYC + Chicago"
-              hint="More metros coming"
+              label="Metros tracked"
+              value={metros.data?.metros ? `${metros.data.metros.filter((m) => !m.missing && m.slug !== 'us-composite').length}` : null}
+              hint="Case-Shiller HPI"
             />
           </div>
+        </section>
+
+        {/* ─── 20-metro Case-Shiller grid ─── */}
+        <section>
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-foreground flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-violet-400" />
+                US metros — Case-Shiller HPI
+              </h2>
+              <p className="text-sm text-white/55">
+                Latest published value + 12-month YoY change. Monthly, seasonally adjusted.
+              </p>
+            </div>
+            <p className="text-[10px] uppercase tracking-widest text-white/40">
+              Source · S&amp;P Case-Shiller via FRED
+            </p>
+          </div>
+          {metros.isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          ) : metros.data?.metros && metros.data.metros.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {metros.data.metros
+                .filter((m) => m.slug !== 'us-composite')
+                .sort((a, b) => (b.latestValue ?? 0) - (a.latestValue ?? 0))
+                .map((m) => (
+                  <MetroTile key={m.slug} metro={m} />
+                ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center">
+              <ArrowUpRight className="h-6 w-6 text-white/30 mx-auto mb-2" />
+              <p className="text-sm text-white/55">FRED metro snapshot not yet available.</p>
+              <p className="text-[11px] text-white/35 mt-1">
+                Make sure FRED_API_KEY is set in Supabase secrets and us-proxy is deployed.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ─── Manhattan recent sales ─── */}
@@ -246,6 +290,41 @@ function MetroSection({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">{children}</div>
       )}
     </section>
+  );
+}
+
+function MetroTile({ metro }: { metro: UsMetroSnapshot }) {
+  if (metro.missing || metro.latestValue == null) {
+    return (
+      <div className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.05] p-4 opacity-60">
+        <p className="text-xs font-semibold text-white/55">{metro.name}</p>
+        <p className="text-[10px] text-white/35 mt-1">No data</p>
+      </div>
+    );
+  }
+  const yoy = metro.yoyPct;
+  const positive = yoy != null && yoy >= 0;
+  const Icon = positive ? TrendingUp : TrendingDown;
+  const color = yoy == null ? 'text-white/40' : positive ? 'text-emerald-400' : 'text-amber-400';
+  return (
+    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 hover:bg-white/[0.06] transition-colors">
+      <p className="text-xs font-semibold text-white/80 leading-tight">{metro.name}</p>
+      <p className="text-xl font-black text-foreground tabular-nums mt-1" style={{ letterSpacing: '-0.02em' }}>
+        {metro.latestValue?.toFixed(1)}
+      </p>
+      <div className="flex items-center justify-between mt-2">
+        {yoy != null ? (
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${color}`}>
+            <Icon className="h-3 w-3" />
+            <span className="tabular-nums">{yoy >= 0 ? '+' : ''}{yoy.toFixed(1)}%</span>
+            <span className="text-white/50 font-normal">YoY</span>
+          </span>
+        ) : (
+          <span className="text-[10px] text-white/35">—</span>
+        )}
+        <p className="text-[10px] text-white/40">{metro.latestDate?.slice(0, 7)}</p>
+      </div>
+    </div>
   );
 }
 

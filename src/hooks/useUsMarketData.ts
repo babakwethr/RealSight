@@ -8,9 +8,11 @@ import {
   usNycSalesUrl,
   usChicagoSalesUrl,
   usFredObservationsUrl,
+  usMetrosSnapshotUrl,
   type NycBorough,
   type NycSale,
   type ChicagoSale,
+  type UsMetroSnapshot,
 } from '@/lib/usApi';
 
 async function getJson<T>(url: string): Promise<T | null> {
@@ -70,5 +72,19 @@ export function useFredSeries(seriesId: string, limit = 12) {
         fallback?: boolean;
       }>(usFredObservationsUrl({ seriesId, limit })),
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+/** 20 Case-Shiller metros — latest HPI + 12-month YoY change for each. */
+export function useUsMetrosSnapshot() {
+  return useQuery({
+    queryKey: ['us-metros-snapshot'],
+    queryFn: () =>
+      getJson<{
+        source: string;
+        metros: UsMetroSnapshot[];
+        fallback?: boolean;
+      }>(usMetrosSnapshotUrl()),
+    staleTime: 6 * 60 * 60 * 1000, // Case-Shiller updates monthly
   });
 }

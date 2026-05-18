@@ -231,6 +231,84 @@ serve(async (req) => {
       return jsonResponse(out);
     }
 
+    // ─── fred / metros-snapshot ────────────────────────────────────────
+    // Case-Shiller 20-city HPI in one call. Returns each metro with the
+    // latest published value and 12-month YoY change. Cached 6h since
+    // Case-Shiller is monthly.
+    if (entity === "fred" && dataset === "metros-snapshot") {
+      const fredKey = Deno.env.get("FRED_API_KEY");
+      if (!fredKey) return fallbackResponse("fred_key_missing");
+
+      const cacheKey = `fred:metros-snapshot:v1`;
+      const cached = cacheGet<unknown>(cacheKey);
+      if (cached) return jsonResponse(cached);
+
+      // Case-Shiller series IDs (monthly, seasonally-adjusted home price
+      // indices) — 20 city composite + the 20 individual cities.
+      const METROS: Array<{ slug: string; name: string; series: string }> = [
+        { slug: "us-composite", name: "US 20-City Composite", series: "SPCS20RSA" },
+        { slug: "new-york",      name: "New York",      series: "NYXRSA" },
+        { slug: "los-angeles",   name: "Los Angeles",   series: "LXXRSA" },
+        { slug: "chicago",       name: "Chicago",       series: "CHXRSA" },
+        { slug: "miami",         name: "Miami",         series: "MIXRSA" },
+        { slug: "san-francisco", name: "San Francisco", series: "SFXRSA" },
+        { slug: "boston",        name: "Boston",        series: "BOXRSA" },
+        { slug: "washington-dc", name: "Washington DC", series: "WDXRSA" },
+        { slug: "seattle",       name: "Seattle",       series: "SEXRSA" },
+        { slug: "denver",        name: "Denver",        series: "DNXRSA" },
+        { slug: "phoenix",       name: "Phoenix",       series: "PHXRSA" },
+        { slug: "dallas",        name: "Dallas",        series: "DAXRSA" },
+        { slug: "san-diego",     name: "San Diego",     series: "SDXRSA" },
+        { slug: "portland",      name: "Portland",      series: "POXRSA" },
+        { slug: "charlotte",     name: "Charlotte",     series: "CRXRSA" },
+        { slug: "detroit",       name: "Detroit",       series: "DEXRSA" },
+        { slug: "las-vegas",     name: "Las Vegas",     series: "LVXRSA" },
+        { slug: "minneapolis",   name: "Minneapolis",   series: "MNXRSA" },
+        { slug: "cleveland",     name: "Cleveland",     series: "CEXRSA" },
+        { slug: "tampa",         name: "Tampa",         series: "TPXRSA" },
+        { slug: "atlanta",       name: "Atlanta",       series: "ATXRSA" },
+      ];
+
+      // Fetch 13 observations per series (latest + 12 months prior) in
+      // parallel. Each call is small; 20 in parallel completes in ~500ms cold.
+      const results = await Promise.all(METROS.map(async (m) => {
+        const params = new URLSearchParams({
+          series_id: m.series,
+          api_key: fredKey,
+          file_type: "json",
+          limit: "13",
+          sort_order: "desc",
+        });
+        const target = `${FRED_BASE}/series/observations?${params.toString()}`;
+        try {
+          const res = await fetch(target, {
+            headers: { "User-Agent": "RealSight-us-proxy/1.0 (+realsight.app)" },
+          });
+          if (!res.ok) return { ...m, missing: true };
+          const data = await res.json() as { observations?: Array<{ date: string; value: string }> };
+          const obs = data.observations ?? [];
+          if (obs.length === 0) return { ...m, missing: true };
+          const latest = parseFloat(obs[0].value);
+          const yearAgo = obs.length >= 13 ? parseFloat(obs[12].value) : null;
+          const yoy = (yearAgo != null && yearAgo !== 0 && isFinite(latest) && isFinite(yearAgo))
+            ? ((latest - yearAgo) / yearAgo) * 100
+            : null;
+          return {
+            ...m,
+            latestValue: isFinite(latest) ? latest : null,
+            latestDate: obs[0].date,
+            yoyPct: yoy,
+          };
+        } catch {
+          return { ...m, missing: true };
+        }
+      }));
+
+      const out = { source: "fred-case-shiller-snapshot", metros: results };
+      cacheSet(cacheKey, out);
+      return jsonResponse(out);
+    }
+
     // ─── fred / observations ───────────────────────────────────────────
     // FRED time-series macro data. Useful series:
     //   MORTGAGE30US  — 30-year fixed mortgage average rate (weekly)

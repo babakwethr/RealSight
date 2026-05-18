@@ -92,3 +92,26 @@ export function usFredObservationsUrl(opts: {
   });
   return `${BASE()}?${params.toString()}`;
 }
+
+/** Shape of one metro in the metros-snapshot response. */
+export interface UsMetroSnapshot {
+  slug: string;
+  name: string;
+  series: string;
+  latestValue?: number | null;
+  latestDate?: string;
+  yoyPct?: number | null;
+  missing?: boolean;
+}
+
+/**
+ * Snapshot of all 20 Case-Shiller metros — latest HPI + 12-month YoY,
+ * fetched in parallel from FRED.
+ */
+export function usMetrosSnapshotUrl(): string {
+  const params = new URLSearchParams({
+    entity: 'fred',
+    dataset: 'metros-snapshot',
+  });
+  return `${BASE()}?${params.toString()}`;
+}
