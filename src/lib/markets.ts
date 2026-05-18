@@ -73,6 +73,10 @@ export const MARKETS: readonly Market[] = [
     reellyCountry: null,
   },
   {
+    // UK went Live in Phase 2 of the global-launch plan — backed by
+    // HM Land Registry's UKHPI via the uk-proxy edge function. Deploy
+    // uk-proxy + flip UK_ENABLED to true in Supabase secrets and the
+    // /market/uk dashboard populates automatically.
     slug: 'uk',
     name: 'United Kingdom',
     shortName: 'UK',
@@ -82,7 +86,7 @@ export const MARKETS: readonly Market[] = [
     currencySymbol: '£',
     areaUnit: 'sqft',
     locale: 'en-GB',
-    status: 'live-cohort',
+    status: 'live',
     reellyCountry: null,
   },
   {

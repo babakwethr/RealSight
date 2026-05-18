@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { Globe, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MARKETS, type MarketStatus } from '@/lib/markets';
+import { useMarket } from '@/hooks/useMarket';
 
 // Per-market hint shown in the dropdown. Kept here (rather than in
 // lib/markets.ts) because it's UI copy specific to this surface.
@@ -39,9 +40,10 @@ interface MarketSwitcherProps {
 export function MarketSwitcher({ compact = false, className }: MarketSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  // Anchor the trigger label to UAE — the only market with full data
-  // flowing today. The dropdown shows the rest of the live-cohort markets.
-  const current = MARKETS.find(m => m.status === 'live') ?? MARKETS[0];
+  // Anchor the trigger label to whatever market the user has selected
+  // via MarketProvider (defaults to UAE on first visit). The dropdown
+  // shows the rest of the markets.
+  const { market: current, setMarket } = useMarket();
 
   // Close on outside click — standard dropdown discipline.
   useEffect(() => {
@@ -132,23 +134,30 @@ export function MarketSwitcher({ compact = false, className }: MarketSwitcherPro
                 </div>
               );
 
+              // Per-market routing:
+              //   UAE  (fully live)      → "/" (the default UAE dashboard)
+              //   UK   (live-cohort)     → "/market/uk" (Phase 2 — UK home)
+              //   US   (live-cohort)     → "/request-access?market=us" (until Phase 3 ships)
+              //   Spain (coming-soon)    → "/request-access?market=spain"
+              const href = isFullyLive
+                ? '/'
+                : m.slug === 'uk'
+                  ? '/market/uk'
+                  : `/request-access?market=${m.slug}`;
               return (
                 <li key={m.slug}>
-                  {isFullyLive ? (
-                    <Link to="/" onClick={() => setOpen(false)}>
-                      {Inner}
-                    </Link>
-                  ) : (
-                    // Live-cohort (US, UK) and Coming-Soon (Spain) markets route
-                    // to /request-access for cohort sizing until the per-market
-                    // dashboards fully populate (Phases 2 + 3 of the global plan).
-                    <Link
-                      to={`/request-access?market=${m.slug}`}
-                      onClick={() => setOpen(false)}
-                    >
-                      {Inner}
-                    </Link>
-                  )}
+                  <Link
+                    to={href}
+                    onClick={() => {
+                      // Flip the global market context so other pages
+                      // (Portfolio, MarketIntelligence, currency / units
+                      // helpers) respond. The Live badge follows.
+                      setMarket(m.slug);
+                      setOpen(false);
+                    }}
+                  >
+                    {Inner}
+                  </Link>
                 </li>
               );
             })}

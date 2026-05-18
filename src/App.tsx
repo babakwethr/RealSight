@@ -17,6 +17,7 @@ import { isCapacitorNative, CAPACITOR_SCHEME } from "@/lib/capacitor";
 // Public pages
 import PublicHome from "./pages/public/PublicHome";
 import MarketHome from "./pages/MarketHome";
+import UkMarketHome from "./pages/UkMarketHome";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
@@ -169,6 +170,9 @@ const App = () => (
             <Routes>
               {/* Public Routes — no login required */}
               <Route path="/" element={<MarketHome isPublic={true} />} />
+              {/* Phase 2 of global-launch plan — UK market home backed by HM
+                  Land Registry UKHPI. Public route; no login required. */}
+              <Route path="/market/uk" element={<UkMarketHome />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/security" element={<Security />} />
