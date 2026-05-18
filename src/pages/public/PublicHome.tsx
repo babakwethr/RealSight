@@ -26,14 +26,14 @@ import dashboardVisual from '@/assets/dashboard-main.png';
 
 type Audience = 'investor' | 'advisor';
 
-// Per LAUNCH_PLAN.md §12 — only Dubai is genuinely live.
-// Other markets are "Coming Q3/Q4 2026". Never claim coverage we don't have.
+// Markets at launch — US first (ADRO LAB origin), UK second, UAE third
+// (international expansion, fully live with DLD + Reelly), Spain on deck.
+// Order is intentional and reinforces the founder narrative everywhere.
 const markets = [
-  { name: 'Dubai',          flag: '🇦🇪', status: 'Live now',          desc: '150+ areas tracked',     live: true  },
-  { name: 'United Kingdom', flag: '🇬🇧', status: 'Coming Q3 2026',    desc: 'London & regions',       live: false },
-  { name: 'Singapore',      flag: '🇸🇬', status: 'Coming Q3 2026',    desc: 'Premium districts',      live: false },
-  { name: 'Spain',          flag: '🇪🇸', status: 'Coming Q4 2026',    desc: 'Costa del Sol & Madrid', live: false },
-  { name: 'United States',  flag: '🇺🇸', status: 'Coming Q4 2026',    desc: 'Miami & NYC first',      live: false },
+  { name: 'United States',        flag: '🇺🇸', status: 'Live',         desc: 'FHFA HPI + NYC, LA, Chicago depth',     live: true  },
+  { name: 'United Kingdom',       flag: '🇬🇧', status: 'Live',         desc: 'HM Land Registry · 24M transactions',   live: true  },
+  { name: 'United Arab Emirates', flag: '🇦🇪', status: 'Live',         desc: 'DLD + 1,953 off-plan projects',         live: true  },
+  { name: 'Spain',                flag: '🇪🇸', status: 'Coming Soon',  desc: 'Costa del Sol & Madrid',                live: false },
 ];
 
 const investorFeatures = [
@@ -50,7 +50,7 @@ const advisorFeatures = [
   { icon: Building, title: 'White-Label Platform', desc: 'Your brand, your colors, your workspace URL. RealSight becomes invisible — your brand takes center stage.' },
   { icon: Star, title: 'Advisor Picks', desc: 'Curate and push top investment picks to your investor base with AI-powered market backing.' },
   { icon: Shield, title: 'Client Dashboards', desc: 'Each investor gets their own portfolio dashboard, payment tracker, and document vault — under your brand.' },
-  { icon: Globe, title: 'Multi-Market Access', desc: 'Serve investors across Dubai, Spain, US, UK, and Singapore with one unified platform.' },
+  { icon: Globe, title: 'Multi-Market Access', desc: 'Serve investors across the US, UK, and UAE — with Spain coming next — from one unified platform.' },
   { icon: FileText, title: 'Automated Reports', desc: 'Generate portfolio reports, market summaries, and AI briefings for your investors automatically.' },
 ];
 
@@ -628,9 +628,9 @@ export default function PublicHome() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="grid sm:grid-cols-3 gap-6">
               {[
-                { icon: Shield, title: 'US-incorporated · Delaware', desc: 'RealSight Inc. is a Delaware C-Corp. Independent software company — no agents on staff.' },
+                { icon: Shield, title: 'US-incorporated · Delaware', desc: 'RealSight is a product of ADRO LAB Inc., a Delaware C-Corp. Independent software company — no agents on staff.' },
                 { icon: Lock, title: 'Your data is never shared', desc: '256-bit encryption. SOC 2 Type II in progress. We do not sell or share your portfolio with brokers — ever.' },
-                { icon: TrendingUp, title: 'Verified transaction data', desc: 'Powered by official DLD records and licensed market sources. Every number is traceable.' },
+                { icon: TrendingUp, title: 'Verified transaction data', desc: 'Powered by official government registries — FHFA, HM Land Registry, and DLD. Every number is traceable.' },
               ].map((item, i) => (
                 <motion.div
                   key={item.title}

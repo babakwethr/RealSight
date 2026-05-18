@@ -1,6 +1,7 @@
 /**
- * Security & Trust — public page that reassures investors RealSight is not
- * a Dubai broker scraping leads. RealSight Inc. is a Delaware C-Corp.
+ * Security & Trust — public page that reassures investors RealSight is
+ * an independent software platform, not a broker. RealSight is a product
+ * of ADRO LAB Inc., a Delaware C-Corporation.
  * Linked from the footer + signup screen. Per LAUNCH_PLAN.md §12.
  */
 import { Link } from 'react-router-dom';
@@ -32,9 +33,9 @@ export default function Security() {
             <br className="hidden sm:block" /> Never sold to brokers.
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-            RealSight Inc. is a Delaware C-Corporation. We do not employ real estate
-            agents. We do not sell, share, or market your portfolio data to third
-            parties. Ever.
+            RealSight is a product of ADRO LAB Inc., a Delaware C-Corporation.
+            We do not employ real estate agents. We do not sell, share, or market
+            your portfolio data to third parties. Ever.
           </p>
         </div>
 
@@ -87,10 +88,11 @@ export default function Security() {
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">Where we are incorporated</h2>
             <p>
-              RealSight Inc. is a Delaware C-Corporation, registered at 1209 Orange
-              Street, Wilmington, Delaware 19801, USA. We operate globally and are
-              currently live in the United Arab Emirates, with markets in the United
-              Kingdom, Singapore, Spain, and the United States planned for 2026.
+              RealSight is a product of ADRO LAB Inc., a Delaware C-Corporation,
+              registered at 1209 Orange Street, Wilmington, Delaware 19801, USA.
+              We launched in the United States and United Kingdom, with the
+              United Arab Emirates live alongside via a Dubai Land Department
+              data partnership. Spain is next.
             </p>
           </section>
 
@@ -154,7 +156,7 @@ export default function Security() {
         <div className="mt-12 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] flex items-start gap-4">
           <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-foreground text-sm mb-1">RealSight Inc.</p>
+            <p className="font-bold text-foreground text-sm mb-1">ADRO LAB Inc.</p>
             <p className="text-xs text-muted-foreground">
               1209 Orange Street, Wilmington, Delaware 19801, USA
               <br />

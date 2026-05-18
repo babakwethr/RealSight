@@ -27,7 +27,7 @@ export default function Privacy() {
         <div className="space-y-6 text-sm text-foreground/80 leading-relaxed">
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">1. Who we are</h2>
-            <p>RealSight Inc. ("we", "us", "RealSight") is the data controller for personal information collected through realsight.app. We are a Delaware C-Corporation registered at 1209 Orange Street, Wilmington, Delaware 19801, USA. For privacy inquiries, contact <a href="mailto:privacy@realsight.app" className="text-primary hover:text-primary/80">privacy@realsight.app</a>.</p>
+            <p>ADRO LAB Inc. ("we", "us", "RealSight") is the data controller for personal information collected through realsight.app. RealSight is a product of ADRO LAB Inc., a Delaware C-Corporation registered at 1209 Orange Street, Wilmington, Delaware 19801, USA. For privacy inquiries, contact <a href="mailto:privacy@realsight.app" className="text-primary hover:text-primary/80">privacy@realsight.app</a>.</p>
           </section>
 
           <section>
@@ -103,7 +103,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-lg font-black text-foreground mb-2">10. International data transfers</h2>
-            <p>RealSight Inc. is US-incorporated. Data is primarily processed on EU servers (Supabase) and US servers (Stripe, Vercel, Google). Cross-border transfers use Standard Contractual Clauses, the EU-US Data Privacy Framework, or equivalent safeguards.</p>
+            <p>ADRO LAB Inc. is US-incorporated. Data is primarily processed on EU servers (Supabase) and US servers (Stripe, Vercel, Google). Cross-border transfers use Standard Contractual Clauses, the EU-US Data Privacy Framework, or equivalent safeguards.</p>
           </section>
 
           <section>

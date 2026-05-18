@@ -1,11 +1,16 @@
 /**
  * PublicFooter — global footer for marketing + legal pages.
  *
+ * Corporate ownership: RealSight is a product of **ADRO LAB Inc.**, a
+ * Delaware C-Corporation. The product brand is "RealSight"; the legal
+ * entity is ADRO LAB Inc. All trust / legal / compliance surface area
+ * names ADRO LAB Inc. as the contracting party.
+ *
  * Per LAUNCH_PLAN.md §12 ("International positioning"):
  *  - Delaware US incorporation address visible everywhere
  *  - Trust strip: SOC 2 / GDPR / 256-bit / Never shared with brokers
  *  - "/security" link prominent
- *  - All emails @realsight.app (not .app, not .ae)
+ *  - All emails @realsight.app (product domain)
  */
 import { Link } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
@@ -37,11 +42,13 @@ export function PublicFooter() {
           <div className="max-w-sm">
             <Logo variant="white" className="h-6 w-auto mb-3" />
             <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-              Global property intelligence for serious investors. Live in Dubai —
-              expanding to London, Singapore, Madrid, and Miami in 2026.
+              Property intelligence backed by official government registries —
+              FHFA, HM Land Registry, and DLD. Built for serious investors
+              across the US, UK, and UAE.
             </p>
             <p className="text-[10px] text-white/35 leading-relaxed">
-              <strong className="text-white/55">RealSight Inc.</strong>
+              RealSight is a product of{' '}
+              <strong className="text-white/55">ADRO LAB Inc.</strong>
               <br />
               1209 Orange Street, Wilmington, Delaware 19801, USA
             </p>
@@ -81,11 +88,12 @@ export function PublicFooter() {
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-6 border-t border-white/[0.05]">
           <p className="text-[11px] text-white/40">
-            © {new Date().getFullYear()} RealSight Inc. · Delaware, USA · All rights reserved
+            © {new Date().getFullYear()} ADRO LAB Inc. · Delaware, USA · All rights reserved
           </p>
           <p className="text-[10px] text-white/30 max-w-md sm:text-right">
-            RealSight is an independent software platform. We do not employ real
-            estate agents and never share your portfolio with brokers.
+            RealSight is an app by ADRO LAB Inc. We are an independent software
+            platform — we do not employ real estate agents and never share your
+            portfolio with brokers.
           </p>
         </div>
       </div>
