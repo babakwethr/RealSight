@@ -10,12 +10,16 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TenantProvider } from "@/hooks/useTenant";
+import { MarketProvider } from "@/hooks/useMarket";
 import { supabase } from "@/integrations/supabase/client";
 import { isCapacitorNative, CAPACITOR_SCHEME } from "@/lib/capacitor";
 
 // Public pages
 import PublicHome from "./pages/public/PublicHome";
 import MarketHome from "./pages/MarketHome";
+import UkMarketHome from "./pages/UkMarketHome";
+import UsMarketHome from "./pages/UsMarketHome";
+import OffPlan from "./pages/OffPlan";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
@@ -155,9 +159,10 @@ function CapacitorDeepLinkHandler() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TenantProvider>
-      <AuthProvider>
-        <TooltipProvider>
+    <MarketProvider>
+      <TenantProvider>
+        <AuthProvider>
+          <TooltipProvider>
           <CapacitorDeepLinkHandler />
           <ReferralCapture />
           <Toaster />
@@ -167,6 +172,14 @@ const App = () => (
             <Routes>
               {/* Public Routes — no login required */}
               <Route path="/" element={<MarketHome isPublic={true} />} />
+              {/* Phase 2 of global-launch plan — UK market home backed by HM
+                  Land Registry UKHPI. Public route; no login required. */}
+              <Route path="/market/uk" element={<UkMarketHome />} />
+              {/* Phase 3 — US market home backed by NYC OpenData + Cook County
+                  + FRED + HUD. All free public-data sources. */}
+              <Route path="/market/us" element={<UsMarketHome />} />
+              {/* Phase 4 — international off-plan inventory: UAE + Bali + Phuket. */}
+              <Route path="/off-plan" element={<OffPlan />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/security" element={<Security />} />
@@ -276,9 +289,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </TenantProvider>
+          </TooltipProvider>
+        </AuthProvider>
+      </TenantProvider>
+    </MarketProvider>
   </QueryClientProvider>
 );
 

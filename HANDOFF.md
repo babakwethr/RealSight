@@ -3,16 +3,26 @@
 Single-file orientation for any new contributor (human or agent) joining the
 RealSight codebase. Read this first, then `CLAUDE.md`, then `src/App.tsx`.
 
-Last updated: 15 May 2026.
+Last updated: 19 May 2026.
 
 ---
 
 ## 1. What RealSight is
 
-**RealSight is a Dubai real-estate intelligence platform.** It pulls live data
-from the Dubai Land Department (DLD), layers AI-generated verdicts on top, and
-gives investors and brokers a way to score deals, track holdings, and explore
-the market without spending hours on spreadsheets.
+**RealSight is a global property intelligence platform** — a product of
+**ADRO LAB Inc.**, a Delaware C-Corporation. It pulls live data from
+official government registries (FHFA in the US, HM Land Registry in the UK,
+DLD in the UAE), layers AI-generated verdicts on top, and gives investors and
+brokers a way to score deals, track holdings, and explore markets without
+spending hours on spreadsheets.
+
+**Live markets:** US 🇺🇸 · UK 🇬🇧 · UAE 🇦🇪. Spain 🇪🇸 is the only
+"coming soon" market. Off-plan inventory feed covers UAE, Bali 🇮🇩, and
+Phuket 🇹🇭 via Reelly.
+
+Founder narrative order matters everywhere: **US first → UK second → UAE
+third**. ADRO LAB was founded in the US and UK; UAE is the international
+expansion story, not the origin story.
 
 It serves **two primary personas**:
 
@@ -215,7 +225,9 @@ do not ship.** No auth, no session leakage.
 | `extract-listing` | Scrape Bayut / PF / Dubizzle → normalised property record |
 | `proxy-image` | CORS-friendly image proxy for listing photos |
 | `r` | Short-link redirector for PDF share links |
-| `reelly-proxy` | Off-plan inventory API — **key not yet configured** |
+| `reelly-proxy` | Off-plan inventory API (1,953 UAE + 66 Bali + 10 Phuket projects). Uses `REELLY_API_KEY` + `X-API-Key` header. Live since 17 May 2026. |
+| `uk-proxy` ⭐ | UK market data — HM Land Registry UKHPI (13 regions, no key) + Companies House developer search (`COMPANIES_HOUSE_API_KEY`) + EPC stub. Behind `UK_ENABLED`. Live since 19 May 2026. |
+| `us-proxy` ⭐ | US market data — NYC OpenData + Cook County (no keys) + FRED Case-Shiller 20-metro snapshot (`FRED_API_KEY`) + HUD FMR + Census stubs. Behind `US_ENABLED`. Live since 19 May 2026. |
 | `seed-demo-user` | Seed QA/test data |
 
 ### Database tables (the app reads/writes these)
@@ -272,7 +284,7 @@ Lambda env vars needed by `dld-proxy`:
 | Google Gemini | AI chat + AI verdicts | `chat-concierge`, `chat-public`, `gemini-proxy` |
 | DDA (Dubai Digital Authority) | Live real-estate transactions, developers, areas | `dld-proxy` via UAE relay |
 | Bayut / Property Finder / Dubizzle | Listing scraping for Deal Analyzer | `extract-listing` |
-| Reelly | Off-plan inventory | `reelly-proxy` (key absent — stub) |
+| Reelly | Off-plan inventory | `reelly-proxy` (live, `X-API-Key` auth) |
 | Leaflet / OSM | Map tiles | `DubaiHeatmap`, `GlobalRadar` |
 
 ---
@@ -362,8 +374,6 @@ Always reference by variable name. Never echo, log, print, or commit values.
 
 ### Known gaps
 
-- **Reelly:** off-plan inventory API key not yet configured. `reelly-proxy`
-  returns stub data.
 - **Map tiles:** no Mapbox / paid tile provider pinned. Defaults to OSM
   via CartoDB dark basemap.
 - **Native mobile:** Capacitor configured and deep-links wired, but native

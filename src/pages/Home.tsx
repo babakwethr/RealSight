@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useMarket } from '@/hooks/useMarket';
+import { reellyListUrl } from '@/lib/reellyApi';
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid, Tooltip, Cell,
@@ -265,10 +267,11 @@ function HotAreas({ areas }: { areas: any[] }) {
 // ─── 4. New Launches Strip ────────────────────────────────────────────────────
 function NewLaunchesStrip({ isPro }: { isPro: boolean }) {
   const navigate = useNavigate();
+  const { market } = useMarket();
   const { data: result } = useQuery({
-    queryKey: ['home-new-launches'],
+    queryKey: ['home-new-launches', market.slug],
     queryFn: async () => {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects&limit=6&offset=0`;
+      const url = reellyListUrl({ country: market.reellyCountry, limit: 6 });
       try {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' } });
         if (!res.ok) throw new Error('proxy error');

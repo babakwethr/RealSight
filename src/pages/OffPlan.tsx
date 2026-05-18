@@ -1,0 +1,256 @@
+/**
+ * OffPlan — international off-plan inventory dashboard.
+ *
+ * Phase 4 of the global-launch plan. Surfaces Reelly's catalogue across
+ * the three markets that have meaningful inventory:
+ *   - UAE         🇦🇪  ~1,953 projects
+ *   - Bali        🇮🇩    66 projects (100% on-sale)
+ *   - Phuket (TH) 🇹🇭    10 projects (all Phuket / Thalang)
+ *
+ * Other Reelly countries (Oman, Cyprus, Türkiye, Maldives, etc.) are
+ * deliberately not exposed — they have too few populated rows to count
+ * as a real market in our UX. Per the global-launch plan §"out of scope".
+ *
+ * Single self-contained page; does not yet unify with the per-market
+ * homes (UAE / UK / US). That unification is a v2 concern.
+ */
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useReellyProjects } from '@/hooks/useReellyData';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Logo } from '@/components/Logo';
+import { Building2, MapPin, ArrowUpRight, TrendingUp } from 'lucide-react';
+import type { ReellyProject } from '@/types/reelly';
+
+type CountryTab = 'uae' | 'bali' | 'phuket';
+
+const TABS: Array<{
+  key: CountryTab;
+  label: string;
+  flag: string;
+  /** Reelly country query value. */
+  country: string;
+  expectedCount: number;
+}> = [
+  { key: 'uae',    label: 'UAE',     flag: '🇦🇪', country: 'United Arab Emirates', expectedCount: 1953 },
+  { key: 'bali',   label: 'Bali',    flag: '🇮🇩', country: 'Indonesia',            expectedCount: 66 },
+  { key: 'phuket', label: 'Phuket',  flag: '🇹🇭', country: 'Thailand',             expectedCount: 10 },
+];
+
+function fmtPrice(value: number | null | undefined, currency = 'AED'): string {
+  if (value == null || !isFinite(value) || value === 0) return '—';
+  const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : `${currency} `;
+  if (Math.abs(value) >= 1_000_000) return `${symbol}${(value / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(value) >= 1_000) return `${symbol}${Math.round(value / 1_000)}K`;
+  return `${symbol}${Math.round(value).toLocaleString()}`;
+}
+
+function statusLabel(status?: string): { text: string; positive: boolean } {
+  if (!status) return { text: 'Status unknown', positive: false };
+  if (status === 'on_sale') return { text: 'On sale', positive: true };
+  if (status === 'presale' || status === 'pre_sale') return { text: 'Pre-sale', positive: true };
+  if (status === 'announced' || status === 'start_of_sales') return { text: 'Launching soon', positive: true };
+  if (status === 'out_of_stock' || status === 'sold_out') return { text: 'Sold out', positive: false };
+  return { text: status.replace(/_/g, ' '), positive: false };
+}
+
+export default function OffPlan() {
+  const [tab, setTab] = useState<CountryTab>('uae');
+
+  return (
+    <div className="min-h-screen cinematic-bg">
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-white/[0.05]">
+        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Logo variant="white" className="h-7 w-auto" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5 align-middle animate-pulse" />
+              Off-Plan
+            </span>
+          </Link>
+          <Link to="/" className="text-xs text-white/55 hover:text-white">← Back to home</Link>
+        </div>
+      </header>
+
+      <main className="max-w-[1400px] mx-auto px-6 py-10 space-y-8">
+        {/* ─── Hero ─── */}
+        <section className="glass-card p-8">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">
+            International off-plan inventory
+          </p>
+          <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2" style={{ letterSpacing: '-0.02em' }}>
+            Off-plan, three markets, one feed.
+          </h1>
+          <p className="text-sm text-white/55 max-w-2xl">
+            Live inventory across the world's three most active off-plan markets
+            for international investors — Dubai, Bali, and Phuket. New launches,
+            payment plans, and developer credentials surfaced directly from the
+            Reelly catalogue.
+          </p>
+
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`rounded-xl p-4 text-left border transition-colors ${
+                  tab === t.key
+                    ? 'bg-white/[0.08] border-amber-400/40'
+                    : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-2xl leading-none">{t.flag}</span>
+                  <span className="text-sm font-bold text-foreground">{t.label}</span>
+                </div>
+                <p className="text-xl font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                  ~{t.expectedCount.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-white/45">projects in catalogue</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── Tabs ─── */}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as CountryTab)}>
+          <TabsList className="bg-white/[0.04] border border-white/[0.06] p-1">
+            {TABS.map((t) => (
+              <TabsTrigger key={t.key} value={t.key} className="data-[state=active]:bg-white/[0.08]">
+                <span className="mr-1.5">{t.flag}</span>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {TABS.map((t) => (
+            <TabsContent key={t.key} value={t.key} className="mt-6">
+              <ProjectGrid country={t.country} />
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        {/* ─── Source footer ─── */}
+        <section className="text-center text-[11px] text-white/35 pt-6 border-t border-white/[0.05]">
+          Off-plan inventory sourced via Reelly's partner API. Project details,
+          pricing, and developer information are provided by listing developers
+          and refreshed at least daily.
+        </section>
+      </main>
+    </div>
+  );
+}
+
+/* ─── Project grid ─── */
+
+function ProjectGrid({ country }: { country: string }) {
+  const { data, isLoading } = useReellyProjects({ country, limit: 24 });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-64" />
+        ))}
+      </div>
+    );
+  }
+
+  const projects = data?.results ?? [];
+  if (!projects.length || data?.fallback) {
+    return (
+      <div className="rounded-xl border border-dashed border-white/[0.08] p-10 text-center">
+        <ArrowUpRight className="h-6 w-6 text-white/30 mx-auto mb-2" />
+        <p className="text-sm text-white/55">No projects returned for this country yet.</p>
+        <p className="text-[11px] text-white/35 mt-1">
+          The Reelly feed may be temporarily unavailable.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-baseline justify-between mb-4">
+        <p className="text-xs text-white/55">
+          <span className="font-bold text-foreground">{data?.count?.toLocaleString() ?? projects.length}</span> projects ·
+          showing {projects.length}
+        </p>
+        <p className="text-[10px] uppercase tracking-widest text-white/40">Source · Reelly</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {projects.map((p) => (
+          <ProjectCard key={p.id} project={p} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ProjectCard({ project: p }: { project: ReellyProject }) {
+  const status = statusLabel(p.sale_status);
+  const currency = p.price_currency ?? p.currency ?? 'AED';
+  const imageUrl = p.cover_image?.url;
+  return (
+    <Link
+      to={`/projects/${p.id}`}
+      className="group rounded-2xl bg-white/[0.04] border border-white/[0.06] overflow-hidden hover:bg-white/[0.06] hover:border-white/[0.12] transition-all flex flex-col"
+    >
+      {/* Cover */}
+      <div className="aspect-[16/10] bg-gradient-to-br from-amber-500/10 to-violet-500/10 relative overflow-hidden">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={p.name}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Building2 className="h-8 w-8 text-white/20" />
+          </div>
+        )}
+        {p.units_count != null && p.units_count > 0 && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur text-[10px] font-bold text-white">
+            {p.units_count} {p.units_count === 1 ? 'unit' : 'units'}
+          </span>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="p-4 flex-1 flex flex-col">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <p className="text-sm font-bold text-foreground leading-tight line-clamp-2">{p.name}</p>
+        </div>
+        <p className="text-[11px] text-white/55 mb-2 line-clamp-1">{p.developer}</p>
+
+        <div className="flex items-center gap-1 text-[10px] text-white/45 mb-3">
+          <MapPin className="h-3 w-3" />
+          <span className="line-clamp-1">
+            {p.location?.district ?? p.location?.region ?? '—'}
+          </span>
+        </div>
+
+        <div className="mt-auto flex items-end justify-between gap-2">
+          <div>
+            <p className="text-[9px] uppercase tracking-widest text-white/40">From</p>
+            <p className="text-base font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+              {fmtPrice(p.min_price, currency)}
+            </p>
+          </div>
+          <span
+            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+              status.positive
+                ? 'text-emerald-400 bg-emerald-400/10'
+                : 'text-white/40 bg-white/[0.04]'
+            }`}
+          >
+            {status.positive && <TrendingUp className="h-2.5 w-2.5" />}
+            {status.text}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}

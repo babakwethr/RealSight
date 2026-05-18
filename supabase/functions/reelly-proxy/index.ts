@@ -91,7 +91,9 @@ serve(async (req) => {
       headers: {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${reellyApiKey}`,
+        // Reelly docs (docs.reelly.ai/reference/projects_list) specify
+        // `X-API-Key` — not OAuth Bearer. Verified live 17 May 2026.
+        "X-API-Key": reellyApiKey,
       },
     });
 

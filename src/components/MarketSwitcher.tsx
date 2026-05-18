@@ -1,41 +1,35 @@
 /**
- * MarketSwitcher — top-nav dropdown with the 5 launch markets.
+ * MarketSwitcher — top-nav dropdown with the launch markets.
  *
- * Per LAUNCH_PLAN.md §17 polish item: signals to non-UAE visitors that
- * RealSight is a global platform — Dubai is just where we're live first.
- * Shows a flag + market name, opens a dropdown matching the landing-page
- * roster (Dubai live, others "Coming Q3/Q4 2026"). Clicking a non-live
- * market routes to /request-access with the market pre-selected so we
- * capture demand for waitlist sizing.
+ * Per the global-launch plan, RealSight is a product of ADRO LAB Inc.
+ * (Delaware) and launches across the US, UK, and UAE with Spain on the
+ * horizon. Order matters: US first, UK second, UAE third — reflecting
+ * the corporate origin story (founded US + UK, expanding to UAE).
+ *
+ * Today: UAE has full data flowing (DDA + Reelly). US and UK are wired
+ * with first-cohort access — the dropdown reflects this honestly by
+ * tagging them as Live but routing to /request-access for cohort signup
+ * until the per-market home pages fully populate (Phases 2 + 3 of the
+ * global-launch plan). Spain is the only "Coming Soon" market.
  *
  * COMPETITIVE-MOAT NOTE: this is intentionally roster-only. We do NOT
  * publish coverage detail (data sources, area counts, integration plans)
- * here — that would tip our hand. The dropdown is a positioning device,
- * not a feature reveal.
+ * here — the dropdown is a positioning device, not a feature reveal.
  */
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MARKETS, type MarketStatus } from '@/lib/markets';
+import { useMarket } from '@/hooks/useMarket';
 
-type MarketStatus = 'live' | 'q3-2026' | 'q4-2026';
-
-interface Market {
-  slug: string;
-  name: string;
-  flag: string;
-  status: MarketStatus;
-  /** Hint shown next to the entry — kept generic, not a feature spec. */
-  hint: string;
-}
-
-const MARKETS: Market[] = [
-  { slug: 'dubai',     name: 'Dubai',          flag: '🇦🇪', status: 'live',    hint: 'Live now'        },
-  { slug: 'london',    name: 'United Kingdom', flag: '🇬🇧', status: 'q3-2026', hint: 'Coming Q3 2026'  },
-  { slug: 'singapore', name: 'Singapore',      flag: '🇸🇬', status: 'q3-2026', hint: 'Coming Q3 2026'  },
-  { slug: 'spain',     name: 'Spain',          flag: '🇪🇸', status: 'q4-2026', hint: 'Coming Q4 2026'  },
-  { slug: 'us',        name: 'United States',  flag: '🇺🇸', status: 'q4-2026', hint: 'Coming Q4 2026'  },
-];
+// Per-market hint shown in the dropdown. Kept here (rather than in
+// lib/markets.ts) because it's UI copy specific to this surface.
+const HINT_BY_STATUS: Record<MarketStatus, string> = {
+  'live':         'Live now',
+  'live-cohort':  'First cohort access',
+  'coming-soon':  'Coming soon',
+};
 
 interface MarketSwitcherProps {
   /** Compact mode = flag + chevron only, no name. Useful in tight nav bars. */
@@ -46,9 +40,10 @@ interface MarketSwitcherProps {
 export function MarketSwitcher({ compact = false, className }: MarketSwitcherProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  // We always anchor the trigger label to Dubai (only live market) — the
-  // dropdown does the work of communicating the rest.
-  const current = MARKETS[0];
+  // Anchor the trigger label to whatever market the user has selected
+  // via MarketProvider (defaults to UAE on first visit). The dropdown
+  // shows the rest of the markets.
+  const { market: current, setMarket } = useMarket();
 
   // Close on outside click — standard dropdown discipline.
   useEffect(() => {
@@ -94,53 +89,78 @@ export function MarketSwitcher({ compact = false, className }: MarketSwitcherPro
 
           <ul className="py-1.5">
             {MARKETS.map(m => {
-              const isLive = m.status === 'live';
+              const isFullyLive = m.status === 'live';
+              const isCohort = m.status === 'live-cohort';
+              const isSoon = m.status === 'coming-soon';
               const Inner = (
                 <div
                   className={cn(
                     'flex items-center gap-3 px-4 py-2.5 transition-colors',
-                    isLive ? 'hover:bg-white/[0.05] cursor-pointer' : 'cursor-pointer hover:bg-white/[0.03] opacity-80',
+                    isSoon
+                      ? 'cursor-pointer hover:bg-white/[0.03] opacity-70'
+                      : 'hover:bg-white/[0.05] cursor-pointer',
                   )}
                 >
                   <span className="text-xl leading-none">{m.flag}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">{m.name}</p>
-                      {isLive && (
+                      {isFullyLive && (
                         <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-primary">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />
                           Live
                         </span>
                       )}
+                      {isCohort && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          Live
+                        </span>
+                      )}
+                      {isSoon && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-300">
+                          Soon
+                        </span>
+                      )}
                     </div>
                     <p className={cn(
                       'text-[10px]',
-                      isLive ? 'text-white/55' : 'text-amber-300/80',
+                      isSoon ? 'text-amber-300/80' : 'text-white/55',
                     )}>
-                      {m.hint}
+                      {HINT_BY_STATUS[m.status]}
                     </p>
                   </div>
-                  {isLive && <Check className="h-3.5 w-3.5 text-primary" />}
+                  {(isFullyLive || isCohort) && <Check className="h-3.5 w-3.5 text-primary" />}
                 </div>
               );
 
+              // Per-market routing:
+              //   UAE  (fully live)      → "/" (the default UAE dashboard)
+              //   UK   (fully live)      → "/market/uk" (Phase 2 — UK home)
+              //   US   (fully live)      → "/market/us" (Phase 3 — US home)
+              //   Spain (coming-soon)    → "/request-access?market=spain"
+              const href =
+                m.slug === 'uae'
+                  ? '/'
+                  : m.slug === 'uk'
+                    ? '/market/uk'
+                    : m.slug === 'us'
+                      ? '/market/us'
+                      : `/request-access?market=${m.slug}`;
               return (
                 <li key={m.slug}>
-                  {isLive ? (
-                    <Link to="/" onClick={() => setOpen(false)}>
-                      {Inner}
-                    </Link>
-                  ) : (
-                    // Non-live markets capture demand for waitlist sizing —
-                    // we do NOT redirect them anywhere that exposes feature
-                    // detail. /request-access is form-only.
-                    <Link
-                      to={`/request-access?market=${m.slug}`}
-                      onClick={() => setOpen(false)}
-                    >
-                      {Inner}
-                    </Link>
-                  )}
+                  <Link
+                    to={href}
+                    onClick={() => {
+                      // Flip the global market context so other pages
+                      // (Portfolio, MarketIntelligence, currency / units
+                      // helpers) respond. The Live badge follows.
+                      setMarket(m.slug);
+                      setOpen(false);
+                    }}
+                  >
+                    {Inner}
+                  </Link>
                 </li>
               );
             })}

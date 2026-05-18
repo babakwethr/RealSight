@@ -11,6 +11,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { FeatureGate } from '@/components/FeatureGate';
 import { UpsellBanner } from '@/components/UpsellBanner';
+import { useMarket } from '@/hooks/useMarket';
+import { reellyListUrl } from '@/lib/reellyApi';
 
 type PickSource = 'advisor' | 'ai' | 'reelly';
 
@@ -74,6 +76,7 @@ function scoreProject(project: any, dldAreas: any[]): { score: number; reason: s
 
 function TopPicksContent() {
   const navigate = useNavigate();
+  const { market } = useMarket();
   const [activeTab, setActiveTab] = useState<PickSource>('advisor');
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
@@ -116,10 +119,10 @@ function TopPicksContent() {
 
   // Reelly off-plan projects from the reelly-proxy edge function
   const { data: reellyProjects, isLoading: reellyLoading } = useQuery({
-    queryKey: ['top-picks-reelly'],
+    queryKey: ['top-picks-reelly', market.slug],
     queryFn: async () => {
       try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects&limit=12&offset=0`;
+        const url = reellyListUrl({ country: market.reellyCountry, limit: 12 });
         const res = await fetch(url, {
           headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY }
         });
