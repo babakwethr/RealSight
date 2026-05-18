@@ -808,11 +808,18 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               </div>
             ) : (
               <div className="mb-6">
+                {/* Authenticated dashboard = the UAE market home. The header
+                    is honest about the market context so users know they're
+                    looking at Dubai data even when other markets are live. */}
+                <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] bg-primary/15 text-primary border border-primary/25 mb-3">
+                  🇦🇪 UAE Market · Live
+                </div>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight mb-2">
                   Where should you invest in <RotatingCity />?
                 </h1>
                 <p className="text-muted-foreground text-xs sm:text-sm">
-                  Search any area, project or developer · Powered by live DLD data
+                  Search any area, project or developer · Powered by live DLD data.
+                  Switch markets via the sidebar or pills below.
                 </p>
               </div>
             )}
@@ -823,40 +830,39 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             </div>
 
             {/* Phase 4 of the global-launch plan — live-market pills directly
-                below the search, so the rebrand is visible without needing to
-                click the MarketSwitcher. US first → UK → UAE order. */}
-            {isPublic && (
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-                <Link
-                  to="/market/us"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-violet-500/10 border border-violet-400/20 text-violet-200 hover:bg-violet-500/20 transition-colors"
-                >
-                  <span>🇺🇸</span> US Market
-                  <span className="text-[10px] font-normal text-violet-300/70">· FHFA + Case-Shiller</span>
-                </Link>
-                <Link
-                  to="/market/uk"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/20 transition-colors"
-                >
-                  <span>🇬🇧</span> UK Market
-                  <span className="text-[10px] font-normal text-emerald-300/70">· HM Land Registry</span>
-                </Link>
-                <Link
-                  to="/"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
-                >
-                  <span>🇦🇪</span> UAE Market
-                  <span className="text-[10px] font-normal text-primary/70">· DLD</span>
-                </Link>
-                <Link
-                  to="/off-plan"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-400/20 text-amber-200 hover:bg-amber-500/20 transition-colors"
-                >
-                  <span>🌏</span> Off-Plan
-                  <span className="text-[10px] font-normal text-amber-300/70">· UAE · Bali · Phuket</span>
-                </Link>
-              </div>
-            )}
+                below the search. Visible to BOTH public visitors and
+                authenticated users so the multi-market story is unmissable
+                from any entry point. US first → UK → UAE order. */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+              <Link
+                to="/market/us"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-violet-500/10 border border-violet-400/20 text-violet-200 hover:bg-violet-500/20 transition-colors"
+              >
+                <span>🇺🇸</span> US Market
+                <span className="text-[10px] font-normal text-violet-300/70">· FHFA + Case-Shiller</span>
+              </Link>
+              <Link
+                to="/market/uk"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/20 transition-colors"
+              >
+                <span>🇬🇧</span> UK Market
+                <span className="text-[10px] font-normal text-emerald-300/70">· HM Land Registry</span>
+              </Link>
+              <Link
+                to={isPublic ? '/' : '/dashboard'}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <span>🇦🇪</span> UAE Market
+                <span className="text-[10px] font-normal text-primary/70">· DLD</span>
+              </Link>
+              <Link
+                to="/off-plan"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-400/20 text-amber-200 hover:bg-amber-500/20 transition-colors"
+              >
+                <span>🌏</span> Off-Plan
+                <span className="text-[10px] font-normal text-amber-300/70">· UAE · Bali · Phuket</span>
+              </Link>
+            </div>
           </div>
 
           {/* Area pills — small, colour-coded chips.
