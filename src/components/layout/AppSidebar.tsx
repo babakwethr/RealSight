@@ -25,12 +25,12 @@ import { toast } from 'sonner';
  *     ── MY INVESTMENTS ── (everything tied to THEIR portfolio)
  *       Portfolio · Payments · Documents · Updates · AI Concierge
  *     ── MARKETS ── (research / discovery tools that aren't personal)
- *       Home · Markets · Dubai Heatmap · Deal Analyzer · New Launches
+ *       Home · UK Market · US Market · Off-Plan · Market Intelligence · UAE Heatmap · Deal Analyzer · New Launches
  *       · Watchlist · Compare
  *
  *   ADVISER VIEW (Adviser Pro / trial / admin):
  *     ── WORKSPACE ── Home · Deal Analyzer · New Launches
- *     ── MARKETS ──   Markets · Dubai Heatmap · Watchlist · Compare
+ *     ── MARKETS ──   Markets · UK Market · US Market · UAE Heatmap · Off-Plan · Watchlist
  *     ── ADMIN ──     Workspace  (-> /admin shell with secondary tabs)
  *
  *   The adviser doesn't get "My Investments" inline — they access a
@@ -203,7 +203,10 @@ export function AppSidebar() {
             <SectionLabel label="Markets" accent="markets" />
             <div className="space-y-0.5 px-1.5">
               <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
-              <NavItem to="/heatmap"             icon={Map}       label="Dubai Heatmap" />
+              <NavItem to="/market/uk"           icon={Map}       label="UK Market" />
+              <NavItem to="/market/us"           icon={Map}       label="US Market" />
+              <NavItem to="/heatmap"             icon={Map}       label="UAE Heatmap" />
+              <NavItem to="/off-plan"            icon={Building2} label="Off-Plan" />
               <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
               {/* Compare lives only in the investor view — it diff's holdings
                   in the investor's own portfolio, not generic market data.
@@ -238,9 +241,12 @@ export function AppSidebar() {
 
             <SectionLabel label="Markets" accent="markets" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/dashboard"           icon={LayoutDashboard} label="Home" />
-              <NavItem to="/market-intelligence" icon={BarChart3}       label="Markets" />
-              <NavItem to="/heatmap"             icon={Map}             label="Dubai Heatmap" />
+              <NavItem to="/dashboard"           icon={LayoutDashboard} label="Home · UAE" />
+              <NavItem to="/market/uk"           icon={BarChart3}       label="UK Market" />
+              <NavItem to="/market/us"           icon={BarChart3}       label="US Market" />
+              <NavItem to="/off-plan"            icon={Building2}       label="Off-Plan · UAE · Bali · Phuket" />
+              <NavItem to="/market-intelligence" icon={BarChart3}       label="Market Intelligence" />
+              <NavItem to="/heatmap"             icon={Map}             label="UAE Heatmap" />
               <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
               <NavItem to="/projects"            icon={Building2}       label="New Launches" />
               <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
