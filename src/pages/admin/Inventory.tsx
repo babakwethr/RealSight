@@ -9,14 +9,16 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ReellyProject } from '@/types/reelly';
 import { DEMO_PROJECTS } from '@/data/demoProjects';
+import { useMarket } from '@/hooks/useMarket';
+import { reellyListUrl } from '@/lib/reellyApi';
 
 type FetchResult = {
     data: ReellyProject[];
     isDemo: boolean;
 };
 
-async function fetchAllProjects(): Promise<FetchResult> {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects&limit=50&offset=0`;
+async function fetchAllProjects(country: string | null): Promise<FetchResult> {
+    const url = reellyListUrl({ country, limit: 50 });
     try {
         const res = await fetch(url, {
             method: 'GET',
@@ -40,14 +42,15 @@ async function fetchAllProjects(): Promise<FetchResult> {
 
 export default function AdminInventory() {
     const { tenant } = useTenant();
+    const { market } = useMarket();
     const queryClient = useQueryClient();
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Fetch ALL available projects (from Reelly or Demo)
     const { data: fetchResult, isLoading: isProjectsLoading } = useQuery({
-        queryKey: ['admin-all-projects'],
-        queryFn: fetchAllProjects,
+        queryKey: ['admin-all-projects', market.slug],
+        queryFn: () => fetchAllProjects(market.reellyCountry),
     });
 
     const projects = fetchResult?.data || [];

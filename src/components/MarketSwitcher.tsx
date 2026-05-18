@@ -20,26 +20,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MARKETS, type MarketStatus } from '@/lib/markets';
 
-type MarketStatus = 'live' | 'live-cohort' | 'coming-soon';
-
-interface Market {
-  slug: string;
-  name: string;
-  flag: string;
-  status: MarketStatus;
-  /** Hint shown next to the entry — kept generic, not a feature spec. */
-  hint: string;
-}
-
-// US first → UK → UAE → Spain. ADRO LAB is a US/UK-founded company; UAE
-// is the international expansion. Spain is the only "Coming Soon".
-const MARKETS: Market[] = [
-  { slug: 'us',     name: 'United States',  flag: '🇺🇸', status: 'live-cohort', hint: 'First cohort access'  },
-  { slug: 'uk',     name: 'United Kingdom', flag: '🇬🇧', status: 'live-cohort', hint: 'First cohort access'  },
-  { slug: 'uae',    name: 'United Arab Emirates', flag: '🇦🇪', status: 'live', hint: 'Live now'              },
-  { slug: 'spain',  name: 'Spain',          flag: '🇪🇸', status: 'coming-soon', hint: 'Coming soon'          },
-];
+// Per-market hint shown in the dropdown. Kept here (rather than in
+// lib/markets.ts) because it's UI copy specific to this surface.
+const HINT_BY_STATUS: Record<MarketStatus, string> = {
+  'live':         'Live now',
+  'live-cohort':  'First cohort access',
+  'coming-soon':  'Coming soon',
+};
 
 interface MarketSwitcherProps {
   /** Compact mode = flag + chevron only, no name. Useful in tight nav bars. */
@@ -136,7 +125,7 @@ export function MarketSwitcher({ compact = false, className }: MarketSwitcherPro
                       'text-[10px]',
                       isSoon ? 'text-amber-300/80' : 'text-white/55',
                     )}>
-                      {m.hint}
+                      {HINT_BY_STATUS[m.status]}
                     </p>
                   </div>
                   {(isFullyLive || isCohort) && <Check className="h-3.5 w-3.5 text-primary" />}

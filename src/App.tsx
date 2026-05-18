@@ -10,6 +10,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TenantProvider } from "@/hooks/useTenant";
+import { MarketProvider } from "@/hooks/useMarket";
 import { supabase } from "@/integrations/supabase/client";
 import { isCapacitorNative, CAPACITOR_SCHEME } from "@/lib/capacitor";
 
@@ -155,9 +156,10 @@ function CapacitorDeepLinkHandler() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TenantProvider>
-      <AuthProvider>
-        <TooltipProvider>
+    <MarketProvider>
+      <TenantProvider>
+        <AuthProvider>
+          <TooltipProvider>
           <CapacitorDeepLinkHandler />
           <ReferralCapture />
           <Toaster />
@@ -276,9 +278,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </TenantProvider>
+          </TooltipProvider>
+        </AuthProvider>
+      </TenantProvider>
+    </MarketProvider>
   </QueryClientProvider>
 );
 

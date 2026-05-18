@@ -11,6 +11,8 @@ import { AdvancedFilters } from '@/components/projects/AdvancedFilters';
 import { ReellyProject } from '@/types/reelly';
 import { ProjectFilters, INITIAL_FILTERS, applyFilters, analyzePaymentPlan } from '@/lib/reelly';
 import { DEMO_PROJECTS } from '@/data/demoProjects';
+import { useMarket } from '@/hooks/useMarket';
+import { reellyListUrl } from '@/lib/reellyApi';
 
 type FetchResult = {
   data: ReellyProject[];
@@ -20,8 +22,8 @@ type FetchResult = {
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
-async function fetchProjects(): Promise<FetchResult> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reelly-proxy?path=clients/projects&limit=50&offset=0`;
+async function fetchProjects(country: string | null): Promise<FetchResult> {
+  const url = reellyListUrl({ country, limit: 50 });
   try {
     const res = await fetch(url, {
       method: 'GET',
@@ -60,12 +62,13 @@ async function fetchProjects(): Promise<FetchResult> {
 
 export default function Projects() {
   const { tenant } = useTenant();
+  const { market } = useMarket();
   const { t } = useTranslation();
   const [filters, setFilters] = useState<ProjectFilters>(INITIAL_FILTERS);
 
   const { data: fetchResult, isLoading, error, refetch, isRefetching } = useQuery({
-    queryKey: ['new-launches-projects'],
-    queryFn: fetchProjects,
+    queryKey: ['new-launches-projects', market.slug],
+    queryFn: () => fetchProjects(market.reellyCountry),
     staleTime: 5 * 60 * 1000, // 5 min
     retry: false // Do not retry to fallback immediately
   });
