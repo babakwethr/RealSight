@@ -81,10 +81,25 @@ serve(async (req) => {
     }
 
     const targetUrl = new URL(`${REELLY_API_BASE}/${sanitizedPath}`);
-    const limit = url.searchParams.get("limit");
-    const offset = url.searchParams.get("offset");
-    if (limit) targetUrl.searchParams.set("limit", limit);
-    if (offset) targetUrl.searchParams.set("offset", offset);
+    // Forward the supported Reelly query parameters. The allow-list
+    // mirrors what the frontend actually uses today + the country filter
+    // that powers per-market off-plan tabs (UAE / Bali / Phuket).
+    const FORWARDABLE = [
+      "limit", "offset",
+      "country",
+      "region", "districts",
+      "developer",
+      "bedrooms",
+      "sale_status", "status",
+      "completion_quarters",
+      "search_query",
+      "ordering",
+      "preferred_currency", "preferred_area_unit",
+    ];
+    for (const k of FORWARDABLE) {
+      const v = url.searchParams.get(k);
+      if (v != null) targetUrl.searchParams.set(k, v);
+    }
 
     const reellyResponse = await fetch(targetUrl.toString(), {
       method: req.method,
