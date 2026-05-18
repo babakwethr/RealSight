@@ -215,7 +215,7 @@ do not ship.** No auth, no session leakage.
 | `extract-listing` | Scrape Bayut / PF / Dubizzle → normalised property record |
 | `proxy-image` | CORS-friendly image proxy for listing photos |
 | `r` | Short-link redirector for PDF share links |
-| `reelly-proxy` | Off-plan inventory API — **key not yet configured** |
+| `reelly-proxy` | Off-plan inventory API (1,954 Dubai projects). Uses `REELLY_API_KEY` + `X-API-Key` header. Live since 17 May 2026. |
 | `seed-demo-user` | Seed QA/test data |
 
 ### Database tables (the app reads/writes these)
@@ -272,7 +272,7 @@ Lambda env vars needed by `dld-proxy`:
 | Google Gemini | AI chat + AI verdicts | `chat-concierge`, `chat-public`, `gemini-proxy` |
 | DDA (Dubai Digital Authority) | Live real-estate transactions, developers, areas | `dld-proxy` via UAE relay |
 | Bayut / Property Finder / Dubizzle | Listing scraping for Deal Analyzer | `extract-listing` |
-| Reelly | Off-plan inventory | `reelly-proxy` (key absent — stub) |
+| Reelly | Off-plan inventory | `reelly-proxy` (live, `X-API-Key` auth) |
 | Leaflet / OSM | Map tiles | `DubaiHeatmap`, `GlobalRadar` |
 
 ---
@@ -362,8 +362,6 @@ Always reference by variable name. Never echo, log, print, or commit values.
 
 ### Known gaps
 
-- **Reelly:** off-plan inventory API key not yet configured. `reelly-proxy`
-  returns stub data.
 - **Map tiles:** no Mapbox / paid tile provider pinned. Defaults to OSM
   via CartoDB dark basemap.
 - **Native mobile:** Capacitor configured and deep-links wired, but native
