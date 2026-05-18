@@ -19,6 +19,7 @@ import PublicHome from "./pages/public/PublicHome";
 import MarketHome from "./pages/MarketHome";
 import UkMarketHome from "./pages/UkMarketHome";
 import UsMarketHome from "./pages/UsMarketHome";
+import OffPlan from "./pages/OffPlan";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
@@ -177,6 +178,8 @@ const App = () => (
               {/* Phase 3 — US market home backed by NYC OpenData + Cook County
                   + FRED + HUD. All free public-data sources. */}
               <Route path="/market/us" element={<UsMarketHome />} />
+              {/* Phase 4 — international off-plan inventory: UAE + Bali + Phuket. */}
+              <Route path="/off-plan" element={<OffPlan />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/security" element={<Security />} />
