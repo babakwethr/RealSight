@@ -18,6 +18,7 @@ import { isCapacitorNative, CAPACITOR_SCHEME } from "@/lib/capacitor";
 import PublicHome from "./pages/public/PublicHome";
 import MarketHome from "./pages/MarketHome";
 import UkMarketHome from "./pages/UkMarketHome";
+import UsMarketHome from "./pages/UsMarketHome";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
@@ -173,6 +174,9 @@ const App = () => (
               {/* Phase 2 of global-launch plan — UK market home backed by HM
                   Land Registry UKHPI. Public route; no login required. */}
               <Route path="/market/uk" element={<UkMarketHome />} />
+              {/* Phase 3 — US market home backed by NYC OpenData + Cook County
+                  + FRED + HUD. All free public-data sources. */}
+              <Route path="/market/us" element={<UsMarketHome />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/security" element={<Security />} />

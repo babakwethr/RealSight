@@ -136,14 +136,17 @@ export function MarketSwitcher({ compact = false, className }: MarketSwitcherPro
 
               // Per-market routing:
               //   UAE  (fully live)      → "/" (the default UAE dashboard)
-              //   UK   (live-cohort)     → "/market/uk" (Phase 2 — UK home)
-              //   US   (live-cohort)     → "/request-access?market=us" (until Phase 3 ships)
+              //   UK   (fully live)      → "/market/uk" (Phase 2 — UK home)
+              //   US   (fully live)      → "/market/us" (Phase 3 — US home)
               //   Spain (coming-soon)    → "/request-access?market=spain"
-              const href = isFullyLive
-                ? '/'
-                : m.slug === 'uk'
-                  ? '/market/uk'
-                  : `/request-access?market=${m.slug}`;
+              const href =
+                m.slug === 'uae'
+                  ? '/'
+                  : m.slug === 'uk'
+                    ? '/market/uk'
+                    : m.slug === 'us'
+                      ? '/market/us'
+                      : `/request-access?market=${m.slug}`;
               return (
                 <li key={m.slug}>
                   <Link

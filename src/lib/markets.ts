@@ -60,6 +60,10 @@ export interface Market {
 
 export const MARKETS: readonly Market[] = [
   {
+    // US went Live in Phase 3 of the global-launch plan — backed by NYC
+    // OpenData + Cook County + FRED + HUD via the us-proxy edge function.
+    // Deploy us-proxy + flip US_ENABLED to true in Supabase secrets and
+    // the /market/us dashboard populates automatically.
     slug: 'us',
     name: 'United States',
     shortName: 'US',
@@ -69,7 +73,7 @@ export const MARKETS: readonly Market[] = [
     currencySymbol: '$',
     areaUnit: 'sqft',
     locale: 'en-US',
-    status: 'live-cohort',
+    status: 'live',
     reellyCountry: null,
   },
   {
