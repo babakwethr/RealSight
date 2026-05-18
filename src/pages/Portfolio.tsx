@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { HoldingInsightsDrawer } from '@/components/portfolio/HoldingInsightsDrawer';
+import { DiversifyBanner } from '@/components/portfolio/DiversifyBanner';
 import { Holding } from '@/hooks/useInvestorData';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
@@ -282,6 +283,10 @@ export default function Portfolio() {
           </div>
         );
       })()}
+
+      {/* Diversify banner — surfaced once UK/US markets went live (Phase 4
+          of the global-launch plan). Dismissable, persisted to localStorage. */}
+      <DiversifyBanner hasHoldings={!!holdings && holdings.length > 0} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
