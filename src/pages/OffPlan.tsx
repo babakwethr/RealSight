@@ -19,7 +19,6 @@ import { Link } from 'react-router-dom';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Logo } from '@/components/Logo';
 import { Building2, MapPin, ArrowUpRight, TrendingUp } from 'lucide-react';
 import type { ReellyProject } from '@/types/reelly';
 
@@ -58,22 +57,9 @@ function statusLabel(status?: string): { text: string; positive: boolean } {
 export default function OffPlan() {
   const [tab, setTab] = useState<CountryTab>('uae');
 
+  // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
-    <div className="min-h-screen cinematic-bg">
-      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-white/[0.05]">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo variant="white" className="h-7 w-auto" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5 align-middle animate-pulse" />
-              Off-Plan
-            </span>
-          </Link>
-          <Link to="/" className="text-xs text-white/55 hover:text-white">← Back to home</Link>
-        </div>
-      </header>
-
-      <main className="max-w-[1400px] mx-auto px-6 py-10 space-y-8">
+    <div className="space-y-8 animate-fade-in">
         {/* ─── Hero ─── */}
         <section className="glass-card p-8">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">
@@ -131,13 +117,12 @@ export default function OffPlan() {
           ))}
         </Tabs>
 
-        {/* ─── Source footer ─── */}
-        <section className="text-center text-[11px] text-white/35 pt-6 border-t border-white/[0.05]">
-          Off-plan inventory sourced via Reelly's partner API. Project details,
-          pricing, and developer information are provided by listing developers
-          and refreshed at least daily.
-        </section>
-      </main>
+      {/* ─── Source footer ─── */}
+      <section className="text-center text-[11px] text-white/35 pt-6 border-t border-white/[0.05]">
+        Off-plan inventory sourced via Reelly's partner API. Project details,
+        pricing, and developer information are provided by listing developers
+        and refreshed at least daily.
+      </section>
     </div>
   );
 }

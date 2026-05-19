@@ -13,10 +13,8 @@
  * (UK_ENABLED=false) or returns 503, hooks return `null` and the
  * component renders a graceful empty state.
  */
-import { Link } from 'react-router-dom';
 import { ArrowUpRight, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { useUkRegion, useUkRegionsSnapshot } from '@/hooks/useUkMarketData';
-import { Logo } from '@/components/Logo';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const POUND = '£';
@@ -54,23 +52,10 @@ export default function UkMarketHome() {
   const london = useUkRegion('london');
   const snapshot = useUkRegionsSnapshot();
 
+  // Renders inside <AppLayout /> — the sidebar + cinematic-bg + chrome
+  // are provided by the layout. This page only owns its body content.
   return (
-    <div className="min-h-screen cinematic-bg">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-white/[0.05]">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo variant="white" className="h-7 w-auto" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 align-middle animate-pulse" />
-              UK · Live
-            </span>
-          </Link>
-          <Link to="/" className="text-xs text-white/55 hover:text-white">← Back to home</Link>
-        </div>
-      </header>
-
-      <main className="max-w-[1400px] mx-auto px-6 py-10 space-y-10">
+    <div className="space-y-10 animate-fade-in">
         {/* ─── Hero ─── */}
         <section className="glass-card p-8">
           <div className="flex items-start justify-between gap-4 mb-6">
@@ -166,13 +151,12 @@ export default function UkMarketHome() {
           )}
         </section>
 
-        {/* ─── Source footer ─── */}
-        <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
-          Data sourced from HM Land Registry under the
-          {' '}<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Open Government Licence v3.0</a>.
-          Contains public sector information licensed under the OGL v3.0.
-        </section>
-      </main>
+      {/* ─── Source footer ─── */}
+      <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
+        Data sourced from HM Land Registry under the
+        {' '}<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Open Government Licence v3.0</a>.
+        Contains public sector information licensed under the OGL v3.0.
+      </section>
     </div>
   );
 }
