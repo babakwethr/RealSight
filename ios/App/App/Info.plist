@@ -30,7 +30,18 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ar</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>fa</string>
+		<string>ru</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

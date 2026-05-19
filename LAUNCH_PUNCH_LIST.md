@@ -15,28 +15,28 @@ Statuses: `TODO` · `IN PROGRESS` · `DONE`
 - **Problem:** Search only matches DLD areas (Downtown Dubai, JVC, Palm Jumeirah, etc.). Cannot find a specific building like "Burj Vista" or "Marina Gate" inside JVC.
 - **Fix:** Extend search to also match building names. Pull from `dld_developers` / project tables, or the Reelly catalogue (1,868 projects with `name` field). Type "JVC towers" → return buildings located in JVC.
 - **Files:** `src/pages/MarketHome.tsx`, `src/components/SearchFilterBar` (or wherever the search lives).
-- **Status:** PR 3 in flight
+- **Status:** ✅ Done (PR 3)
 
 ### 2. US / UK market pages open without the sidebar
 - **Where:** Click "US Market" or "UK Market" in the sidebar OR the pills on home → lands on a barebones page (`/market/us`, `/market/uk`)
 - **Problem:** `UsMarketHome.tsx` and `UkMarketHome.tsx` are self-contained pages with their own header. They don't render inside the `AppLayout` chrome, so the sidebar is gone and the look is inconsistent.
 - **Fix:** Move both pages inside the `AppLayout`/authenticated route shell. They should look and feel like the UAE Market home — same sidebar, same chrome, just different data.
 - **Files:** `src/App.tsx` (routes), `src/pages/UsMarketHome.tsx`, `src/pages/UkMarketHome.tsx`.
-- **Status:** TODO (chrome wrapped in AppLayout)
+- **Status:** ✅ Done (PR 1)
 
 ### 3. Off-Plan page also opens without sidebar + needs filters and detailed search
 - **Where:** `/off-plan`
 - **Problem:** Same chrome issue as #2 — no sidebar. Also: no filter panel, no real search.
 - **Fix:** Wrap in `AppLayout`. Add a proper filter panel — country, developer, price range, bedrooms, completion quarter, sale status. Add a search bar that matches project name + developer + district.
 - **Files:** `src/pages/OffPlan.tsx`, `src/App.tsx`.
-- **Status:** PR 1 done (chrome) + PR 4 in flight (filters / search)
+- **Status:** ✅ Done (PR 1 chrome + PR 4 filters/search)
 
 ### 4. Hide the project counts (UAE ~1,953 · Bali 66 · Phuket 10)
 - **Where:** `/off-plan` hero — the three country cards show big numbers
 - **Problem:** Babak doesn't want to publicly advertise catalogue size.
 - **Fix:** Remove the `~N projects` line from the country selector cards. Keep just country + flag + label.
 - **Files:** `src/pages/OffPlan.tsx`.
-- **Status:** PR 2 in flight
+- **Status:** ✅ Done (PR 2)
 
 ### 5. Sidebar nomenclature + global heatmap
 Three sub-items:
@@ -44,18 +44,18 @@ Three sub-items:
 - **5b. "UAE Heatmap" routing**: clicking it should land in the proper authenticated layout (same fix as #2).
 - **5c. Build a global heatmap / globe.** Babak wants a globe view that shows all countries with live data; clicking a country drills into that country's heatmap. He has a **21st.dev reference globe** he'll share — DO NOT pick a globe library before he sends the ref.
 - **Files:** `src/components/layout/AppSidebar.tsx` (rename), `src/pages/DubaiHeatmap.tsx` (refactor), NEW `src/pages/GlobalHeatmap.tsx` (the globe page).
-- **Status:** 5a → PR 2 done · 5b → PR 1 done · 5c → PR 5 in flight
+- **Status:** ✅ Done (5a PR 2 · 5b PR 1 · 5c PR 5)
 
 ### 6. Off-Plan menu item in sidebar also opens without sidebar
 - **Same issue as #3**, just calling out the sidebar entry-point. Resolved by #3's chrome fix.
-- **Status:** TODO (folded into #3)
+- **Status:** ✅ Done (PR 1, folded into #3)
 
 ### 7. All market homes need more depth: searchable areas like UAE
 - **Where:** `/market/us`, `/market/uk` (and Spain when it launches)
 - **Problem:** Today they show high-level macro / metro tiles. No way for a user to search "Brooklyn 11201" or "SW1A 1AA" the way they can search "JVC" in UAE.
 - **Fix:** Add a real search bar on each market home that takes a postcode (UK) or ZIP / borough (US) and returns matching data — sale history, comps, trend, demographics. Mirror the UAE search-with-filters UX.
 - **Files:** `src/pages/UkMarketHome.tsx`, `src/pages/UsMarketHome.tsx`.
-- **Status:** PR 3 in flight
+- **Status:** ✅ Done (PR 3)
 
 ---
 
