@@ -30,7 +30,9 @@ async function fetchAllProjects(country: string | null): Promise<FetchResult> {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const projects = Array.isArray(data) ? data : (data.data || []);
+        // Reelly returns { count, results: [...] } — older code expected
+        // `data.data` which is a different upstream shape we never had.
+        const projects = Array.isArray(data) ? data : (data.results || data.data || []);
         if (projects.length === 0) throw new Error('Empty response');
 
         return { data: projects, isDemo: false };

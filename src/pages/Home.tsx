@@ -276,7 +276,8 @@ function NewLaunchesStrip({ isPro }: { isPro: boolean }) {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' } });
         if (!res.ok) throw new Error('proxy error');
         const data = await res.json();
-        return (Array.isArray(data) ? data : (data.data || [])).slice(0, 6);
+        // Reelly returns { count, results: [...] } — pull `.results`.
+        return (Array.isArray(data) ? data : (data.results || data.data || [])).slice(0, 6);
       } catch { return []; }
     },
     staleTime: 10 * 60 * 1000,

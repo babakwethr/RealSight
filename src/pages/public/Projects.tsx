@@ -45,7 +45,9 @@ async function fetchProjects(country: string | null): Promise<FetchResult> {
     }
 
     const data = await res.json();
-    const projects = Array.isArray(data) ? data : (data.data || []);
+    // Reelly returns { count, next, previous, results: [...] }. The older
+    // `data.data` fallback was a leftover from a different upstream shape.
+    const projects = Array.isArray(data) ? data : (data.results || data.data || []);
     if (projects.length === 0) {
       throw new Error('Empty response from live feed');
     }
