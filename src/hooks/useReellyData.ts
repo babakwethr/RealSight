@@ -28,19 +28,54 @@ interface ReellyListResponse {
   fallback?: boolean;
 }
 
-/** List of off-plan projects, optionally filtered by Reelly country name. */
-export function useReellyProjects(opts: {
+/** Filter set the OffPlan page uses (PR 4). */
+export interface ReellyProjectFilters {
   country: string | null;
+  /** Free-text search across name + developer + district. */
+  searchQuery?: string;
+  /** Comma-separated bedroom counts (e.g. "1,2,3"). */
+  bedrooms?: string;
+  /** sale_status filter: on_sale / presale / announced / out_of_stock. */
+  saleStatus?: string;
+  /** Min unit price (Reelly's native currency for the project). */
+  unitPriceFrom?: number;
+  /** Max unit price. */
+  unitPriceTo?: number;
+  /** Sort: "-completion_datetime" (newest), "min_price", "-min_price". */
+  ordering?: string;
+}
+
+/** List of off-plan projects with optional filters. Used by /off-plan. */
+export function useReellyProjects(opts: ReellyProjectFilters & {
   limit?: number;
   offset?: number;
-} = { country: null }) {
+}) {
+  const {
+    country, searchQuery, bedrooms, saleStatus, unitPriceFrom, unitPriceTo,
+    ordering, limit = 24, offset = 0,
+  } = opts;
   return useQuery({
-    queryKey: ['reelly-projects', opts.country ?? 'all', opts.limit ?? 24, opts.offset ?? 0],
+    // queryKey includes every filter so React Query refetches when any
+    // changes. Falsy values normalised to '*' so the key stays stable.
+    queryKey: [
+      'reelly-projects',
+      country ?? 'all',
+      searchQuery ?? '*',
+      bedrooms ?? '*',
+      saleStatus ?? '*',
+      unitPriceFrom ?? '*',
+      unitPriceTo ?? '*',
+      ordering ?? '*',
+      limit, offset,
+    ],
     queryFn: () =>
       getJson<ReellyListResponse>(
-        reellyListUrl({ country: opts.country, limit: opts.limit ?? 24, offset: opts.offset ?? 0 }),
+        reellyListUrl({
+          country, limit, offset,
+          searchQuery, bedrooms, saleStatus, unitPriceFrom, unitPriceTo, ordering,
+        }),
       ),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

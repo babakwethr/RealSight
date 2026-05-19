@@ -17,10 +17,33 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useReellyProjects } from '@/hooks/useReellyData';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, MapPin, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@/components/ui/select';
+import { Building2, MapPin, ArrowUpRight, TrendingUp, Search, X } from 'lucide-react';
 import type { ReellyProject } from '@/types/reelly';
+
+interface OffPlanFilters {
+  searchQuery: string;
+  bedrooms: string; // 'any' | '0' | '1' | '2' | '3' | '4+'
+  saleStatus: string; // 'any' | 'on_sale' | 'presale' | 'out_of_stock'
+  unitPriceFrom: string; // empty | number string
+  unitPriceTo: string;
+  ordering: string; // 'default' | 'min_price' | '-min_price' | '-completion_datetime'
+}
+
+const INITIAL_FILTERS: OffPlanFilters = {
+  searchQuery: '',
+  bedrooms: 'any',
+  saleStatus: 'any',
+  unitPriceFrom: '',
+  unitPriceTo: '',
+  ordering: 'default',
+};
 
 type CountryTab = 'uae' | 'bali' | 'phuket';
 
@@ -55,6 +78,16 @@ function statusLabel(status?: string): { text: string; positive: boolean } {
 
 export default function OffPlan() {
   const [tab, setTab] = useState<CountryTab>('uae');
+  const [filters, setFilters] = useState<OffPlanFilters>(INITIAL_FILTERS);
+
+  const activeFilterCount = [
+    filters.searchQuery,
+    filters.bedrooms !== 'any' ? '1' : '',
+    filters.saleStatus !== 'any' ? '1' : '',
+    filters.unitPriceFrom,
+    filters.unitPriceTo,
+    filters.ordering !== 'default' ? '1' : '',
+  ].filter(Boolean).length;
 
   // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
@@ -97,6 +130,14 @@ export default function OffPlan() {
           </div>
         </section>
 
+        {/* ─── Filter panel ─── */}
+        <FilterPanel
+          filters={filters}
+          onChange={setFilters}
+          onReset={() => setFilters(INITIAL_FILTERS)}
+          activeCount={activeFilterCount}
+        />
+
         {/* ─── Tabs ─── */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as CountryTab)}>
           <TabsList className="bg-white/[0.04] border border-white/[0.06] p-1">
@@ -110,7 +151,7 @@ export default function OffPlan() {
 
           {TABS.map((t) => (
             <TabsContent key={t.key} value={t.key} className="mt-6">
-              <ProjectGrid country={t.country} />
+              <ProjectGrid country={t.country} filters={filters} />
             </TabsContent>
           ))}
         </Tabs>
@@ -127,8 +168,153 @@ export default function OffPlan() {
 
 /* ─── Project grid ─── */
 
-function ProjectGrid({ country }: { country: string }) {
-  const { data, isLoading } = useReellyProjects({ country, limit: 24 });
+/* ─── Filter panel ─── */
+
+interface FilterPanelProps {
+  filters: OffPlanFilters;
+  onChange: (next: OffPlanFilters) => void;
+  onReset: () => void;
+  activeCount: number;
+}
+
+function FilterPanel({ filters, onChange, onReset, activeCount }: FilterPanelProps) {
+  const setField = <K extends keyof OffPlanFilters>(key: K, value: OffPlanFilters[K]) =>
+    onChange({ ...filters, [key]: value });
+  return (
+    <section className="glass-card p-4 md:p-5 space-y-3">
+      {/* Top row: search input + active-filter count + reset */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={filters.searchQuery}
+            onChange={(e) => setField('searchQuery', e.target.value)}
+            placeholder="Search project, developer, district…"
+            className="pl-9 bg-white/[0.04] border-white/[0.08] focus-visible:ring-amber-400/30"
+          />
+        </div>
+        {activeCount > 0 && (
+          <button
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-2 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-400/20 hover:bg-amber-500/20 transition-colors shrink-0"
+          >
+            <X className="h-3 w-3" /> Clear {activeCount} filter{activeCount > 1 ? 's' : ''}
+          </button>
+        )}
+      </div>
+
+      {/* Bottom row: dropdowns + chips */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
+        <FilterSelect
+          label="Bedrooms"
+          value={filters.bedrooms}
+          onValueChange={(v) => setField('bedrooms', v)}
+          options={[
+            { value: 'any', label: 'Any' },
+            { value: '0', label: 'Studio' },
+            { value: '1', label: '1 bed' },
+            { value: '2', label: '2 beds' },
+            { value: '3', label: '3 beds' },
+            { value: '4,5,6', label: '4+ beds' },
+          ]}
+        />
+        <FilterSelect
+          label="Status"
+          value={filters.saleStatus}
+          onValueChange={(v) => setField('saleStatus', v)}
+          options={[
+            { value: 'any', label: 'Any' },
+            { value: 'on_sale', label: 'On sale' },
+            { value: 'presale', label: 'Pre-sale' },
+            { value: 'announced', label: 'Announced' },
+            { value: 'out_of_stock', label: 'Sold out' },
+          ]}
+        />
+        <PriceInput
+          label="Min price"
+          value={filters.unitPriceFrom}
+          onChange={(v) => setField('unitPriceFrom', v)}
+          placeholder="Any"
+        />
+        <PriceInput
+          label="Max price"
+          value={filters.unitPriceTo}
+          onChange={(v) => setField('unitPriceTo', v)}
+          placeholder="Any"
+        />
+        <FilterSelect
+          label="Sort"
+          value={filters.ordering}
+          onValueChange={(v) => setField('ordering', v)}
+          options={[
+            { value: 'default', label: 'Featured' },
+            { value: 'min_price', label: 'Price ↑' },
+            { value: '-min_price', label: 'Price ↓' },
+            { value: '-completion_datetime', label: 'Newest' },
+          ]}
+        />
+      </div>
+    </section>
+  );
+}
+
+function FilterSelect({
+  label, value, onValueChange, options,
+}: {
+  label: string;
+  value: string;
+  onValueChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/45 mb-1">{label}</p>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="bg-white/[0.04] border-white/[0.08]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function PriceInput({
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/45 mb-1">{label}</p>
+      <Input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ''))}
+        placeholder={placeholder}
+        className="bg-white/[0.04] border-white/[0.08]"
+      />
+    </div>
+  );
+}
+
+function ProjectGrid({ country, filters }: { country: string; filters: OffPlanFilters }) {
+  // Debounce the free-text search so we don't fire on every keystroke.
+  const debouncedSearch = useDebounce(filters.searchQuery, 280);
+
+  const { data, isLoading } = useReellyProjects({
+    country,
+    limit: 24,
+    searchQuery: debouncedSearch || undefined,
+    bedrooms: filters.bedrooms === 'any' ? undefined : filters.bedrooms,
+    saleStatus: filters.saleStatus === 'any' ? undefined : filters.saleStatus,
+    unitPriceFrom: filters.unitPriceFrom ? Number(filters.unitPriceFrom) : undefined,
+    unitPriceTo: filters.unitPriceTo ? Number(filters.unitPriceTo) : undefined,
+    ordering: filters.ordering === 'default' ? undefined : filters.ordering,
+  });
 
   if (isLoading) {
     return (
@@ -141,13 +327,19 @@ function ProjectGrid({ country }: { country: string }) {
   }
 
   const projects = data?.results ?? [];
+  const hasActiveFilters = !!(
+    filters.searchQuery || filters.bedrooms !== 'any' || filters.saleStatus !== 'any' ||
+    filters.unitPriceFrom || filters.unitPriceTo || filters.ordering !== 'default'
+  );
   if (!projects.length || data?.fallback) {
     return (
       <div className="rounded-xl border border-dashed border-white/[0.08] p-10 text-center">
         <ArrowUpRight className="h-6 w-6 text-white/30 mx-auto mb-2" />
-        <p className="text-sm text-white/55">No projects returned for this country yet.</p>
+        <p className="text-sm text-white/55">
+          {hasActiveFilters ? 'No projects match those filters.' : 'No projects returned for this country yet.'}
+        </p>
         <p className="text-[11px] text-white/35 mt-1">
-          The Reelly feed may be temporarily unavailable.
+          {hasActiveFilters ? 'Try clearing the filters or broadening the search.' : 'The Reelly feed may be temporarily unavailable.'}
         </p>
       </div>
     );
