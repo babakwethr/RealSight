@@ -15,7 +15,7 @@ Statuses: `TODO` · `IN PROGRESS` · `DONE`
 - **Problem:** Search only matches DLD areas (Downtown Dubai, JVC, Palm Jumeirah, etc.). Cannot find a specific building like "Burj Vista" or "Marina Gate" inside JVC.
 - **Fix:** Extend search to also match building names. Pull from `dld_developers` / project tables, or the Reelly catalogue (1,868 projects with `name` field). Type "JVC towers" → return buildings located in JVC.
 - **Files:** `src/pages/MarketHome.tsx`, `src/components/SearchFilterBar` (or wherever the search lives).
-- **Status:** TODO (PR 3)
+- **Status:** PR 3 in flight
 
 ### 2. US / UK market pages open without the sidebar
 - **Where:** Click "US Market" or "UK Market" in the sidebar OR the pills on home → lands on a barebones page (`/market/us`, `/market/uk`)
@@ -55,7 +55,7 @@ Three sub-items:
 - **Problem:** Today they show high-level macro / metro tiles. No way for a user to search "Brooklyn 11201" or "SW1A 1AA" the way they can search "JVC" in UAE.
 - **Fix:** Add a real search bar on each market home that takes a postcode (UK) or ZIP / borough (US) and returns matching data — sale history, comps, trend, demographics. Mirror the UAE search-with-filters UX.
 - **Files:** `src/pages/UkMarketHome.tsx`, `src/pages/UsMarketHome.tsx`.
-- **Status:** TODO (PR 3 — depends on #2 done first)
+- **Status:** PR 3 in flight
 
 ---
 

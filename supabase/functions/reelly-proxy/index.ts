@@ -89,12 +89,17 @@ serve(async (req) => {
       "country",
       "region", "districts",
       "developer",
-      "bedrooms",
+      "bedrooms", "unit_bedrooms",
       "sale_status", "status",
       "completion_quarters",
+      "completion_date_ranges",
       "search_query",
       "ordering",
       "preferred_currency", "preferred_area_unit",
+      "unit_price_from", "unit_price_to",
+      "unit_area_from", "unit_area_to",
+      "has_escrow",
+      "post_handover",
     ];
     for (const k of FORWARDABLE) {
       const v = url.searchParams.get(k);

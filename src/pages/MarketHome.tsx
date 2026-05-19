@@ -8,6 +8,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useReellySearch } from '@/hooks/useReellyData';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserRole } from '@/hooks/useUserRole';
 import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
@@ -161,10 +163,28 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const suggestions = useMemo(() => {
+  // ── Areas (DLD) ────────────────────────────────────────────────────
+  // Client-side filter against the DLD areas list we already loaded.
+  const areaSuggestions = useMemo(() => {
     if (query.length < 2 || query === 'Dubai') return [];
-    return areas.filter(a => a.name.toLowerCase().includes(query.toLowerCase())).slice(0, 7);
+    return areas
+      .filter(a => a.name.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 5);
   }, [query, areas]);
+
+  // ── Buildings / projects (Reelly) ──────────────────────────────────
+  // Punch-list item 1: search needs to find buildings, not just areas.
+  // Server-side full-text search across Reelly's UAE catalogue (1,867
+  // projects) via `search_query`. Debounced to avoid hammering the API
+  // on every keystroke.
+  const debouncedQuery = useDebounce(query, 280);
+  const { data: projectSearch } = useReellySearch({
+    query: debouncedQuery,
+    country: 'United Arab Emirates',
+    limit: 6,
+    enabled: showSugg && debouncedQuery !== 'Dubai',
+  });
+  const projectSuggestions = projectSearch?.results ?? [];
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setShowSugg(false); };
@@ -172,15 +192,22 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const handleSelect = (name: string) => {
+  const handleSelectArea = (name: string) => {
     setQuery(name); setShowSugg(false); onSearch(name);
     navigate(`/market-intelligence?area=${encodeURIComponent(name)}`);
+  };
+
+  const handleSelectProject = (id: string | number, name: string) => {
+    setQuery(name); setShowSugg(false);
+    navigate(`/projects/${id}`);
   };
 
   const handleSearch = () => {
     onSearch(query);
     if (query && query !== 'Dubai') navigate(`/market-intelligence?area=${encodeURIComponent(query)}`);
   };
+
+  const hasAnySuggestions = areaSuggestions.length > 0 || projectSuggestions.length > 0;
 
   return (
     <div ref={ref} className="relative w-full max-w-4xl mx-auto">
@@ -194,17 +221,37 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
             onFocus={() => { setShowSugg(true); if (query === 'Dubai') setQuery(''); }}
             onBlur={() => { setTimeout(() => { if (!query.trim()) setQuery('Dubai'); }, 150); }}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Area, project, developer..."
+            placeholder="Area, building, developer..."
             className="w-full h-12 pl-10 pr-4 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none border-r border-white/[0.08]"
           />
-          {showSugg && suggestions.length > 0 && (
+          {showSugg && hasAnySuggestions && (
             <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border border-border rounded-xl overflow-hidden shadow-2xl">
-              {suggestions.map(a => (
-                <button key={a.id} onMouseDown={() => handleSelect(a.name)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
-                  <span className="text-primary text-xs">📍</span> {a.name}
-                </button>
-              ))}
+              {areaSuggestions.length > 0 && (
+                <>
+                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Areas</p>
+                  {areaSuggestions.map(a => (
+                    <button key={`area-${a.id}`} onMouseDown={() => handleSelectArea(a.name)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 transition-colors">
+                      <span className="text-primary text-xs">📍</span> {a.name}
+                    </button>
+                  ))}
+                </>
+              )}
+              {projectSuggestions.length > 0 && (
+                <>
+                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings</p>
+                  {projectSuggestions.map(p => (
+                    <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name)}
+                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
+                      <span className="text-amber-400 text-xs pt-0.5">🏢</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-foreground/90 truncate">{p.name}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{p.developer} · {p.location?.district ?? '—'}</span>
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -240,18 +287,38 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
               onFocus={() => { setShowSugg(true); if (query === 'Dubai') setQuery(''); }}
               onBlur={() => { setTimeout(() => { if (!query.trim()) setQuery('Dubai'); }, 150); }}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="Search area or project..."
+              placeholder="Search area, building, developer..."
               className="w-full h-13 pl-10 pr-4 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none rounded-xl"
               style={{ fontSize: '16px', height: 52 }}
             />
-            {showSugg && suggestions.length > 0 && (
+            {showSugg && hasAnySuggestions && (
               <div className="absolute top-full left-0 right-0 mt-2 z-[9999] bg-popover border border-border rounded-xl overflow-hidden shadow-2xl">
-                {suggestions.map(a => (
-                  <button key={a.id} onMouseDown={() => handleSelect(a.name)}
-                    className="w-full flex items-center gap-3 px-4 py-4 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">
-                    <span className="text-primary">📍</span> {a.name}
-                  </button>
-                ))}
+                {areaSuggestions.length > 0 && (
+                  <>
+                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Areas</p>
+                    {areaSuggestions.map(a => (
+                      <button key={`area-${a.id}`} onMouseDown={() => handleSelectArea(a.name)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10">
+                        <span className="text-primary">📍</span> {a.name}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {projectSuggestions.length > 0 && (
+                  <>
+                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings</p>
+                    {projectSuggestions.map(p => (
+                      <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name)}
+                        className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">
+                        <span className="text-amber-400 pt-0.5">🏢</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-medium text-foreground/90 truncate">{p.name}</span>
+                          <span className="block text-[11px] text-muted-foreground truncate">{p.developer} · {p.location?.district ?? '—'}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>

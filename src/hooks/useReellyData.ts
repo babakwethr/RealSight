@@ -53,3 +53,37 @@ export function useReellyProject(id: string | number | null | undefined) {
     staleTime: 30 * 60 * 1000,
   });
 }
+
+/**
+ * Free-text search across Reelly's catalogue (project name, developer,
+ * district). Backed by Reelly's `search_query` parameter — server-side
+ * search across all 1,867 UAE projects (or whatever country is passed).
+ *
+ * Use this for the autocomplete dropdown on each market home. Returns
+ * up to `limit` matches.
+ *
+ * NOTE: caller is responsible for debouncing — fire this only when the
+ * user has paused typing for ~250-300ms. We don't debounce inside the
+ * hook so the caller can decide.
+ */
+export function useReellySearch(opts: {
+  query: string;
+  country: string | null;
+  limit?: number;
+  enabled?: boolean;
+}) {
+  const enabled = (opts.enabled ?? true) && opts.query.trim().length >= 2;
+  return useQuery({
+    queryKey: ['reelly-search', opts.country ?? 'all', opts.query, opts.limit ?? 8],
+    queryFn: () =>
+      getJson<ReellyListResponse>(
+        reellyListUrl({
+          country: opts.country,
+          limit: opts.limit ?? 8,
+          searchQuery: opts.query.trim(),
+        }),
+      ),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
