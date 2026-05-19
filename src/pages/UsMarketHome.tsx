@@ -20,6 +20,32 @@ import { TrendingUp, TrendingDown, MapPin, Building2, ArrowUpRight } from 'lucid
 import { useNycSales, useChicagoSales, useFredSeries, useUsMetrosSnapshot } from '@/hooks/useUsMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { UsMetroSnapshot } from '@/lib/usApi';
+import { MarketSearchBar, type MarketSearchOption } from '@/components/MarketSearchBar';
+
+// Search options: 20 Case-Shiller metros + NYC boroughs + a handful of
+// well-known ZIPs that map to metros. Punch-list item 7.
+const METRO_OPTIONS: MarketSearchOption[] = [
+  { id: 'new-york', label: 'New York City', aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
+  { id: 'los-angeles', label: 'Los Angeles', aliases: ['LA', '90001', '90210', '90028'] },
+  { id: 'chicago', label: 'Chicago', aliases: ['Cook County', '60601', '60614'] },
+  { id: 'miami', label: 'Miami', aliases: ['33101', '33139', 'Miami Beach'] },
+  { id: 'san-francisco', label: 'San Francisco', aliases: ['SF', '94102', '94110'] },
+  { id: 'boston', label: 'Boston', aliases: ['02108', '02115'] },
+  { id: 'washington-dc', label: 'Washington DC', aliases: ['DC', '20001', '20002'] },
+  { id: 'seattle', label: 'Seattle', aliases: ['98101', '98109'] },
+  { id: 'denver', label: 'Denver', aliases: ['80202', '80203'] },
+  { id: 'phoenix', label: 'Phoenix', aliases: ['85001', '85003'] },
+  { id: 'dallas', label: 'Dallas', aliases: ['75201', '75202'] },
+  { id: 'san-diego', label: 'San Diego', aliases: ['92101', '92103'] },
+  { id: 'portland', label: 'Portland', aliases: ['97201', '97204'] },
+  { id: 'charlotte', label: 'Charlotte', aliases: ['28202', '28203'] },
+  { id: 'detroit', label: 'Detroit', aliases: ['48201', '48226'] },
+  { id: 'las-vegas', label: 'Las Vegas', aliases: ['89101', '89109'] },
+  { id: 'minneapolis', label: 'Minneapolis', aliases: ['55401', '55402'] },
+  { id: 'cleveland', label: 'Cleveland', aliases: ['44101', '44113'] },
+  { id: 'tampa', label: 'Tampa', aliases: ['33602', '33606'] },
+  { id: 'atlanta', label: 'Atlanta', aliases: ['30301', '30303'] },
+];
 
 const DOLLAR = '$';
 
@@ -50,6 +76,15 @@ export default function UsMarketHome() {
   // Compute YoY HPI change if FRED key is configured
   const hpiTrend = computeYoY(caseShiller.data?.observations);
 
+  const handleSearchSelect = (option: MarketSearchOption) => {
+    const el = document.getElementById(`us-metro-${option.id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-violet-400/60');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-violet-400/60'), 2000);
+    }
+  };
+
   // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
     <div className="space-y-10 animate-fade-in">
@@ -68,6 +103,16 @@ export default function UsMarketHome() {
                 property sale, plus national mortgage and price-index trends
                 from FRED.
               </p>
+
+              {/* Punch-list item 7 — searchable metros / ZIPs. Type "Miami",
+                  "Brooklyn" or "94110" → matching metro scrolls into view. */}
+              <div className="mt-5">
+                <MarketSearchBar
+                  options={METRO_OPTIONS}
+                  onSelect={handleSearchSelect}
+                  placeholder="Search a metro, borough or ZIP (e.g. Brooklyn, 90210, Miami)"
+                />
+              </div>
             </div>
           </div>
 
@@ -280,7 +325,7 @@ function MetroSection({
 function MetroTile({ metro }: { metro: UsMetroSnapshot }) {
   if (metro.missing || metro.latestValue == null) {
     return (
-      <div className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.05] p-4 opacity-60">
+      <div id={`us-metro-${metro.slug}`} className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.05] p-4 opacity-60 transition-all">
         <p className="text-xs font-semibold text-white/55">{metro.name}</p>
         <p className="text-[10px] text-white/35 mt-1">No data</p>
       </div>
@@ -291,7 +336,7 @@ function MetroTile({ metro }: { metro: UsMetroSnapshot }) {
   const Icon = positive ? TrendingUp : TrendingDown;
   const color = yoy == null ? 'text-white/40' : positive ? 'text-emerald-400' : 'text-amber-400';
   return (
-    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 hover:bg-white/[0.06] transition-colors">
+    <div id={`us-metro-${metro.slug}`} className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 hover:bg-white/[0.06] transition-all">
       <p className="text-xs font-semibold text-white/80 leading-tight">{metro.name}</p>
       <p className="text-xl font-black text-foreground tabular-nums mt-1" style={{ letterSpacing: '-0.02em' }}>
         {metro.latestValue?.toFixed(1)}

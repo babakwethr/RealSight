@@ -16,6 +16,26 @@
 import { ArrowUpRight, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { useUkRegion, useUkRegionsSnapshot } from '@/hooks/useUkMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MarketSearchBar, type MarketSearchOption } from '@/components/MarketSearchBar';
+import type { UkRegionSlug } from '@/lib/ukApi';
+
+// Postcode-prefix → UK region slug. Covers the main outer-postcode
+// areas; ?postcode=SW1A 1AA is parsed by taking the first 1-2 letters +
+// the first digit. Punch-list item 7.
+const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
+  // London
+  E: 'london', EC: 'london', N: 'london', NW: 'london',
+  SE: 'london', SW: 'london', W: 'london', WC: 'london',
+  // Major cities
+  M: 'manchester', B: 'birmingham', EH: 'edinburgh', BS: 'bristol',
+  // Regions (rough)
+  L: 'north-west', LS: 'yorkshire-and-the-humber',
+  S: 'yorkshire-and-the-humber', HU: 'yorkshire-and-the-humber',
+  NE: 'north-east', SR: 'north-east',
+  CF: 'wales', SA: 'wales', LL: 'wales', NP: 'wales',
+  G: 'scotland', AB: 'scotland', DD: 'scotland', PA: 'scotland',
+  BT: 'northern-ireland',
+};
 
 const POUND = '£';
 
@@ -47,10 +67,55 @@ function regionLabel(slug: string): string {
     .replace('Yorkshire And The Humber', 'Yorkshire & Humber');
 }
 
+/** Parse a postcode like "SW1A 1AA" or "M1" → region slug, or null. */
+function postcodeToRegion(postcode: string): UkRegionSlug | null {
+  const match = postcode.trim().toUpperCase().match(/^([A-Z]{1,2})\d/);
+  if (!match) return null;
+  return POSTCODE_TO_REGION[match[1]] ?? null;
+}
+
+const REGION_OPTIONS: MarketSearchOption[] = [
+  { id: 'london', label: 'London', aliases: ['E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC', 'SW1', 'E14', 'NW1'] },
+  { id: 'manchester', label: 'Manchester', aliases: ['M1', 'M2', 'M3'] },
+  { id: 'birmingham', label: 'Birmingham', aliases: ['B1', 'B2', 'B3'] },
+  { id: 'edinburgh', label: 'Edinburgh', aliases: ['EH1', 'EH2'] },
+  { id: 'bristol', label: 'Bristol', aliases: ['BS1', 'BS2'] },
+  { id: 'north-east', label: 'North East England' },
+  { id: 'north-west', label: 'North West England' },
+  { id: 'yorkshire-and-the-humber', label: 'Yorkshire & Humber' },
+  { id: 'east-midlands', label: 'East Midlands' },
+  { id: 'west-midlands', label: 'West Midlands' },
+  { id: 'east', label: 'East of England' },
+  { id: 'south-east', label: 'South East England' },
+  { id: 'south-west', label: 'South West England' },
+  { id: 'scotland', label: 'Scotland' },
+  { id: 'wales', label: 'Wales' },
+  { id: 'northern-ireland', label: 'Northern Ireland' },
+  { id: 'england', label: 'England (national)' },
+  { id: 'united-kingdom', label: 'United Kingdom (national)' },
+];
+
 export default function UkMarketHome() {
   const ukAggregate = useUkRegion('united-kingdom');
   const london = useUkRegion('london');
   const snapshot = useUkRegionsSnapshot();
+
+  const handleSearchSelect = (option: MarketSearchOption) => {
+    // Selected a known region from the dropdown — scroll the matching
+    // tile into view. (Future: drill into a per-region detail page.)
+    const el = document.getElementById(`uk-region-${option.id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-emerald-400/60');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400/60'), 2000);
+    }
+  };
+
+  const handleSearchSubmit = (raw: string) => {
+    // User typed a raw postcode that didn't auto-match — parse it.
+    const slug = postcodeToRegion(raw);
+    if (slug) handleSearchSelect({ id: slug, label: raw });
+  };
 
   // Renders inside <AppLayout /> — the sidebar + cinematic-bg + chrome
   // are provided by the layout. This page only owns its body content.
@@ -70,6 +135,17 @@ export default function UkMarketHome() {
                 Backed by HM Land Registry's UK House Price Index — 24M+ residential transactions,
                 published monthly under OGL v3.0.
               </p>
+
+              {/* Punch-list item 7 — searchable areas / postcodes. Type
+                  "SW1" or "Manchester" → matching region scrolls into view. */}
+              <div className="mt-5">
+                <MarketSearchBar
+                  options={REGION_OPTIONS}
+                  onSelect={handleSearchSelect}
+                  onSubmit={handleSearchSubmit}
+                  placeholder="Search a postcode (SW1, M1, EH3…) or region"
+                />
+              </div>
             </div>
             {ukAggregate.data && (
               <div className="text-right shrink-0">
@@ -176,14 +252,14 @@ function HeroMetric({ label, value, hint }: { label: string; value: string; hint
 function RegionCard({ entry }: { entry: import('@/lib/ukApi').UkhpiSnapshotEntry }) {
   if (entry.missing || entry.averagePrice == null) {
     return (
-      <div className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.05] p-4 opacity-60">
+      <div id={`uk-region-${entry.region}`} className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.05] p-4 opacity-60 transition-all">
         <p className="text-xs font-semibold text-white/55">{regionLabel(entry.region)}</p>
         <p className="text-[10px] text-white/35 mt-1">Data not yet published</p>
       </div>
     );
   }
   return (
-    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 hover:bg-white/[0.06] transition-colors">
+    <div id={`uk-region-${entry.region}`} className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 hover:bg-white/[0.06] transition-all">
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-xs font-semibold text-white/80 leading-tight">{regionLabel(entry.region)}</p>
         <Building2 className="h-3 w-3 text-emerald-400/60 shrink-0" />

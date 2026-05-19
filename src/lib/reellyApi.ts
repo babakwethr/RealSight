@@ -22,6 +22,20 @@ export function reellyListUrl(opts: {
   limit: number;
   /** Pagination offset. Defaults to 0. */
   offset?: number;
+  /** Free-text search across project/developer/area name (Reelly's `search_query`). */
+  searchQuery?: string;
+  /** Multi-select developer ID(s) (comma-separated). */
+  developer?: string;
+  /** Comma-separated bedroom counts (e.g. "1,2"). */
+  bedrooms?: string;
+  /** Sale status filter (on_sale, presale, announced, out_of_stock, start_of_sales). */
+  saleStatus?: string;
+  /** Min price (in the project's native currency). */
+  unitPriceFrom?: number;
+  /** Max price (in the project's native currency). */
+  unitPriceTo?: number;
+  /** Sort order — Reelly's `ordering` param. */
+  ordering?: string;
 }): string {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const params = new URLSearchParams({
@@ -29,9 +43,14 @@ export function reellyListUrl(opts: {
     limit: String(opts.limit),
     offset: String(opts.offset ?? 0),
   });
-  if (opts.country) {
-    params.set('country', opts.country);
-  }
+  if (opts.country) params.set('country', opts.country);
+  if (opts.searchQuery) params.set('search_query', opts.searchQuery);
+  if (opts.developer) params.set('developer', opts.developer);
+  if (opts.bedrooms) params.set('bedrooms', opts.bedrooms);
+  if (opts.saleStatus) params.set('sale_status', opts.saleStatus);
+  if (opts.unitPriceFrom != null) params.set('unit_price_from', String(opts.unitPriceFrom));
+  if (opts.unitPriceTo != null) params.set('unit_price_to', String(opts.unitPriceTo));
+  if (opts.ordering) params.set('ordering', opts.ordering);
   return `${supabaseUrl}/functions/v1/reelly-proxy?${params.toString()}`;
 }
 
