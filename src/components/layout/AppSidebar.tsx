@@ -1,6 +1,6 @@
 import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot,
+  LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot, Globe,
   User, LogOut, Sparkles, ArrowRight, Shield,
   CreditCard, FolderOpen, Bell, Eye, Scale, Crown,
   Wand2,
@@ -205,7 +205,7 @@ export function AppSidebar() {
               <NavItem to="/market-intelligence" icon={BarChart3} label="UAE Market" />
               <NavItem to="/market/uk"           icon={Map}       label="UK Market" />
               <NavItem to="/market/us"           icon={Map}       label="US Market" />
-              <NavItem to="/heatmap"             icon={Map}       label="UAE Heatmap" />
+              <NavItem to="/heatmap"             icon={Globe}     label="Global Heatmap" />
               <NavItem to="/off-plan"            icon={Building2} label="Off-Plan" />
               <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
               {/* Compare lives only in the investor view — it diff's holdings
@@ -246,7 +246,7 @@ export function AppSidebar() {
               <NavItem to="/market/us"           icon={BarChart3}       label="US Market" />
               <NavItem to="/off-plan"            icon={Building2}       label="Off-Plan · UAE · Bali · Phuket" />
               <NavItem to="/market-intelligence" icon={BarChart3}       label="Market Intelligence" />
-              <NavItem to="/heatmap"             icon={Map}             label="UAE Heatmap" />
+              <NavItem to="/heatmap"             icon={Globe}           label="Global Heatmap" />
               <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
               <NavItem to="/projects"            icon={Building2}       label="New Launches" />
               <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
