@@ -128,7 +128,10 @@ function TopPicksContent() {
         });
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
-        return (data?.items || data || []) as ReellyProject[];
+        // Reelly returns { count, results: [...] }. Older code expected
+        // `data.items` which was wrong — keep both as fallbacks for safety.
+        const items = (data?.results || data?.items || data || []) as ReellyProject[];
+        return items.length > 0 ? items : (DEMO_PROJECTS.slice(0, 8) as ReellyProject[]);
       } catch {
         return DEMO_PROJECTS.slice(0, 8) as ReellyProject[];
       }
