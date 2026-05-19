@@ -172,14 +172,10 @@ const App = () => (
             <Routes>
               {/* Public Routes — no login required */}
               <Route path="/" element={<MarketHome isPublic={true} />} />
-              {/* Phase 2 of global-launch plan — UK market home backed by HM
-                  Land Registry UKHPI. Public route; no login required. */}
-              <Route path="/market/uk" element={<UkMarketHome />} />
-              {/* Phase 3 — US market home backed by NYC OpenData + Cook County
-                  + FRED + HUD. All free public-data sources. */}
-              <Route path="/market/us" element={<UsMarketHome />} />
-              {/* Phase 4 — international off-plan inventory: UAE + Bali + Phuket. */}
-              <Route path="/off-plan" element={<OffPlan />} />
+              {/* /market/uk, /market/us, /off-plan moved INSIDE the
+                  authenticated AppLayout block below (Babak QA, 19 May 2026
+                  punch list PR 1) so they get the same sidebar + chrome as
+                  /dashboard. */}
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/security" element={<Security />} />
@@ -242,6 +238,12 @@ const App = () => (
                 <Route path="/market-index" element={<MarketIndex />} />
                 <Route path="/heatmap" element={<DubaiHeatmap />} />
                 <Route path="/radar" element={<GlobalRadar />} />
+                {/* Punch list PR 1 — multi-market pages now mount inside
+                    AppLayout so the sidebar/chrome is consistent with
+                    /dashboard. */}
+                <Route path="/market/uk" element={<UkMarketHome />} />
+                <Route path="/market/us" element={<UsMarketHome />} />
+                <Route path="/off-plan" element={<OffPlan />} />
                 <Route path="/opportunity-signals" element={<OpportunitySignals />} />
                 <Route path="/deal-analyzer" element={<DealAnalyzer />} />
                 <Route path="/watchlist" element={<Watchlist />} />

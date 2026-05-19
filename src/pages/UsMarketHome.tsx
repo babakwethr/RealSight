@@ -16,10 +16,8 @@
  * when the FRED key is configured, and unrelated metros show a "Coming
  * soon — sign up to be notified" tile rather than fake data.
  */
-import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, MapPin, Building2, ArrowUpRight } from 'lucide-react';
 import { useNycSales, useChicagoSales, useFredSeries, useUsMetrosSnapshot } from '@/hooks/useUsMarketData';
-import { Logo } from '@/components/Logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { UsMetroSnapshot } from '@/lib/usApi';
 
@@ -52,22 +50,9 @@ export default function UsMarketHome() {
   // Compute YoY HPI change if FRED key is configured
   const hpiTrend = computeYoY(caseShiller.data?.observations);
 
+  // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
-    <div className="min-h-screen cinematic-bg">
-      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-white/[0.05]">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo variant="white" className="h-7 w-auto" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-violet-400">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 mr-1.5 align-middle animate-pulse" />
-              US · Live
-            </span>
-          </Link>
-          <Link to="/" className="text-xs text-white/55 hover:text-white">← Back to home</Link>
-        </div>
-      </header>
-
-      <main className="max-w-[1400px] mx-auto px-6 py-10 space-y-10">
+    <div className="space-y-10 animate-fade-in">
         {/* ─── Hero ─── */}
         <section className="glass-card p-8">
           <div className="flex items-start justify-between gap-4 mb-6">
@@ -211,15 +196,14 @@ export default function UsMarketHome() {
           ))}
         </MetroSection>
 
-        {/* ─── Source footer ─── */}
-        <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
-          Data sourced from{' '}
-          <a href="https://data.cityofnewyork.us" target="_blank" rel="noreferrer" className="underline hover:text-white/55">NYC OpenData</a>,{' '}
-          <a href="https://datacatalog.cookcountyil.gov" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Cook County Open Data</a>, and{' '}
-          <a href="https://fred.stlouisfed.org" target="_blank" rel="noreferrer" className="underline hover:text-white/55">FRED (Federal Reserve)</a>.
-          {' '}All US public records.
-        </section>
-      </main>
+      {/* ─── Source footer ─── */}
+      <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
+        Data sourced from{' '}
+        <a href="https://data.cityofnewyork.us" target="_blank" rel="noreferrer" className="underline hover:text-white/55">NYC OpenData</a>,{' '}
+        <a href="https://datacatalog.cookcountyil.gov" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Cook County Open Data</a>, and{' '}
+        <a href="https://fred.stlouisfed.org" target="_blank" rel="noreferrer" className="underline hover:text-white/55">FRED (Federal Reserve)</a>.
+        {' '}All US public records.
+      </section>
     </div>
   );
 }
