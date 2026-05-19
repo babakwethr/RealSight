@@ -29,7 +29,7 @@ Statuses: `TODO` · `IN PROGRESS` · `DONE`
 - **Problem:** Same chrome issue as #2 — no sidebar. Also: no filter panel, no real search.
 - **Fix:** Wrap in `AppLayout`. Add a proper filter panel — country, developer, price range, bedrooms, completion quarter, sale status. Add a search bar that matches project name + developer + district.
 - **Files:** `src/pages/OffPlan.tsx`, `src/App.tsx`.
-- **Status:** TODO (chrome wrapped); filters / search → PR 4
+- **Status:** PR 1 done (chrome) + PR 4 in flight (filters / search)
 
 ### 4. Hide the project counts (UAE ~1,953 · Bali 66 · Phuket 10)
 - **Where:** `/off-plan` hero — the three country cards show big numbers
