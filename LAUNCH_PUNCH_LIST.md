@@ -44,7 +44,7 @@ Three sub-items:
 - **5b. "UAE Heatmap" routing**: clicking it should land in the proper authenticated layout (same fix as #2).
 - **5c. Build a global heatmap / globe.** Babak wants a globe view that shows all countries with live data; clicking a country drills into that country's heatmap. He has a **21st.dev reference globe** he'll share — DO NOT pick a globe library before he sends the ref.
 - **Files:** `src/components/layout/AppSidebar.tsx` (rename), `src/pages/DubaiHeatmap.tsx` (refactor), NEW `src/pages/GlobalHeatmap.tsx` (the globe page).
-- **Status:** 5a → PR 2 in flight · 5b → PR 1 done · 5c → PR 5 (`cobe` library, Babak shared 21st.dev component)
+- **Status:** 5a → PR 2 done · 5b → PR 1 done · 5c → PR 5 in flight
 
 ### 6. Off-Plan menu item in sidebar also opens without sidebar
 - **Same issue as #3**, just calling out the sidebar entry-point. Resolved by #3's chrome fix.

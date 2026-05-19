@@ -20,6 +20,7 @@ import MarketHome from "./pages/MarketHome";
 import UkMarketHome from "./pages/UkMarketHome";
 import UsMarketHome from "./pages/UsMarketHome";
 import OffPlan from "./pages/OffPlan";
+import GlobalHeatmap from "./pages/GlobalHeatmap";
 import Projects from "./pages/public/Projects";
 import ProjectDetail from "./pages/public/ProjectDetail";
 import RequestAccess from "./pages/public/RequestAccess";
@@ -236,7 +237,11 @@ const App = () => (
                 <Route path="/market-intelligence" element={<MarketIntelligence />} />
                 <Route path="/market-pulse" element={<MarketPulse />} />
                 <Route path="/market-index" element={<MarketIndex />} />
-                <Route path="/heatmap" element={<DubaiHeatmap />} />
+                {/* Punch-list PR 5 — /heatmap is now the GLOBAL globe view.
+                    The legacy Dubai heatmap lives at /heatmap/uae and stays
+                    reachable from the globe + sidebar shortcuts. */}
+                <Route path="/heatmap" element={<GlobalHeatmap />} />
+                <Route path="/heatmap/uae" element={<DubaiHeatmap />} />
                 <Route path="/radar" element={<GlobalRadar />} />
                 {/* Punch list PR 1 — multi-market pages now mount inside
                     AppLayout so the sidebar/chrome is consistent with
