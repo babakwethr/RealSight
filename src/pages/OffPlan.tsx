@@ -30,11 +30,10 @@ const TABS: Array<{
   flag: string;
   /** Reelly country query value. */
   country: string;
-  expectedCount: number;
 }> = [
-  { key: 'uae',    label: 'UAE',     flag: '🇦🇪', country: 'United Arab Emirates', expectedCount: 1953 },
-  { key: 'bali',   label: 'Bali',    flag: '🇮🇩', country: 'Indonesia',            expectedCount: 66 },
-  { key: 'phuket', label: 'Phuket',  flag: '🇹🇭', country: 'Thailand',             expectedCount: 10 },
+  { key: 'uae',    label: 'UAE',     flag: '🇦🇪', country: 'United Arab Emirates' },
+  { key: 'bali',   label: 'Bali',    flag: '🇮🇩', country: 'Indonesia'            },
+  { key: 'phuket', label: 'Phuket',  flag: '🇹🇭', country: 'Thailand'             },
 ];
 
 function fmtPrice(value: number | null | undefined, currency = 'AED'): string {
@@ -80,20 +79,19 @@ export default function OffPlan() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`rounded-xl p-4 text-left border transition-colors ${
+                className={`rounded-xl p-5 text-left border transition-colors ${
                   tab === t.key
                     ? 'bg-white/[0.08] border-amber-400/40'
                     : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-2xl leading-none">{t.flag}</span>
-                  <span className="text-sm font-bold text-foreground">{t.label}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl leading-none">{t.flag}</span>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{t.label}</p>
+                    <p className="text-[10px] text-white/45 uppercase tracking-widest">Off-plan</p>
+                  </div>
                 </div>
-                <p className="text-xl font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
-                  ~{t.expectedCount.toLocaleString()}
-                </p>
-                <p className="text-[10px] text-white/45">projects in catalogue</p>
               </button>
             ))}
           </div>
@@ -157,11 +155,7 @@ function ProjectGrid({ country }: { country: string }) {
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-4">
-        <p className="text-xs text-white/55">
-          <span className="font-bold text-foreground">{data?.count?.toLocaleString() ?? projects.length}</span> projects ·
-          showing {projects.length}
-        </p>
+      <div className="flex items-baseline justify-end mb-4">
         <p className="text-[10px] uppercase tracking-widest text-white/40">Source · Reelly</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

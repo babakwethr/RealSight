@@ -202,7 +202,7 @@ export function AppSidebar() {
 
             <SectionLabel label="Markets" accent="markets" />
             <div className="space-y-0.5 px-1.5">
-              <NavItem to="/market-intelligence" icon={BarChart3} label="Markets" />
+              <NavItem to="/market-intelligence" icon={BarChart3} label="UAE Market" />
               <NavItem to="/market/uk"           icon={Map}       label="UK Market" />
               <NavItem to="/market/us"           icon={Map}       label="US Market" />
               <NavItem to="/heatmap"             icon={Map}       label="UAE Heatmap" />
