@@ -1095,6 +1095,12 @@ function BuildingResultsPanel({
         </div>
       )}
 
+      {/* Price-per-sqft trend chart — only in sales mode, when we have
+          enough datapoints to draw a meaningful line. */}
+      {!isRental && (salesQuery.data?.length ?? 0) >= 3 && (
+        <BuildingPriceTrend rows={salesQuery.data ?? []} />
+      )}
+
       {/* Transaction / contract list */}
       {isLoading ? (
         <p className="text-xs text-white/45 text-center py-6">Loading {isRental ? 'contracts' : 'transactions'}…</p>
@@ -1147,6 +1153,89 @@ function BuildingResultsPanel({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * BuildingPriceTrend — small AED-per-sqft sparkline derived from the
+ * last N DLD sales for this building. Chronological (oldest → newest)
+ * so the line reads left-to-right like a stock chart.
+ */
+function BuildingPriceTrend({ rows }: { rows: BuildingTransaction[] }) {
+  const data = useMemo(() => {
+    // Sort oldest → newest, drop rows without a usable price/sqft.
+    const sorted = [...rows]
+      .filter(r => r.pricePerSqft && r.pricePerSqft > 0 && r.date)
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return sorted.map(r => ({
+      date: r.date.slice(0, 7), // YYYY-MM
+      psqft: Math.round(r.pricePerSqft!),
+      fullDate: r.date.slice(0, 10),
+    }));
+  }, [rows]);
+
+  if (data.length < 3) return null;
+
+  const first = data[0].psqft;
+  const last = data[data.length - 1].psqft;
+  const deltaPct = first > 0 ? ((last - first) / first) * 100 : 0;
+  const isUp = deltaPct >= 0;
+
+  return (
+    <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+            AED / sqft trend
+          </p>
+          <p className="text-[11px] text-white/55 mt-0.5">
+            Last {data.length} DLD sales · {data[0].fullDate} → {data[data.length - 1].fullDate}
+          </p>
+        </div>
+        <span className={cn(
+          'text-xs font-bold tabular-nums px-2 py-0.5 rounded-full border',
+          isUp
+            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+            : 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+        )}>
+          {isUp ? '↑' : '↓'} {Math.abs(deltaPct).toFixed(1)}%
+        </span>
+      </div>
+      <div className="h-[110px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="psqft-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={isUp ? '#18D6A4' : '#F87171'} stopOpacity={0.55} />
+                <stop offset="100%" stopColor={isUp ? '#18D6A4' : '#F87171'} stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis domain={['dataMin', 'dataMax']} hide />
+            <Tooltip
+              contentStyle={{
+                background: 'rgba(10,15,30,0.92)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
+              itemStyle={{ color: '#fff' }}
+              formatter={(value: number) => [`AED ${value.toLocaleString()}/sqft`, 'Median']}
+              labelFormatter={(label: string) => label}
+            />
+            <Area
+              type="monotone"
+              dataKey="psqft"
+              stroke={isUp ? '#18D6A4' : '#F87171'}
+              strokeWidth={2}
+              fill="url(#psqft-grad)"
+              dot={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
