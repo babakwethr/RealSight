@@ -9,7 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useReellySearch } from '@/hooks/useReellyData';
 import { useDldBuildingSearch } from '@/hooks/useDldData';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -162,7 +161,7 @@ function FilterDropdown({ label, value, options, onChange }: { label: string; va
  * (Babak QA 20 May).
  */
 interface PrimedSelection {
-  kind: 'area' | 'building' | 'offplan';
+  kind: 'area' | 'building';
   /** Display name shown in the chip + input. */
   name: string;
   /** DLD area for ?area=. */
@@ -192,44 +191,15 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
       .slice(0, 6);
   }, [query, areas]);
 
-  // ── Buildings / projects (Reelly) ──────────────────────────────────
-  // Punch-list item 1: search needs to find buildings, not just areas.
-  // Server-side full-text search across Reelly's UAE catalogue (1,867
-  // projects) via `search_query`. Short debounce (100ms) so it feels
-  // instant; limit raised to 12 so multi-tower brands (Kempinski,
-  // Damac Hills, Emaar Beachfront) surface all matches.
-  const debouncedQuery = useDebounce(query, 100);
-  const { data: projectSearch } = useReellySearch({
-    query: debouncedQuery,
-    country: 'United Arab Emirates',
-    limit: 12,
-    enabled: showSugg && debouncedQuery !== 'Dubai' && debouncedQuery.trim().length >= 1,
-  });
-  const projectSuggestions = projectSearch?.results ?? [];
-
-  // Pre-warm the Reelly search cache when the input is focused so the
-  // first keystroke returns instantly (no cold-call latency).
-  useReellySearch({
-    query: 'a',
-    country: 'United Arab Emirates',
-    limit: 1,
-    enabled: showSugg,
-  });
-
   // ── DLD residential buildings (live DLD transactions) ─────────────
-  // Source #3 — DLD's `dld_transactions-open-api` dataset. Catches every
-  // residential building that's ever had a recorded sale in Dubai, not
-  // just current off-plan listings. Hotels/commercial are out of scope
-  // (DLD dataset is residential-only).
+  // Per Babak QA 20 May: search is DLD-only. Reelly off-plan surfaces
+  // at the BOTTOM of the area page instead, as suggestions with AI
+  // verdicts comparing to DLD area data.
+  const debouncedQuery = useDebounce(query, 100);
   const { data: dldMatches = [] } = useDldBuildingSearch(debouncedQuery, {
     enabled: showSugg && debouncedQuery !== 'Dubai',
   });
-  // Drop DLD matches whose name overlaps a Reelly hit — same building,
-  // we'd show two rows otherwise. Reelly wins (richer card on click).
-  const reellyNames = new Set(projectSuggestions.map(p => p.name.toLowerCase()));
-  const dldSuggestions = dldMatches.filter(
-    m => !reellyNames.has(m.buildingName.toLowerCase()),
-  );
+  const dldSuggestions = dldMatches;
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setShowSugg(false); };
@@ -245,17 +215,6 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
     setShowSugg(false);
     onSearch(name);
     setPrimed({ kind: 'area', name, areaName: name });
-  };
-
-  const handleSelectProject = (_id: string | number, name: string, district?: string) => {
-    setQuery(name);
-    setShowSugg(false);
-    setPrimed({
-      kind: 'offplan',
-      name,
-      areaName: district,
-      buildingName: name,
-    });
   };
 
   const handleSelectDldBuilding = (m: import('@/hooks/useDldData').DldBuildingMatch) => {
@@ -293,19 +252,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
 
   const hasAnySuggestions =
     areaSuggestions.length > 0 ||
-    projectSuggestions.length > 0 ||
     dldSuggestions.length > 0;
-
-  // Selecting a DLD building → land on the area's Market Intelligence
-  // page with the building name in the URL for the context banner.
-  const handleSelectDldBuilding = (m: import('@/hooks/useDldData').DldBuildingMatch) => {
-    setQuery(m.buildingName);
-    setShowSugg(false);
-    const target = m.areaName
-      ? `/market-intelligence?area=${encodeURIComponent(m.areaName)}&building=${encodeURIComponent(m.buildingName)}`
-      : `/market-intelligence?building=${encodeURIComponent(m.buildingName)}`;
-    navigate(target);
-  };
 
   return (
     <div ref={ref} className="relative w-full max-w-4xl mx-auto">
@@ -316,7 +263,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
         <div className="flex items-center justify-center mb-3">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-xs">
             <span className="text-primary">
-              {primed.kind === 'area' ? '📍' : primed.kind === 'offplan' ? '🏢' : '📊'}
+              {primed.kind === 'area' ? '📍' : '📊'}
             </span>
             <span className="font-semibold text-foreground">{primed.name}</span>
             {primed.areaName && primed.areaName !== primed.name && (
@@ -358,24 +305,9 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                   ))}
                 </>
               )}
-              {projectSuggestions.length > 0 && (
-                <>
-                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Off-Plan</p>
-                  {projectSuggestions.map(p => (
-                    <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name, p.location?.district)}
-                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 transition-colors">
-                      <span className="text-amber-400 text-xs pt-0.5">🏢</span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-medium text-foreground/90 truncate">{p.name}</span>
-                        <span className="block text-[11px] text-muted-foreground truncate">{p.developer} · {p.location?.district ?? '—'}</span>
-                      </span>
-                    </button>
-                  ))}
-                </>
-              )}
               {dldSuggestions.length > 0 && (
                 <>
-                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">DLD Buildings</p>
+                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings · DLD</p>
                   {dldSuggestions.map(m => (
                     <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
                       className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
@@ -440,24 +372,9 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                     ))}
                   </>
                 )}
-                {projectSuggestions.length > 0 && (
-                  <>
-                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Off-Plan</p>
-                    {projectSuggestions.map(p => (
-                      <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name, p.location?.district)}
-                        className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10">
-                        <span className="text-amber-400 pt-0.5">🏢</span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block font-medium text-foreground/90 truncate">{p.name}</span>
-                          <span className="block text-[11px] text-muted-foreground truncate">{p.developer} · {p.location?.district ?? '—'}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </>
-                )}
                 {dldSuggestions.length > 0 && (
                   <>
-                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">DLD Buildings</p>
+                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings · DLD</p>
                     {dldSuggestions.map(m => (
                       <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
                         className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">

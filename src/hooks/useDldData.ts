@@ -183,6 +183,93 @@ export function useDldBuildingTransactions(
   };
 }
 
+/* ─── Rentals (DLD Ejari contracts) ───────────────────────────────── */
+
+/**
+ * Map our app-side beds value to DLD Ejari property sub-type.
+ *   App: "Studio" / "1 Bed" / "2 Beds" / "3 Beds" / "4 Beds" / "5+ Beds"
+ *   DLD: "Studio" / "1 bed rooms+hall" / "2 bed rooms+hall" / …
+ *
+ * 5+ collapses to "4 bed rooms+hall" upper bound (rentals dataset
+ * doesn't cleanly support "5+" as a single value).
+ */
+function bedsToEjariSubType(beds: string | null | undefined): string | null {
+  if (!beds || beds === 'Any') return null;
+  if (beds === 'Studio') return 'Studio';
+  const n = parseInt(beds, 10);
+  if (!isFinite(n) || n <= 0) return null;
+  return `${n} bed rooms+hall`;
+}
+
+export interface AreaRental {
+  contract_id: string;
+  startDate: string;
+  endDate: string;
+  /** AED per year. */
+  annualAmount: number | null;
+  subType: string | null;
+  propertyType: string | null;
+  area: string | null;
+  actualAreaSqm: number | null;
+  isNew: boolean;
+}
+
+/**
+ * Live DLD rental contracts for an area + optional bedroom filter.
+ * Returns the 25 most-recent contracts (registered/renewed).
+ *
+ * NOTE: DLD's rental dataset does NOT carry `building_name_en`. We
+ * can filter by area, bedrooms, property type — but not per building.
+ * Callers should warn the user when they were drilling into a building.
+ */
+export function useDldAreaRentals(
+  areaName: string | null | undefined,
+  filters: { beds?: string; type?: string },
+) {
+  return useQuery({
+    queryKey: ['dld-area-rentals', areaName ?? '', filters.beds ?? '*', filters.type ?? '*'],
+    queryFn: async (): Promise<AreaRental[]> => {
+      if (!areaName) return [];
+      const safe = areaName.replace(/'/g, "''");
+      const clauses: string[] = [
+        `area_name_en='${safe}'`,
+        `property_usage_en='Residential'`,
+      ];
+      const subType = bedsToEjariSubType(filters.beds);
+      if (subType) clauses.push(`ejari_property_sub_type_en='${subType}'`);
+      const propType = propTypeToSubTypeEn(filters.type);
+      if (propType && propType !== 'Penthouse') {
+        // DLD rentals use the broader ejari_property_type_en (Flat/Villa/…).
+        clauses.push(`ejari_property_type_en='${propType}'`);
+      }
+      const params = new URLSearchParams({
+        entity: 'dld',
+        dataset: 'dld_rent_contracts-open-api',
+        filter: clauses.join(' AND '),
+        limit: '25',
+        order_by: 'contract_start_date',
+        order_dir: 'desc',
+      });
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dld-proxy?${params.toString()}`;
+      const json = await getJson<{ results: Array<Record<string, unknown>> }>(url);
+      const rows = json?.results ?? [];
+      return rows.map((r) => ({
+        contract_id: String(r.contract_id),
+        startDate: String(r.contract_start_date ?? ''),
+        endDate: String(r.contract_end_date ?? ''),
+        annualAmount: typeof r.annual_amount === 'number' ? r.annual_amount : null,
+        subType: (r.ejari_property_sub_type_en as string) ?? null,
+        propertyType: (r.ejari_property_type_en as string) ?? null,
+        area: (r.area_name_en as string) ?? null,
+        actualAreaSqm: typeof r.actual_area === 'number' ? r.actual_area : null,
+        isNew: r.contract_reg_type_en === 'New',
+      }));
+    },
+    enabled: !!areaName,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 /**
  * Search DLD residential transactions for buildings matching the query.
  * Deduplicates rows to unique building names + bundles area + activity.
