@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
@@ -247,7 +247,11 @@ const App = () => (
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/picks" element={<MonthlyPicks />} />
                 <Route path="/top-picks" element={<TopPicks />} />
-                <Route path="/projects" element={<Projects />} />
+                {/* /projects (list) used to be the Reelly "New Launches"
+                    listing. Babak QA 20 May — it's a duplicate of /off-plan,
+                    which has the same data plus filters + multi-country.
+                    Redirect any incoming /projects URLs to /off-plan. */}
+                <Route path="/projects" element={<Navigate to="/off-plan" replace />} />
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/billing" element={<Billing />} />

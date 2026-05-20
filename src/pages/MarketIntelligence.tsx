@@ -358,6 +358,7 @@ function UpgradeInline({ feature }: { feature: string }) {
 function MarketIntelligenceContent() {
   const [searchParams] = useSearchParams();
   const areaParam = searchParams.get('area') || '';
+  const buildingParam = searchParams.get('building') || '';
   const { isPro, loading: planLoading } = useSubscription();
   const { user, loading: authLoading } = useAuth();
   const isLoaded = !authLoading && !planLoading;
@@ -399,10 +400,24 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
-      {/* Header + inline area switcher.
-          Mobile: slim breadcrumb-style top + DLD LIVE chip on its own row.
-          Desktop: original layout preserved (icon + h1 + sub on one row,
-          chip + Start Free aligned right). */}
+      {/* Building context banner — shown when arriving from the home search
+          dropdown's "Buildings" group. Tells the user: yes, the building
+          you picked is real; here's the DLD area data + recent transactions
+          for that area. (Per-building drill-down is a future improvement.) */}
+      {buildingParam && (
+        <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-300 text-lg leading-none mt-0.5">🏢</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-foreground">{buildingParam}</p>
+            <p className="text-xs text-white/55">
+              Showing live DLD transactions for {areaParam || 'this area'}.
+              Per-building sales history coming next — for now, browse the
+              area-level data below.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         {/* Mobile-only slim header */}
         <div className="lg:hidden">

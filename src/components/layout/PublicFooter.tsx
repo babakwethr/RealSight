@@ -70,7 +70,7 @@ export function PublicFooter() {
               <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35 mb-3">Product</p>
               <ul className="space-y-2 text-xs">
                 <li><Link to="/deal-analyzer" className="text-white/60 hover:text-white transition-colors">Deal Analyzer</Link></li>
-                <li><Link to="/projects" className="text-white/60 hover:text-white transition-colors">New Launches</Link></li>
+                <li><Link to="/off-plan" className="text-white/60 hover:text-white transition-colors">Off-Plan</Link></li>
                 <li><Link to="/for-advisers" className="text-white/60 hover:text-white transition-colors">For Advisers</Link></li>
                 <li><Link to="/billing" className="text-white/60 hover:text-white transition-colors">Pricing</Link></li>
               </ul>

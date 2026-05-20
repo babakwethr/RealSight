@@ -165,26 +165,37 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
 
   // ── Areas (DLD) ────────────────────────────────────────────────────
   // Client-side filter against the DLD areas list we already loaded.
+  // First-letter match (length >= 1) so the dropdown opens immediately.
   const areaSuggestions = useMemo(() => {
-    if (query.length < 2 || query === 'Dubai') return [];
+    if (query.length < 1 || query === 'Dubai') return [];
     return areas
       .filter(a => a.name.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 5);
+      .slice(0, 6);
   }, [query, areas]);
 
   // ── Buildings / projects (Reelly) ──────────────────────────────────
   // Punch-list item 1: search needs to find buildings, not just areas.
   // Server-side full-text search across Reelly's UAE catalogue (1,867
-  // projects) via `search_query`. Debounced to avoid hammering the API
-  // on every keystroke.
-  const debouncedQuery = useDebounce(query, 280);
+  // projects) via `search_query`. Short debounce (100ms) so it feels
+  // instant; limit raised to 12 so multi-tower brands (Kempinski,
+  // Damac Hills, Emaar Beachfront) surface all matches.
+  const debouncedQuery = useDebounce(query, 100);
   const { data: projectSearch } = useReellySearch({
     query: debouncedQuery,
     country: 'United Arab Emirates',
-    limit: 6,
-    enabled: showSugg && debouncedQuery !== 'Dubai',
+    limit: 12,
+    enabled: showSugg && debouncedQuery !== 'Dubai' && debouncedQuery.trim().length >= 1,
   });
   const projectSuggestions = projectSearch?.results ?? [];
+
+  // Pre-warm the Reelly search cache when the input is focused so the
+  // first keystroke returns instantly (no cold-call latency).
+  useReellySearch({
+    query: 'a',
+    country: 'United Arab Emirates',
+    limit: 1,
+    enabled: showSugg,
+  });
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setShowSugg(false); };
@@ -197,9 +208,17 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
     navigate(`/market-intelligence?area=${encodeURIComponent(name)}`);
   };
 
-  const handleSelectProject = (id: string | number, name: string) => {
+  const handleSelectProject = (_id: string | number, name: string, district?: string) => {
     setQuery(name); setShowSugg(false);
-    navigate(`/projects/${id}`);
+    // Babak QA 20 May: selecting a building should land the user on the
+    // DLD data for that building's area — not the Reelly project page
+    // (which shows brochure-style amenities, not real transactions).
+    // Navigate to /market-intelligence?area={district}&building={name}
+    // so MarketIntelligence can filter DLD transactions by building.
+    const target = district
+      ? `/market-intelligence?area=${encodeURIComponent(district)}&building=${encodeURIComponent(name)}`
+      : `/market-intelligence?building=${encodeURIComponent(name)}`;
+    navigate(target);
   };
 
   const handleSearch = () => {
@@ -241,7 +260,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                 <>
                   <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings</p>
                   {projectSuggestions.map(p => (
-                    <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name)}
+                    <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name, p.location?.district)}
                       className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
                       <span className="text-amber-400 text-xs pt-0.5">🏢</span>
                       <span className="flex-1 min-w-0">
@@ -308,7 +327,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                   <>
                     <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings</p>
                     {projectSuggestions.map(p => (
-                      <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name)}
+                      <button key={`proj-${p.id}`} onMouseDown={() => handleSelectProject(p.id, p.name, p.location?.district)}
                         className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">
                         <span className="text-amber-400 pt-0.5">🏢</span>
                         <span className="flex-1 min-w-0">

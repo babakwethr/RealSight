@@ -197,7 +197,10 @@ export function AppSidebar() {
             <div className="space-y-0.5 px-1.5">
               <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
               <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
-              <NavItem to="/projects"      icon={Building2}       label="New Launches" />
+              {/* "New Launches" used to live here pointing at /projects;
+                  removed 20 May per Babak QA — Off-Plan (under Markets)
+                  is the same Reelly catalogue with filters, the two
+                  entries were duplicates. */}
             </div>
 
             <SectionLabel label="Markets" accent="markets" />
@@ -248,7 +251,8 @@ export function AppSidebar() {
               <NavItem to="/market-intelligence" icon={BarChart3}       label="Market Intelligence" />
               <NavItem to="/heatmap"             icon={Globe}           label="Global Heatmap" />
               <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
-              <NavItem to="/projects"            icon={Building2}       label="New Launches" />
+              {/* "New Launches" duplicate removed 20 May — same Reelly
+                  catalogue as Off-Plan above. */}
               <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
             </div>
           </>
