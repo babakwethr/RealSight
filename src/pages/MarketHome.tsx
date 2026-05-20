@@ -1008,97 +1008,14 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
             <div style={{ position: 'relative', zIndex: 50 }}>
               <SearchFilterBar areas={allAreaNames} onSearch={name => setSelectedArea(name === 'Dubai' ? '' : name)} />
             </div>
-
-            {/* Phase 4 of the global-launch plan — live-market pills directly
-                below the search. Visible to BOTH public visitors and
-                authenticated users so the multi-market story is unmissable
-                from any entry point. US first → UK → UAE order. */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-              <Link
-                to="/market/us"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-violet-500/10 border border-violet-400/20 text-violet-200 hover:bg-violet-500/20 transition-colors"
-              >
-                <span>🇺🇸</span> US Market
-                <span className="text-[10px] font-normal text-violet-300/70">· FHFA + Case-Shiller</span>
-              </Link>
-              <Link
-                to="/market/uk"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-400/20 text-emerald-200 hover:bg-emerald-500/20 transition-colors"
-              >
-                <span>🇬🇧</span> UK Market
-                <span className="text-[10px] font-normal text-emerald-300/70">· HM Land Registry</span>
-              </Link>
-              <Link
-                to={isPublic ? '/' : '/dashboard'}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <span>🇦🇪</span> UAE Market
-                <span className="text-[10px] font-normal text-primary/70">· DLD</span>
-              </Link>
-              <Link
-                to="/off-plan"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-400/20 text-amber-200 hover:bg-amber-500/20 transition-colors"
-              >
-                <span>🌏</span> Off-Plan
-                <span className="text-[10px] font-normal text-amber-300/70">· UAE · Bali · Phuket</span>
-              </Link>
-            </div>
           </div>
 
-          {/* Area pills — small, colour-coded chips.
-              Mobile: single horizontal scroll row (no wrap), edge-to-edge with side padding.
-              Desktop: centered, wraps if needed, max-w-2xl. */}
-          <div
-            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 mt-5 px-4 lg:flex-wrap lg:justify-center lg:px-1 lg:max-w-2xl lg:mx-auto lg:overflow-visible"
-            style={{ scrollPaddingLeft: 16, scrollPaddingRight: 16 }}
-          >
-            {(() => {
-              const AREA_COLORS = ['#18D6A4', '#3B82F6', '#A855F7', '#F59E0B', '#EC4899', '#06B6D4', '#84CC16', '#F472B6'];
-              const items: { name: string; count: number; color: string | null }[] = [
-                { name: 'All Areas', count: areas.reduce((s, a) => s + (a.transaction_volume_30d || 0), 0), color: null },
-                ...topAreaNames.map((n, i) => ({
-                  name: n,
-                  count: areas.find(a => a.name === n)?.transaction_volume_30d || 0,
-                  color: AREA_COLORS[i % AREA_COLORS.length],
-                })),
-              ];
-              return items.map(({ name, count, color }) => {
-                const active = name === 'All Areas' ? !selectedArea : selectedArea === name;
-                const accent = color || '#FFFFFF';
-                return (
-                  <button
-                    key={name}
-                    onClick={() => setSelectedArea(name === 'All Areas' ? '' : selectedArea === name ? '' : name)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-[5px] text-[11px] lg:text-[10px] rounded-full border transition-all shrink-0 font-semibold whitespace-nowrap leading-none"
-                    style={
-                      active
-                        ? {
-                            background: color ? `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)` : '#FFFFFF',
-                            borderColor: accent,
-                            color: '#0a0f2e',
-                            boxShadow: `0 4px 14px -4px ${accent}90`,
-                          }
-                        : {
-                            background: color ? `${color}14` : 'rgba(255,255,255,0.04)',
-                            borderColor: color ? `${color}40` : 'rgba(255,255,255,0.10)',
-                            color: color ? accent : 'rgba(255,255,255,0.65)',
-                          }
-                    }
-                  >
-                    {color && !active && (
-                      <span className="h-1 w-1 rounded-full shrink-0" style={{ background: accent }} />
-                    )}
-                    <span>{name}</span>
-                    {count > 0 && (
-                      <span className="opacity-70 font-medium text-[9.5px] lg:text-[9px]">
-                        {count > 999 ? `${(count / 1000).toFixed(0)}k` : count}
-                      </span>
-                    )}
-                  </button>
-                );
-              });
-            })()}
-          </div>
+          {/* Hero clutter removed (Babak QA 20 May): the market pills
+              (US / UK / UAE / Off-Plan) duplicated the sidebar nav, and
+              the colour-coded area pills duplicated the "Top Performing
+              Areas" grid further down the page. Search bar is now the
+              single primary action — area discovery happens in the
+              dropdown or the cards below. */}
         </div>
 
         {/* Subtle divider to mark the end of the search section */}
