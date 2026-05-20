@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction, type AreaRental } from '@/hooks/useDldData';
 import { AreaPickerBar } from '@/components/AreaPickerBar';
+import { BackButton } from '@/components/BackButton';
 import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import type { ReellyProject } from '@/types/reelly';
@@ -394,8 +395,16 @@ function MarketIntelligenceContent() {
     if (!areaParam) return allAreas;
     const match = allAreas.find(a => a.name.toLowerCase() === areaParam.toLowerCase());
     if (match) return [match, ...allAreas.filter(a => a.id !== match.id)];
-    return allAreas;
+    // When the picked area isn't in the curated dld_areas table (only 8
+    // areas are enriched today), DO NOT fall back to allAreas — that
+    // mis-labels JVC's data as the picked area. Return [] so the
+    // "needs curated metrics" sections hide gracefully (the catalogue-
+    // backed sections — building tables, off-plan, etc. — still work).
+    return [];
   }, [allAreas, areaParam]);
+
+  /** True iff the picked area has enriched curated metrics. */
+  const hasCuratedArea = !areaParam || (areaParam && filteredAreas.length > 0);
 
   const kpis = useMemo(() => {
     if (!allAreas.length) return null;
@@ -409,6 +418,7 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
+      <BackButton />
       {/* Persistent area picker — lets the user switch areas without
           going back to the home search. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -572,8 +582,27 @@ function MarketIntelligenceContent() {
         ]}
       />
 
-      {/* ── Hero + AI Verdict — mint gradient, signals live market read ── */}
-      {kpis && (() => {
+      {/* When the picked area isn't yet enriched with curated metrics,
+          show an honest banner. The DLD transactions panel + off-plan
+          suggestions below still light up with real catalogue data. */}
+      {areaParam && !hasCuratedArea && (
+        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/25 p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/85 mb-1">
+            {areaParam} · Live DLD data
+          </p>
+          <h2 className="text-xl font-black text-foreground mb-1.5" style={{ letterSpacing: '-0.02em' }}>
+            Enriched metrics being computed
+          </h2>
+          <p className="text-sm text-white/65 max-w-2xl">
+            Our enriched dashboards (market score, comparison cards, sparklines) are still building for
+            <strong className="text-foreground"> {areaParam}</strong>. The live DLD transactions below
+            are real-time, and off-plan suggestions for this area are at the bottom of the page.
+          </p>
+        </div>
+      )}
+
+      {/* ── Hero + AI Verdict — only when the picked area is enriched ── */}
+      {hasCuratedArea && kpis && (() => {
         const score = Number(kpis.score);
         const tone: 'positive' | 'caution' | 'negative' | 'neutral' =
           score >= 7.5 ? 'positive' : score >= 6 ? 'neutral' : score >= 4.5 ? 'caution' : 'negative';
@@ -625,8 +654,10 @@ function MarketIntelligenceContent() {
         );
       })()}
 
-      {/* KPI Cards — same stacked-currency pattern as Home */}
-      {kpis && (() => {
+      {/* KPI Cards — same stacked-currency pattern as Home. Hidden when
+          the picked area lacks enriched metrics so we don't show
+          Dubai-wide-averages-labelled-as-an-area. */}
+      {hasCuratedArea && kpis && (() => {
         const psfSplit = formatPriceSplit(kpis.avgPsf, { compact: false });
         return (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

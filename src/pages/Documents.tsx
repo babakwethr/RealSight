@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { BackButton } from '@/components/BackButton';
 import { FileText, Download, Calendar, FolderOpen, FileCheck, Receipt, BookOpen, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -134,6 +135,7 @@ export default function Documents() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      <BackButton />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

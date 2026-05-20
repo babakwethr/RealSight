@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { BackButton } from '@/components/BackButton';
 import {
   CreditCard, Loader2, Calendar, CheckCircle, AlertCircle, Upload,
   Clock, FileText, Plus, Sparkles,
@@ -175,6 +176,7 @@ export default function Payments() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <BackButton />
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
