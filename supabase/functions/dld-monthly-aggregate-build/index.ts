@@ -87,8 +87,25 @@ serve(async (req) => {
   let lastOffset = offsetStart;
   let done = false;
 
-  // Month-bucket accumulator: { '2026-05': { sales_count, total_aed, total_sqm } }
-  const agg = new Map<string, { sales_count: number; total_aed: number; total_sqm: number }>();
+  // Month-bucket accumulator. We track:
+  //   - sales_count: every Sales row in the month
+  //   - total_aed / total_sqm: raw totals for reference
+  //   - psqft_sum / psqft_count: SUM of per-row AED/sqft from rows that
+  //     pass the outlier filter, used to compute a sensible monthly
+  //     mean. Outlier filter drops land plots (huge sqm), bulk
+  //     portfolio deals, and obvious data errors.
+  interface Bucket {
+    sales_count: number;
+    total_aed: number;
+    total_sqm: number;
+    psqft_sum: number;
+    psqft_count: number;
+  }
+  const agg = new Map<string, Bucket>();
+
+  const PSQFT_MIN = 200;    // AED 200/sqft floor — below this is a land/data error.
+  const PSQFT_MAX = 6000;   // AED 6000/sqft ceiling — above this is luxury outliers.
+  const SQM_TO_SQFT = 10.7639;
 
   for (let b = 0; b < batches; b++) {
     const off = offsetStart + b * pageSize;
@@ -113,10 +130,23 @@ serve(async (req) => {
       const price = typeof r.actual_worth === "number" ? r.actual_worth : 0;
       const sqm = typeof r.procedure_area === "number" ? r.procedure_area : 0;
       if (price <= 0) continue;
-      const bucket = agg.get(date) ?? { sales_count: 0, total_aed: 0, total_sqm: 0 };
+
+      const bucket: Bucket = agg.get(date) ?? {
+        sales_count: 0, total_aed: 0, total_sqm: 0,
+        psqft_sum: 0, psqft_count: 0,
+      };
       bucket.sales_count += 1;
       bucket.total_aed += price;
       bucket.total_sqm += sqm;
+
+      // Per-row psqft, only included in the average when it's plausible.
+      if (sqm > 0) {
+        const psqft = price / (sqm * SQM_TO_SQFT);
+        if (psqft >= PSQFT_MIN && psqft <= PSQFT_MAX) {
+          bucket.psqft_sum += psqft;
+          bucket.psqft_count += 1;
+        }
+      }
       agg.set(date, bucket);
     }
 
@@ -129,6 +159,8 @@ serve(async (req) => {
       sales_count: v.sales_count,
       total_aed: v.total_aed,
       total_sqm: v.total_sqm,
+      psqft_sum: v.psqft_sum,
+      psqft_count: v.psqft_count,
     }));
     const { error } = await sb.rpc("_upsert_dld_monthly", { batch: payload });
     if (error) {
