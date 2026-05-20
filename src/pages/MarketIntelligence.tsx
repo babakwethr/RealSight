@@ -1433,7 +1433,9 @@ function OffPlanSuggestionCard({
     : 'text-white/75';
 
   const completion = project.completion_date || project.completion_datetime?.slice(0, 10);
-  const target = project.slug_name ? `/projects/${project.slug_name}` : `/projects/${project.id}`;
+  // Reelly's project detail API requires the numeric project ID — slugs
+  // 404 on the upstream. Always link by id.
+  const target = `/projects/${project.id}`;
 
   return (
     <Link
