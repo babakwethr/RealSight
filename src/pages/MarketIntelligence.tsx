@@ -17,6 +17,8 @@ import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction
 import { AreaPickerBar } from '@/components/AreaPickerBar';
 import { BackButton } from '@/components/BackButton';
 import { MarketHeroShell } from '@/components/MarketHeroShell';
+import { useDldMonthlyTrend } from '@/hooks/useDldMonthlyTrend';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import type { ReellyProject } from '@/types/reelly';
@@ -474,6 +476,11 @@ function MarketIntelligenceContent() {
           </span>
         </div>
       )}
+
+      {/* UAE 24-month price trend — sibling of the UK + US national
+          trend charts, shown only when no specific drill-down is
+          active (the building / area panels below take precedence). */}
+      {!areaParam && !buildingParam && <UaeMonthlyTrend />}
 
       {/* Drill-down panel:
           - building + sales/rental → building-specific sales OR area-level rentals
@@ -1128,6 +1135,71 @@ function BuildingResultsPanel({
  * last N DLD sales for this building. Chronological (oldest → newest)
  * so the line reads left-to-right like a stock chart.
  */
+/**
+ * UaeMonthlyTrend — Dubai-wide 24-month price trend chart. Mirrors the
+ * UK & US national-trend cards: live AED/sqft monthly average from the
+ * dld_monthly_aggregates table.
+ */
+function UaeMonthlyTrend() {
+  const { data: rows = [], isLoading } = useDldMonthlyTrend(24);
+
+  const data = useMemo(() => {
+    return rows
+      .filter(r => r.avg_psqft && r.avg_psqft > 0)
+      .map(r => ({
+        month: fmtMonthString(r.month),
+        psqft: Math.round(r.avg_psqft ?? 0),
+      }));
+  }, [rows]);
+
+  return (
+    <section>
+      <div className="flex items-end justify-between mb-4">
+        <div>
+          <h2 className="text-xl md:text-2xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
+            UAE 24-month price trend
+          </h2>
+          <p className="text-sm text-white/55">
+            Average DLD-registered sale, AED per sqft, by month.
+          </p>
+        </div>
+        <p className="text-[10px] uppercase tracking-widest text-white/40">
+          Source · Dubai Land Department
+        </p>
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-[220px] w-full" />
+      ) : data.length >= 3 ? (
+        <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-4 h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="uae-trend-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#18d6a4" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#18d6a4" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis domain={['dataMin', 'dataMax']} hide />
+              <Tooltip
+                contentStyle={{ background: 'rgba(10,15,30,0.92)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, fontSize: 12 }}
+                labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
+                itemStyle={{ color: '#fff' }}
+                formatter={(v: number) => [`AED ${v.toLocaleString()}/sqft`, 'Avg']}
+              />
+              <Area type="monotone" dataKey="psqft" stroke="#18d6a4" strokeWidth={2} fill="url(#uae-trend-grad)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-white/[0.08] p-6 text-center text-xs text-white/55">
+          National trend not yet available — monthly aggregator may still be ingesting.
+        </div>
+      )}
+    </section>
+  );
+}
+
 function BuildingPriceTrend({ rows }: { rows: BuildingTransaction[] }) {
   const data = useMemo(() => {
     // Sort oldest → newest, drop rows without a usable price/sqft.
