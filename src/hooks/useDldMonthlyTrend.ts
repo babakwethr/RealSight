@@ -15,12 +15,18 @@ export interface DldMonthlyPoint {
   avg_psqft: number | null;
 }
 
-export function useDldMonthlyTrend(months = 24) {
+/**
+ * Pull the monthly trend for a given area, or Dubai-wide when `area`
+ * is empty / undefined. The RPC accepts an area name verbatim
+ * (case-sensitive, matches DLD's `area_name_en`).
+ */
+export function useDldMonthlyTrend(months = 24, area?: string | null) {
   return useQuery({
-    queryKey: ['dld-monthly-trend', months],
+    queryKey: ['dld-monthly-trend', months, area ?? '__all__'],
     queryFn: async (): Promise<DldMonthlyPoint[]> => {
       const { data, error } = await supabase.rpc('get_dld_monthly_trend', {
         p_months: months,
+        p_area: area || null,
       });
       if (error) {
         console.error('[dld-monthly-trend] rpc error', error);
