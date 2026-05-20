@@ -26,6 +26,7 @@ import {
 } from '@/components/MarketHeroFilterBar';
 import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { fmtMonthString } from '@/lib/dateFormat';
 import type { UkRegionSlug } from '@/lib/ukApi';
 
 const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
@@ -119,7 +120,7 @@ export default function UkMarketHome() {
       .filter(p => p.averagePrice != null)
       .sort((a, b) => (a.refMonth || '').localeCompare(b.refMonth || ''))
       .map(p => ({
-        month: (p.refMonth ?? '').slice(0, 7),
+        month: fmtMonthString((p.refMonth ?? '').slice(0, 7)),
         price: Math.round(p.averagePrice ?? 0),
       }));
   }, [ukHistory.data]);
@@ -185,7 +186,7 @@ export default function UkMarketHome() {
           ukAggregate.data ? (
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">
-                {ukAggregate.data.refMonth} · UK avg
+                {fmtMonthString(ukAggregate.data.refMonth)} · UK avg
               </p>
               <p className="text-3xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
                 {fmtGbp(ukAggregate.data.averagePrice)}
@@ -347,7 +348,7 @@ function RegionCard({ entry }: { entry: import('@/lib/ukApi').UkhpiSnapshotEntry
       </p>
       <div className="flex items-center justify-between mt-2">
         <ChangeBadge value={entry.percentageChangeYear} suffix="YoY" compact />
-        <p className="text-[10px] text-white/40">{entry.refMonth}</p>
+        <p className="text-[10px] text-white/40">{fmtMonthString(entry.refMonth)}</p>
       </div>
     </div>
   );

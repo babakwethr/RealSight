@@ -18,6 +18,7 @@ import { useUkRegion, useUkRegionHistory } from '@/hooks/useUkMarketData';
 import { useFredSeries } from '@/hooks/useUsMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { fmtMonthString } from '@/lib/dateFormat';
 import type { UkRegionSlug } from '@/lib/ukApi';
 
 interface UkProps {
@@ -64,7 +65,7 @@ function UkPanel({ regionSlug, regionLabel, onClear }: UkProps) {
       .filter(p => p.averagePrice != null)
       .sort((a, b) => (a.refMonth || '').localeCompare(b.refMonth || ''))
       .map(p => ({
-        month: (p.refMonth ?? '').slice(0, 7),
+        month: fmtMonthString((p.refMonth ?? '').slice(0, 7)),
         price: Math.round(p.averagePrice ?? 0),
       }));
   }, [history.data]);
@@ -124,7 +125,7 @@ function UsPanel({ metroLabel, fredSeriesId, onClear }: UsProps) {
     return [...obs]
       .filter(o => o.value && o.value !== '.')
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(o => ({ month: o.date.slice(0, 7), price: parseFloat(o.value) }));
+      .map(o => ({ month: fmtMonthString(o.date.slice(0, 7)), price: parseFloat(o.value) }));
   }, [series.data]);
 
   const latest = chartData[chartData.length - 1]?.price ?? null;

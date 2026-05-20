@@ -4,13 +4,8 @@ import { Calendar, Building, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUpdates } from '@/hooks/useInvestorData';
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
+import { fmtDate } from '@/lib/dateFormat';
+const formatDate = (dateString: string) => fmtDate(dateString);
 
 const getRelativeTime = (dateString: string) => {
   const date = new Date(dateString);

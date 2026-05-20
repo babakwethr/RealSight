@@ -19,13 +19,8 @@ const categories = [
   { id: 'brochures', label: 'Brochures', icon: BookOpen },
 ];
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
+import { fmtDate } from '@/lib/dateFormat';
+const formatDate = (dateString: string) => fmtDate(dateString);
 
 export default function Documents() {
   const queryClient = useQueryClient();

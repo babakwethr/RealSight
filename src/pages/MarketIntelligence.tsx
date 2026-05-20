@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction, type AreaRental } from '@/hooks/useDldData';
 import { AreaPickerBar } from '@/components/AreaPickerBar';
+import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import type { ReellyProject } from '@/types/reelly';
 import {
@@ -1090,7 +1091,7 @@ function BuildingResultsPanel({
             {isLoading ? '…' : count}
           </p>
           {latest && (
-            <p className="text-[10px] text-white/45">Latest: {latest.slice(0, 10)}</p>
+            <p className="text-[10px] text-white/45">Latest: {fmtDate(latest)}</p>
           )}
         </div>
       </header>
@@ -1183,9 +1184,10 @@ function BuildingPriceTrend({ rows }: { rows: BuildingTransaction[] }) {
       .filter(r => r.pricePerSqft && r.pricePerSqft > 0 && r.date)
       .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     return sorted.map(r => ({
-      date: r.date.slice(0, 7), // YYYY-MM
+      // Display label MM-YYYY per the global date convention.
+      date: fmtMonthString(r.date.slice(0, 7)),
       psqft: Math.round(r.pricePerSqft!),
-      fullDate: r.date.slice(0, 10),
+      fullDate: fmtDate(r.date),
     }));
   }, [rows]);
 
@@ -1257,7 +1259,7 @@ function BuildingPriceTrend({ rows }: { rows: BuildingTransaction[] }) {
 function RentRow({ r }: { r: AreaRental }) {
   return (
     <tr className="border-b border-white/[0.04]">
-      <td className="py-1.5 pr-2 text-white/70">{r.startDate?.slice(0, 10)}</td>
+      <td className="py-1.5 pr-2 text-white/70">{fmtDate(r.startDate)}</td>
       <td className="py-1.5 pr-2 text-white/70">{r.propertyType ?? '—'}</td>
       <td className="py-1.5 pr-2 text-white/70">{r.subType ?? '—'}</td>
       <td className="py-1.5 pr-2 text-right tabular-nums text-foreground font-semibold">
@@ -1447,7 +1449,11 @@ function OffPlanSuggestionCard({
     : verdict.tone === 'caution' ? 'text-amber-300'
     : 'text-white/75';
 
-  const completion = project.completion_date || project.completion_datetime?.slice(0, 10);
+  const completion = project.completion_date
+    ? fmtDate(project.completion_date)
+    : project.completion_datetime
+      ? fmtDate(project.completion_datetime)
+      : null;
   // Reelly's project detail API requires the numeric project ID — slugs
   // 404 on the upstream. Always link by id.
   const target = `/projects/${project.id}`;
@@ -1537,7 +1543,7 @@ function AggregateTile({ label, value }: { label: string; value: string }) {
 function TxRow({ t }: { t: BuildingTransaction }) {
   return (
     <tr className="border-b border-white/[0.04]">
-      <td className="py-1.5 pr-2 text-white/70">{t.date?.slice(0, 10)}</td>
+      <td className="py-1.5 pr-2 text-white/70">{fmtDate(t.date)}</td>
       <td className="py-1.5 pr-2 text-white/70">{t.rooms ?? '—'}</td>
       <td className="py-1.5 pr-2 text-white/70">{t.subType ?? '—'}</td>
       <td className="py-1.5 pr-2 text-right tabular-nums text-foreground font-semibold">
