@@ -114,7 +114,7 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 sm:right-auto sm:min-w-[360px] mt-2 z-[60] bg-popover border border-border rounded-xl shadow-2xl overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 z-[200] bg-popover border border-border rounded-xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.6)] overflow-hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
