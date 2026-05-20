@@ -30,7 +30,7 @@ const ADVISER_SECTIONS = [
     items: [
       { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
       { to: '/deal-analyzer',       icon: Search,           label: 'Deal Analyzer' },
-      { to: '/projects',            icon: Building2,        label: 'New Launches' },
+      { to: '/off-plan',            icon: Building2,        label: 'Off-Plan' },
     ],
   },
   {
@@ -74,11 +74,13 @@ const INVESTOR_SECTIONS = [
   {
     label: 'Markets',
     items: [
-      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
-      { to: '/market-intelligence', icon: BarChart3,       label: 'Markets' },
-      { to: '/heatmap',             icon: Map,             label: 'Dubai Heatmap' },
+      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home · UAE' },
+      { to: '/market-intelligence', icon: BarChart3,       label: 'UAE Market' },
+      { to: '/market/uk',           icon: BarChart3,       label: 'UK Market' },
+      { to: '/market/us',           icon: BarChart3,       label: 'US Market' },
+      { to: '/off-plan',            icon: Building2,       label: 'Off-Plan' },
+      { to: '/heatmap',             icon: Map,             label: 'Global Heatmap' },
       { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
-      { to: '/projects',            icon: Building2,       label: 'New Launches' },
       { to: '/watchlist',           icon: Bookmark,        label: 'Watchlist' },
     ],
   },
