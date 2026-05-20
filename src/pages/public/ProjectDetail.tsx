@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 
 import {
   MapPin, Building, Calendar, ArrowLeft, Loader2, AlertCircle, Share2,
@@ -103,6 +103,19 @@ export default function ProjectDetail() {
   const source = searchParams.get('source') || 'reelly';
   const { t } = useTranslation();
   const { isInvestorPro, loading: subLoading } = useSubscription();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // "Back" should return the user to wherever they came from (Market
+  // Intelligence area page, Watchlist, Off-Plan list, etc.) — not the
+  // hard-coded /projects redirect that always lands on /off-plan.
+  const handleBack = () => {
+    if (location.key !== 'default') {
+      navigate(-1);
+    } else {
+      navigate(source === 'internal' ? '/picks' : '/off-plan');
+    }
+  };
 
   const isInternal = source === 'internal' || id?.length === 36; // UUID check as fallback
 
@@ -176,8 +189,8 @@ export default function ProjectDetail() {
           <AlertCircle className="h-12 w-12 text-red-400 mb-6" />
           <h1 className="text-3xl font-light text-foreground mb-4">Project Not Found</h1>
           <p className="text-foreground/60 mb-8 max-w-md">We couldn't load the details for this project. It may have been removed or the link is invalid.</p>
-          <Button asChild className="bg-primary hover:bg-accent-green-dark text-black">
-            <Link to="/projects">Return to Projects</Link>
+          <Button onClick={handleBack} className="bg-primary hover:bg-accent-green-dark text-black">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
           </Button>
         </div>
       </div>
@@ -206,11 +219,9 @@ export default function ProjectDetail() {
 
       {/* Navigation */}
       <div className="flex justify-between items-center mb-6">
-        <Button asChild variant="ghost" className="-ml-4 text-foreground/60 hover:text-foreground">
-          <Link to={isInternal ? "/picks" : "/projects"}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to {isInternal ? "Picks" : "Projects"}
-          </Link>
+        <Button onClick={handleBack} variant="ghost" className="-ml-4 text-foreground/60 hover:text-foreground">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
         </Button>
         <div className="flex gap-2">
           {isInternal && <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5">Realsight Internal</Badge>}
