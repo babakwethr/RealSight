@@ -416,7 +416,7 @@ function MarketIntelligenceContent() {
   }, [allAreas]);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-4 sm:pt-6">
+    <div className="space-y-5 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-2 sm:pt-3">
       <BackButton />
 
       {/* Hero — same shell as the UK + US market pages. Eyebrow, big
@@ -429,7 +429,11 @@ function MarketIntelligenceContent() {
             ? `United Arab Emirates · Dubai Land Department · ${areaParam.toUpperCase()}`
             : 'United Arab Emirates · Dubai Land Department'
         }
-        title={areaParam ? areaParam : 'UAE Market Intelligence'}
+        title={
+          areaParam
+            ? <span className="gradient-heading">{areaParam}</span>
+            : <>UAE Market <span className="gradient-word">Intelligence</span></>
+        }
         subtitle={
           areaParam
             ? 'Area deep-dive — every metric powered by live DLD transactions.'
