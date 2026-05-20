@@ -60,6 +60,129 @@ function buildDldUrl(filter: string, limit: number): string {
   return `${supabaseUrl}/functions/v1/dld-proxy?${params.toString()}`;
 }
 
+/** Map our app-side filter values to DLD column literals. */
+function bedsToRoomsEn(beds: string | null | undefined): string | null {
+  if (!beds || beds === 'Any') return null;
+  if (beds === 'Studio') return 'Studio';
+  // App-side labels: "1 Bed" / "2 Beds" / etc. → DLD rooms_en: "1 B/R" / "2 B/R" …
+  const n = parseInt(beds, 10);
+  if (!isFinite(n) || n <= 0) return null;
+  return `${n} B/R`;
+}
+
+function statusToRegTypeEn(status: string | null | undefined): string | null {
+  if (!status || status === 'Any') return null;
+  if (status === 'Ready')    return 'Existing Properties';
+  if (status === 'Off-Plan') return 'Off-plan Properties';
+  return null;
+}
+
+function propTypeToSubTypeEn(t: string | null | undefined): string | null {
+  if (!t || t === 'Any') return null;
+  if (t === 'Apartment')   return 'Flat';
+  if (t === 'Villa')       return 'Villa';
+  if (t === 'Townhouse')   return 'Townhouse';
+  if (t === 'Penthouse')   return 'Penthouse';
+  return null;
+}
+
+export interface BuildingTxFilters {
+  beds?: string;
+  /** 'sales' | 'rental' — DLD residential only has Sales today. */
+  mode?: string;
+  /** 'Ready' | 'Off-Plan' | 'Any'. */
+  status?: string;
+  /** 'Apartment' | 'Villa' | 'Townhouse' | 'Penthouse'. */
+  type?: string;
+}
+
+export interface BuildingTransaction {
+  transaction_id: string;
+  date: string;
+  /** AED. */
+  price: number | null;
+  /** AED per sqft. */
+  pricePerSqft: number | null;
+  rooms: string | null;
+  subType: string | null;
+  regType: string | null;
+  area: string | null;
+  building: string | null;
+  procedureArea: number | null;
+}
+
+/**
+ * Live DLD transactions for a specific building, filtered by the search
+ * criteria the user picked on the home page (Beds / Sale-Rent / Type /
+ * Status). Returns the 25 most recent matching rows.
+ *
+ * Note: DLD's public dataset is Sales + Mortgages only. Rentals aren't
+ * available — when mode === 'rental' we return null + a "not available"
+ * signal in `error` so the UI can show the right message.
+ */
+export function useDldBuildingTransactions(
+  buildingName: string | null | undefined,
+  filters: BuildingTxFilters,
+): { data: BuildingTransaction[] | null; isLoading: boolean; modeUnavailable: boolean } {
+  const modeUnavailable = filters.mode === 'rental';
+
+  const query = useQuery({
+    queryKey: [
+      'dld-building-tx', buildingName ?? '',
+      filters.beds ?? '*', filters.mode ?? '*',
+      filters.status ?? '*', filters.type ?? '*',
+    ],
+    queryFn: async (): Promise<BuildingTransaction[]> => {
+      if (!buildingName || modeUnavailable) return [];
+      const safe = buildingName.replace(/'/g, "''");
+      const clauses: string[] = [`building_name_en like '%${safe}%'`];
+
+      const rooms = bedsToRoomsEn(filters.beds);
+      if (rooms) clauses.push(`rooms_en='${rooms}'`);
+      const regType = statusToRegTypeEn(filters.status);
+      if (regType) clauses.push(`reg_type_en='${regType}'`);
+      const subType = propTypeToSubTypeEn(filters.type);
+      if (subType) clauses.push(`property_sub_type_en='${subType}'`);
+      // mode is implicitly Sales (DLD residential dataset is Sales +
+      // Mortgages; we filter to Sales to keep the page consistent).
+      clauses.push(`trans_group_en='Sales'`);
+
+      const filter = clauses.join(' AND ');
+      const params = new URLSearchParams({
+        entity: 'dld',
+        dataset: 'dld_transactions-open-api',
+        filter,
+        limit: '25',
+        order_by: 'instance_date',
+        order_dir: 'desc',
+      });
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dld-proxy?${params.toString()}`;
+      const json = await getJson<DldListResponse>(url);
+      const rows = json?.results ?? [];
+      return rows.map((r) => ({
+        transaction_id: r.transaction_id,
+        date: r.instance_date,
+        price: r.actual_worth ?? null,
+        pricePerSqft: r.meter_sale_price ?? null,
+        rooms: (r as Record<string, unknown>).rooms_en as string ?? null,
+        subType: (r as Record<string, unknown>).property_sub_type_en as string ?? null,
+        regType: (r as Record<string, unknown>).reg_type_en as string ?? null,
+        area: r.area_name_en,
+        building: r.building_name_en,
+        procedureArea: (r as Record<string, unknown>).procedure_area as number ?? null,
+      }));
+    },
+    enabled: !!buildingName && !modeUnavailable,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    modeUnavailable,
+  };
+}
+
 /**
  * Search DLD residential transactions for buildings matching the query.
  * Deduplicates rows to unique building names + bundles area + activity.

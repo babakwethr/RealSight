@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useDldBuildingTransactions, type BuildingTransaction } from '@/hooks/useDldData';
 import {
   TrendingUp, TrendingDown, Activity, BarChart3,
   Crown, Building, ArrowRight, Zap, MapPin,
@@ -359,6 +360,10 @@ function MarketIntelligenceContent() {
   const [searchParams] = useSearchParams();
   const areaParam = searchParams.get('area') || '';
   const buildingParam = searchParams.get('building') || '';
+  const bedsParam = searchParams.get('beds') || '';
+  const modeParam = searchParams.get('mode') || '';
+  const statusParam = searchParams.get('status') || '';
+  const typeParam = searchParams.get('type') || '';
   const { isPro, loading: planLoading } = useSubscription();
   const { user, loading: authLoading } = useAuth();
   const isLoaded = !authLoading && !planLoading;
@@ -400,22 +405,18 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
-      {/* Building context banner — shown when arriving from the home search
-          dropdown's "Buildings" group. Tells the user: yes, the building
-          you picked is real; here's the DLD area data + recent transactions
-          for that area. (Per-building drill-down is a future improvement.) */}
+      {/* Building-specific drill-down — when the user picked a building
+          from the home search and refined Beds / Sales-Rent / Type /
+          Status. Shows ONLY transactions matching the criteria. */}
       {buildingParam && (
-        <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
-          <span className="text-amber-300 text-lg leading-none mt-0.5">🏢</span>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-foreground">{buildingParam}</p>
-            <p className="text-xs text-white/55">
-              Showing live DLD transactions for {areaParam || 'this area'}.
-              Per-building sales history coming next — for now, browse the
-              area-level data below.
-            </p>
-          </div>
-        </div>
+        <BuildingResultsPanel
+          buildingName={buildingParam}
+          areaName={areaParam}
+          beds={bedsParam}
+          mode={modeParam}
+          status={statusParam}
+          type={typeParam}
+        />
       )}
 
       <div className="flex flex-col gap-3">
@@ -919,4 +920,165 @@ export default function MarketIntelligence() {
   // Market Intelligence is now always inside AppLayout (protected route).
   // The home page (/) provides free public market data.
   return <MarketIntelligenceContent />;
+}
+
+/**
+ * BuildingResultsPanel — surfaced at the top of MarketIntelligence
+ * when the user arrived from the home search after picking a building
+ * and refining filters (Beds / Sale-Rent / Type / Status).
+ *
+ * Shows the building's most recent DLD transactions matching the chosen
+ * criteria — NOT the whole area. The area page below this panel still
+ * renders for broader context.
+ */
+function BuildingResultsPanel({
+  buildingName, areaName, beds, mode, status, type,
+}: {
+  buildingName: string;
+  areaName: string;
+  beds: string; mode: string; status: string; type: string;
+}) {
+  const { data, isLoading, modeUnavailable } = useDldBuildingTransactions(
+    buildingName,
+    { beds: beds || undefined, mode: mode || undefined, status: status || undefined, type: type || undefined },
+  );
+
+  const activeFilters = [
+    beds && beds !== 'Any' && beds,
+    mode && mode !== 'sales' && mode,
+    status && status !== 'Any' && status,
+    type && type !== 'Any' && type,
+  ].filter(Boolean) as string[];
+
+  // Aggregates from the returned rows
+  const aggregates = useMemo(() => {
+    const rows = data ?? [];
+    const prices = rows.map(r => r.price).filter((p): p is number => typeof p === 'number' && p > 0);
+    const psqfts = rows.map(r => r.pricePerSqft).filter((p): p is number => typeof p === 'number' && p > 0);
+    const median = (arr: number[]) => {
+      if (!arr.length) return null;
+      const sorted = [...arr].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)];
+    };
+    return {
+      count: rows.length,
+      medianPrice: median(prices),
+      medianPsqft: median(psqfts),
+      latest: rows[0]?.date ?? null,
+    };
+  }, [data]);
+
+  if (modeUnavailable) {
+    return (
+      <section className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-5">
+        <p className="text-sm font-bold text-foreground">
+          🏢 {buildingName}{areaName && <span className="text-white/55"> · {areaName}</span>}
+        </p>
+        <p className="text-xs text-amber-200 mt-2">
+          Rental data isn't in DLD's public residential dataset yet.
+          Switch the filter to <strong>Sales</strong> to see live transactions
+          for this building, or browse the area below for broader context.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-5 space-y-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 mb-1">
+            Building result · live DLD data
+          </p>
+          <h2 className="text-xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
+            {buildingName}
+          </h2>
+          {areaName && (
+            <p className="text-xs text-white/55">{areaName}</p>
+          )}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {activeFilters.map((f) => (
+                <span key={f} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                  {f}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-widest text-white/40">Matching transactions</p>
+          <p className="text-2xl font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+            {isLoading ? '…' : aggregates.count}
+          </p>
+          {aggregates.latest && (
+            <p className="text-[10px] text-white/45">Latest: {aggregates.latest.slice(0, 10)}</p>
+          )}
+        </div>
+      </header>
+
+      {/* Aggregate tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <AggregateTile label="Median price" value={aggregates.medianPrice ? `AED ${aggregates.medianPrice.toLocaleString()}` : '—'} />
+        <AggregateTile label="Median AED/sqft" value={aggregates.medianPsqft ? `AED ${Math.round(aggregates.medianPsqft).toLocaleString()}` : '—'} />
+        <AggregateTile label="Sales returned" value={isLoading ? '…' : String(aggregates.count)} />
+      </div>
+
+      {/* Transaction list — last N */}
+      {isLoading ? (
+        <p className="text-xs text-white/45 text-center py-6">Loading transactions…</p>
+      ) : !data || data.length === 0 ? (
+        <p className="text-xs text-white/45 text-center py-6">
+          No transactions match those filters. Try widening — e.g. drop the bedroom filter, or pick <strong>Any</strong> on Status.
+        </p>
+      ) : (
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Recent transactions</p>
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-widest text-white/40 border-b border-white/[0.05]">
+                  <th className="py-1.5 pr-2 font-semibold">Date</th>
+                  <th className="py-1.5 pr-2 font-semibold">Beds</th>
+                  <th className="py-1.5 pr-2 font-semibold">Type</th>
+                  <th className="py-1.5 pr-2 font-semibold text-right">Price (AED)</th>
+                  <th className="py-1.5 pr-2 font-semibold text-right">AED/sqft</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.slice(0, 12).map((t) => (
+                  <TxRow key={t.transaction_id} t={t} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AggregateTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
+      <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">{label}</p>
+      <p className="text-base font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>{value}</p>
+    </div>
+  );
+}
+
+function TxRow({ t }: { t: BuildingTransaction }) {
+  return (
+    <tr className="border-b border-white/[0.04]">
+      <td className="py-1.5 pr-2 text-white/70">{t.date?.slice(0, 10)}</td>
+      <td className="py-1.5 pr-2 text-white/70">{t.rooms ?? '—'}</td>
+      <td className="py-1.5 pr-2 text-white/70">{t.subType ?? '—'}</td>
+      <td className="py-1.5 pr-2 text-right tabular-nums text-foreground font-semibold">
+        {t.price ? t.price.toLocaleString() : '—'}
+      </td>
+      <td className="py-1.5 pr-2 text-right tabular-nums text-white/70">
+        {t.pricePerSqft ? Math.round(t.pricePerSqft).toLocaleString() : '—'}
+      </td>
+    </tr>
+  );
 }
