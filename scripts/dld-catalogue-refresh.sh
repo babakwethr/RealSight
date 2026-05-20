@@ -33,10 +33,25 @@ done
 OFFSET=$START_OFFSET
 for (( ROUND=1; ROUND<=MAX_ROUNDS; ROUND++ )); do
   echo "=== round $ROUND / $MAX_ROUNDS  (offset=$OFFSET) ==="
-  resp=$(curl -sS -X POST "$SUPABASE_URL/functions/v1/dld-catalogue-build" \
-    -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{\"offset\": $OFFSET, \"batches\": 5, \"pageSize\": 1000}")
+  # Retry up to 5 times on transient curl errors (DNS blips, transient
+  # 5xx) before giving up on this round. Sleep 5 s between retries.
+  resp=""
+  for try in 1 2 3 4 5; do
+    if resp=$(curl -sS --connect-timeout 15 --max-time 180 -X POST "$SUPABASE_URL/functions/v1/dld-catalogue-build" \
+        -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+        -H "Content-Type: application/json" \
+        -d "{\"offset\": $OFFSET, \"batches\": 5, \"pageSize\": 1000}"); then
+      break
+    else
+      echo "  retry $try failed; sleeping 5 s"
+      sleep 5
+      resp=""
+    fi
+  done
+  if [[ -z "$resp" ]]; then
+    echo "giving up at offset $OFFSET after 5 retries"
+    exit 6
+  fi
   echo "$resp"
 
   done_flag=$(echo "$resp" | python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('done', False))" 2>/dev/null || echo "False")
