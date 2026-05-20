@@ -154,6 +154,23 @@ function FilterDropdown({ label, value, options, onChange }: { label: string; va
 }
 
 // ─── Search + filter bar ──────────────────────────────────────────────────────
+
+/**
+ * What the user has picked from the dropdown but not yet "searched" for.
+ * Picking a suggestion no longer navigates immediately — it primes the
+ * search so the user can refine Beds / Sales-Rent / Type first
+ * (Babak QA 20 May).
+ */
+interface PrimedSelection {
+  kind: 'area' | 'building' | 'offplan';
+  /** Display name shown in the chip + input. */
+  name: string;
+  /** DLD area for ?area=. */
+  areaName?: string;
+  /** Building name for ?building= (when kind === 'building' or 'offplan'). */
+  buildingName?: string;
+}
+
 function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: string }[]; onSearch: (q: string) => void }) {
   const [query, setQuery] = useState('Dubai');
   const [beds, setBeds] = useState('Any');
@@ -161,6 +178,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
   const [status, setStatus] = useState('Any');
   const [propType, setPropType] = useState('Any');
   const [showSugg, setShowSugg] = useState(false);
+  const [primed, setPrimed] = useState<PrimedSelection | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -219,27 +237,58 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
+  // Picking a suggestion no longer navigates. It PRIMES the search —
+  // user then refines Beds / Sales-Rent / Type / Status and clicks the
+  // green Search button to actually pull data (Babak QA 20 May).
   const handleSelectArea = (name: string) => {
-    setQuery(name); setShowSugg(false); onSearch(name);
-    navigate(`/market-intelligence?area=${encodeURIComponent(name)}`);
+    setQuery(name);
+    setShowSugg(false);
+    onSearch(name);
+    setPrimed({ kind: 'area', name, areaName: name });
   };
 
   const handleSelectProject = (_id: string | number, name: string, district?: string) => {
-    setQuery(name); setShowSugg(false);
-    // Babak QA 20 May: selecting a building should land the user on the
-    // DLD data for that building's area — not the Reelly project page
-    // (which shows brochure-style amenities, not real transactions).
-    // Navigate to /market-intelligence?area={district}&building={name}
-    // so MarketIntelligence can filter DLD transactions by building.
-    const target = district
-      ? `/market-intelligence?area=${encodeURIComponent(district)}&building=${encodeURIComponent(name)}`
-      : `/market-intelligence?building=${encodeURIComponent(name)}`;
-    navigate(target);
+    setQuery(name);
+    setShowSugg(false);
+    setPrimed({
+      kind: 'offplan',
+      name,
+      areaName: district,
+      buildingName: name,
+    });
+  };
+
+  const handleSelectDldBuilding = (m: import('@/hooks/useDldData').DldBuildingMatch) => {
+    setQuery(m.buildingName);
+    setShowSugg(false);
+    setPrimed({
+      kind: 'building',
+      name: m.buildingName,
+      areaName: m.areaName ?? undefined,
+      buildingName: m.buildingName,
+    });
+  };
+
+  const clearPrimed = () => {
+    setPrimed(null);
+    setQuery('');
   };
 
   const handleSearch = () => {
     onSearch(query);
-    if (query && query !== 'Dubai') navigate(`/market-intelligence?area=${encodeURIComponent(query)}`);
+    // Build the destination URL from primed selection + active filter
+    // pills. If nothing is primed but the user typed free text, treat it
+    // as an area search (legacy behaviour).
+    const params = new URLSearchParams();
+    if (primed?.areaName) params.set('area', primed.areaName);
+    else if (query && query !== 'Dubai') params.set('area', query);
+    if (primed?.buildingName) params.set('building', primed.buildingName);
+    if (beds !== 'Any') params.set('beds', beds);
+    if (mode !== 'Sales') params.set('mode', mode.toLowerCase());
+    if (status !== 'Any') params.set('status', status);
+    if (propType !== 'Any') params.set('type', propType);
+    if (!params.has('area') && !params.has('building')) return;
+    navigate(`/market-intelligence?${params.toString()}`);
   };
 
   const hasAnySuggestions =
@@ -260,6 +309,29 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
 
   return (
     <div ref={ref} className="relative w-full max-w-4xl mx-auto">
+      {/* Primed-selection chip: shows what the user picked from the
+          dropdown. Visible until they click Search or clear it. Hint
+          text tells them to refine the filters before searching. */}
+      {primed && (
+        <div className="flex items-center justify-center mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-xs">
+            <span className="text-primary">
+              {primed.kind === 'area' ? '📍' : primed.kind === 'offplan' ? '🏢' : '📊'}
+            </span>
+            <span className="font-semibold text-foreground">{primed.name}</span>
+            {primed.areaName && primed.areaName !== primed.name && (
+              <span className="text-muted-foreground">· {primed.areaName}</span>
+            )}
+            <button onClick={clearPrimed} className="ml-1 text-white/55 hover:text-white" aria-label="Clear selection">
+              ✕
+            </button>
+            <span className="hidden sm:inline text-muted-foreground/80 ml-1">
+              · refine filters below, then Search
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Desktop: full filter bar */}
       <div className="hidden sm:flex items-center backdrop-blur-md bg-white/[0.06] border border-white/[0.12] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-white/[0.18] transition-all" style={{ position: 'relative' }}>
         <div className="relative flex-1 min-w-0">
