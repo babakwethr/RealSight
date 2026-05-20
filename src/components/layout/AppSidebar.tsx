@@ -140,9 +140,15 @@ function SectionLabel({ label, accent }: { label: string; accent: SectionAccent 
 
 // ─── Main sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar() {
-  const { signOut, user } = useAuth();
-  const { isAdmin } = useUserRole();
-  const { plan } = useSubscription();
+  const { signOut, user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { plan, loading: planLoading } = useSubscription();
+
+  // The role decides which entire nav section to render. If we render
+  // BEFORE the role resolves, the investor sidebar (default isAdmin =
+  // false) flashes briefly for admin users on every page load. Show a
+  // small skeleton placeholder until we know who the user is.
+  const navReady = !authLoading && !roleLoading;
 
   // Single plan-aware upsell — same helper used by AppLayout, MarketHome,
   // Account, etc. so every surface offers the same next-tier plan.
@@ -188,7 +194,25 @@ export function AppSidebar() {
       {/* Navigation — ROLE-AWARE */}
       <nav className="relative flex-1 overflow-y-auto overflow-x-hidden py-2 scrollbar-none">
 
-        {isAdmin ? (
+        {!navReady ? (
+          /* Loading state — neutral skeleton stops the investor menu
+             from flashing for admin users on hard refresh. */
+          <div className="px-3 pt-4 space-y-3 animate-pulse">
+            <div className="h-2.5 w-16 rounded bg-white/[0.08]" />
+            <div className="space-y-2">
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+            </div>
+            <div className="h-2.5 w-20 rounded bg-white/[0.08] mt-6" />
+            <div className="space-y-2">
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+              <div className="h-9 rounded-xl bg-white/[0.04]" />
+            </div>
+          </div>
+        ) : isAdmin ? (
           /* ─────────────── ADVISER / ADMIN VIEW ───────────────
              Their personal investor ledger doesn't live here — they access
              their CLIENTS' ledgers from Admin → Investors. */
@@ -263,7 +287,9 @@ export function AppSidebar() {
           The upsell variant comes from `getUpsellTarget()` so every surface
           across the app stays in sync. Top-tier users see no upsell. */}
       <div className="relative border-t border-white/[0.06] pt-1.5 pb-2 space-y-0.5 px-1.5 shrink-0">
-        {upsell && (
+        {/* Hide the upsell until both role + plan are known, otherwise
+            the wrong-tier offer flashes for a frame on each page load. */}
+        {navReady && !planLoading && upsell && (
           <Link
             to="/billing"
             className="flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all duration-200 mb-1 group overflow-hidden"
