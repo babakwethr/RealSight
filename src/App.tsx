@@ -111,6 +111,26 @@ function ReferralCapture() {
   return null;
 }
 
+/**
+ * RevenueCatBootstrap — initialises the IAP SDK once auth resolves.
+ * Pairs the Supabase user id with RevenueCat's `appUserID` so a single
+ * user identity spans web Stripe + iOS/Android IAP. Web is a no-op.
+ */
+function RevenueCatBootstrap() {
+  useEffect(() => {
+    if (!isCapacitorNative()) return;
+    let cancelled = false;
+    (async () => {
+      const { initRevenueCat } = await import('@/lib/revenuecat');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      await initRevenueCat(user?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  return null;
+}
+
 function CapacitorDeepLinkHandler() {
   useEffect(() => {
     if (!isCapacitorNative()) return;
@@ -165,6 +185,7 @@ const App = () => (
         <AuthProvider>
           <TooltipProvider>
           <CapacitorDeepLinkHandler />
+          <RevenueCatBootstrap />
           <ReferralCapture />
           <Toaster />
           <Sonner />

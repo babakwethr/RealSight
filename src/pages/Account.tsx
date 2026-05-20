@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -639,13 +643,119 @@ export default function Account() {
       </div>
 
       {/* Danger Zone */}
-      <div className="glass-panel p-6 border-destructive/30">
-        <h2 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h2>
+      <div className="glass-panel p-6 border-destructive/30 space-y-3">
+        <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
         <Button variant="destructive" onClick={signOut} className="w-full">
           <LogOut className="h-4 w-4 mr-2" />
           Sign Out
         </Button>
+        <DeleteAccountSection />
       </div>
     </div>
+  );
+}
+
+/**
+ * In-app account deletion.
+ *
+ * App Store Guideline 5.1.1(v) and Google Play "Account deletion"
+ * requirement: any app with user accounts must let the user delete
+ * the account from inside the app — not just sign out, not just an
+ * email request. Failure = automatic store rejection.
+ *
+ * Flow: click → confirmation modal with a typed "DELETE" guard →
+ * call delete-user edge function → sign out + redirect to /.
+ */
+function DeleteAccountSection() {
+  const [open, setOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const canConfirm = confirmation.trim().toUpperCase() === 'DELETE';
+
+  const onDelete = async () => {
+    if (!canConfirm || deleting) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Not authenticated');
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Delete failed' }));
+        throw new Error(error || `HTTP ${res.status}`);
+      }
+      toast.success('Account deleted.');
+      await signOut();
+      navigate('/');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => setOpen(true)}
+        className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
+      >
+        Delete my account permanently
+      </Button>
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setConfirmation(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete account</DialogTitle>
+            <DialogDescription>
+              This permanently deletes your RealSight account, portfolio,
+              documents, and subscription history. <strong>This cannot be
+              undone.</strong>
+              <br /><br />
+              If you have an active App Store or Google Play subscription,
+              cancel it in your device Settings BEFORE deleting the account.
+              Deleting your RealSight account does NOT cancel the underlying
+              store subscription.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <p className="text-xs text-muted-foreground">
+              Type <code className="font-mono text-destructive">DELETE</code> to confirm:
+            </p>
+            <input
+              type="text"
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              className="w-full px-3 py-2 rounded-md bg-input/50 border border-border text-foreground text-sm font-mono uppercase outline-none focus:border-destructive"
+              placeholder="DELETE"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={onDelete}
+              disabled={!canConfirm || deleting}
+            >
+              {deleting ? 'Deleting…' : 'Delete account permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
