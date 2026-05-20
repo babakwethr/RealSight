@@ -23,3 +23,28 @@ export const isCapacitorAndroid = (): boolean => {
 
 export const CAPACITOR_SCHEME = 'app.realsight.invest';
 export const CAPACITOR_OAUTH_REDIRECT = `${CAPACITOR_SCHEME}://auth/callback`;
+
+/**
+ * Fire a light haptic tap. Used for tactile feedback on autocomplete
+ * selection, primary CTA presses, filter toggles, etc. No-op on web.
+ *
+ * We dynamic-import `@capacitor/haptics` so the web bundle doesn't pay
+ * for it. Errors are swallowed — haptics are nice-to-have, never
+ * load-bearing.
+ */
+export async function lightTap(): Promise<void> {
+  if (!isCapacitorNative()) return;
+  try {
+    const mod = await import('@capacitor/haptics');
+    await mod.Haptics.impact({ style: mod.ImpactStyle.Light });
+  } catch { /* swallow — haptics are best-effort */ }
+}
+
+/** Medium-intensity tap. Use for "you committed to something" feedback. */
+export async function mediumTap(): Promise<void> {
+  if (!isCapacitorNative()) return;
+  try {
+    const mod = await import('@capacitor/haptics');
+    await mod.Haptics.impact({ style: mod.ImpactStyle.Medium });
+  } catch { /* swallow */ }
+}
