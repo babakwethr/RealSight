@@ -1,50 +1,50 @@
 /**
  * UsMarketHome — US market dashboard, backed by free public-data sources.
  *
- * Phase 3 of the global-launch plan. Self-contained page (does not yet
- * unify with the UAE/UK MarketHome — that refactor happens in Phase 4).
+ * Visually mirrors the UAE market home: same hero shell + filter bar
+ * shape. Filter semantics adjusted to US public-records reality:
+ *   - Search: metros + NYC boroughs + ZIP codes
+ *   - Beds, Sales/Rental, Type — Status is hidden (Case-Shiller / NYC
+ *     OpenData have no off-plan concept).
  *
  * Data sources (all free):
- *   - NYC OpenData: every property sale in NYC (no key)
- *   - Cook County: every property sale in the Chicago metro (no key)
- *   - FRED: national mortgage rates + Case-Shiller HPI (key gated)
- *   - HUD: Fair Market Rent by metro (key gated)
- *   - Census: demographics (key gated)
- *
- * The page is honest about what data we have: NYC & Chicago show real
- * transaction-level depth, the macro section shows live national trends
- * when the FRED key is configured, and unrelated metros show a "Coming
- * soon — sign up to be notified" tile rather than fake data.
+ *   - NYC OpenData (no key)
+ *   - Cook County (no key)
+ *   - FRED (key-gated): mortgage + Case-Shiller HPI
  */
+import { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, MapPin, Building2, ArrowUpRight } from 'lucide-react';
 import { useNycSales, useChicagoSales, useFredSeries, useUsMetrosSnapshot } from '@/hooks/useUsMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { UsMetroSnapshot } from '@/lib/usApi';
-import { MarketSearchBar, type MarketSearchOption } from '@/components/MarketSearchBar';
+import { MarketHeroShell } from '@/components/MarketHeroShell';
+import {
+  MarketHeroFilterBar,
+  type MarketHeroSuggestionGroup,
+  type MarketHeroFilters,
+} from '@/components/MarketHeroFilterBar';
 
-// Search options: 20 Case-Shiller metros + NYC boroughs + a handful of
-// well-known ZIPs that map to metros. Punch-list item 7.
-const METRO_OPTIONS: MarketSearchOption[] = [
-  { id: 'new-york', label: 'New York City', aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
-  { id: 'los-angeles', label: 'Los Angeles', aliases: ['LA', '90001', '90210', '90028'] },
-  { id: 'chicago', label: 'Chicago', aliases: ['Cook County', '60601', '60614'] },
-  { id: 'miami', label: 'Miami', aliases: ['33101', '33139', 'Miami Beach'] },
-  { id: 'san-francisco', label: 'San Francisco', aliases: ['SF', '94102', '94110'] },
-  { id: 'boston', label: 'Boston', aliases: ['02108', '02115'] },
-  { id: 'washington-dc', label: 'Washington DC', aliases: ['DC', '20001', '20002'] },
-  { id: 'seattle', label: 'Seattle', aliases: ['98101', '98109'] },
-  { id: 'denver', label: 'Denver', aliases: ['80202', '80203'] },
-  { id: 'phoenix', label: 'Phoenix', aliases: ['85001', '85003'] },
-  { id: 'dallas', label: 'Dallas', aliases: ['75201', '75202'] },
-  { id: 'san-diego', label: 'San Diego', aliases: ['92101', '92103'] },
-  { id: 'portland', label: 'Portland', aliases: ['97201', '97204'] },
-  { id: 'charlotte', label: 'Charlotte', aliases: ['28202', '28203'] },
-  { id: 'detroit', label: 'Detroit', aliases: ['48201', '48226'] },
-  { id: 'las-vegas', label: 'Las Vegas', aliases: ['89101', '89109'] },
-  { id: 'minneapolis', label: 'Minneapolis', aliases: ['55401', '55402'] },
-  { id: 'cleveland', label: 'Cleveland', aliases: ['44101', '44113'] },
-  { id: 'tampa', label: 'Tampa', aliases: ['33602', '33606'] },
-  { id: 'atlanta', label: 'Atlanta', aliases: ['30301', '30303'] },
+const US_METROS: Array<{ slug: string; label: string; aliases: string[] }> = [
+  { slug: 'new-york',      label: 'New York City',  aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
+  { slug: 'los-angeles',   label: 'Los Angeles',    aliases: ['LA', '90001', '90210', '90028'] },
+  { slug: 'chicago',       label: 'Chicago',        aliases: ['Cook County', '60601', '60614'] },
+  { slug: 'miami',         label: 'Miami',          aliases: ['33101', '33139', 'Miami Beach'] },
+  { slug: 'san-francisco', label: 'San Francisco',  aliases: ['SF', '94102', '94110'] },
+  { slug: 'boston',        label: 'Boston',         aliases: ['02108', '02115'] },
+  { slug: 'washington-dc', label: 'Washington DC',  aliases: ['DC', '20001', '20002'] },
+  { slug: 'seattle',       label: 'Seattle',        aliases: ['98101', '98109'] },
+  { slug: 'denver',        label: 'Denver',         aliases: ['80202', '80203'] },
+  { slug: 'phoenix',       label: 'Phoenix',        aliases: ['85001', '85003'] },
+  { slug: 'dallas',        label: 'Dallas',         aliases: ['75201', '75202'] },
+  { slug: 'san-diego',     label: 'San Diego',      aliases: ['92101', '92103'] },
+  { slug: 'portland',      label: 'Portland',       aliases: ['97201', '97204'] },
+  { slug: 'charlotte',     label: 'Charlotte',      aliases: ['28202', '28203'] },
+  { slug: 'detroit',       label: 'Detroit',        aliases: ['48201', '48226'] },
+  { slug: 'las-vegas',     label: 'Las Vegas',      aliases: ['89101', '89109'] },
+  { slug: 'minneapolis',   label: 'Minneapolis',    aliases: ['55401', '55402'] },
+  { slug: 'cleveland',     label: 'Cleveland',      aliases: ['44101', '44113'] },
+  { slug: 'tampa',         label: 'Tampa',          aliases: ['33602', '33606'] },
+  { slug: 'atlanta',       label: 'Atlanta',        aliases: ['30301', '30303'] },
 ];
 
 const DOLLAR = '$';
@@ -60,64 +60,78 @@ function fmtUsd(value: number | null | undefined, opts: { compact?: boolean } = 
   return `${DOLLAR}${Math.round(value).toLocaleString()}`;
 }
 
-function fmtDate(iso: string): string {
-  if (!iso) return '—';
-  return iso.slice(0, 10);
+function fmtDate(iso: string): string { return iso ? iso.slice(0, 10) : '—'; }
+
+function scrollMetroIntoView(slug: string) {
+  const el = document.getElementById(`us-metro-${slug}`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-violet-400/60');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-violet-400/60'), 2000);
+  }
 }
 
 export default function UsMarketHome() {
   const manhattanSales = useNycSales({ borough: 'manhattan', limit: 8, minPrice: 1_000_000 });
-  const brooklynSales = useNycSales({ borough: 'brooklyn', limit: 6, minPrice: 500_000 });
-  const chicagoSales = useChicagoSales({ limit: 6, minPrice: 500_000 });
-  const mortgage30 = useFredSeries('MORTGAGE30US', 1);
-  const caseShiller = useFredSeries('CSUSHPINSA', 13); // 12mo + 1 for YoY
-  const metros = useUsMetrosSnapshot();
+  const brooklynSales  = useNycSales({ borough: 'brooklyn',  limit: 6, minPrice: 500_000 });
+  const chicagoSales   = useChicagoSales({ limit: 6, minPrice: 500_000 });
+  const mortgage30     = useFredSeries('MORTGAGE30US', 1);
+  const caseShiller    = useFredSeries('CSUSHPINSA', 13);
+  const metros         = useUsMetrosSnapshot();
 
-  // Compute YoY HPI change if FRED key is configured
   const hpiTrend = computeYoY(caseShiller.data?.observations);
 
-  const handleSearchSelect = (option: MarketSearchOption) => {
-    const el = document.getElementById(`us-metro-${option.id}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-violet-400/60');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-violet-400/60'), 2000);
+  const [query, setQuery] = useState('');
+
+  const suggestions: MarketHeroSuggestionGroup[] = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const matched = US_METROS
+      .filter(m => [m.label, ...m.aliases].join(' ').toLowerCase().includes(q))
+      .slice(0, 8)
+      .map(m => ({
+        id: m.slug,
+        primary: m.label,
+        secondary: m.aliases?.length ? `e.g. ${m.aliases.slice(0, 3).join(' · ')}` : undefined,
+        payload: m.slug,
+      }));
+    return [{ label: 'Metros, boroughs & ZIPs', icon: '🇺🇸', items: matched }];
+  }, [query]);
+
+  const handleSelectSuggestion = (_g: MarketHeroSuggestionGroup, item: { payload?: unknown }) => {
+    scrollMetroIntoView(item.payload as string);
+  };
+
+  const handleSubmit = (_filters: MarketHeroFilters) => {
+    if (suggestions[0]?.items[0]) {
+      scrollMetroIntoView(suggestions[0].items[0].payload as string);
     }
   };
 
-  // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
     <div className="space-y-10 animate-fade-in">
-        {/* ─── Hero ─── */}
-        <section className="glass-card p-8">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/80 mb-2">
-                United States · Public Records
-              </p>
-              <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2" style={{ letterSpacing: '-0.02em' }}>
-                US property intelligence
-              </h1>
-              <p className="text-sm text-white/55 max-w-lg">
-                Backed by NYC OpenData and Cook County public records — every
-                property sale, plus national mortgage and price-index trends
-                from FRED.
-              </p>
-
-              {/* Punch-list item 7 — searchable metros / ZIPs. Type "Miami",
-                  "Brooklyn" or "94110" → matching metro scrolls into view. */}
-              <div className="mt-5">
-                <MarketSearchBar
-                  options={METRO_OPTIONS}
-                  onSelect={handleSearchSelect}
-                  placeholder="Search a metro, borough or ZIP (e.g. Brooklyn, 90210, Miami)"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* National macro strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+      <MarketHeroShell
+        market="us"
+        eyebrow="United States · Public Records"
+        title="US property intelligence"
+        subtitle="Backed by NYC OpenData and Cook County public records — every property sale, plus national mortgage and price-index trends from FRED."
+        filterBar={
+          <MarketHeroFilterBar
+            market="us"
+            placeholder="Search metro, borough or ZIP (Brooklyn, 90210, Miami…)"
+            query={query}
+            onQueryChange={setQuery}
+            suggestions={suggestions}
+            onSelectSuggestion={handleSelectSuggestion}
+            onSubmit={handleSubmit}
+            filterOptions={{
+              types: ['Any', 'Single-family', 'Condo', 'Co-op', 'Multi-family'],
+              statuses: [],
+            }}
+          />
+        }
+        footer={
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <MacroTile
               label="30-yr mortgage"
               value={mortgage30.data?.observations?.[0]?.value ? `${parseFloat(mortgage30.data.observations[0].value).toFixed(2)}%` : null}
@@ -140,108 +154,105 @@ export default function UsMarketHome() {
               hint="Case-Shiller HPI"
             />
           </div>
-        </section>
+        }
+      />
 
-        {/* ─── 20-metro Case-Shiller grid ─── */}
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-foreground flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-violet-400" />
-                US metros — Case-Shiller HPI
-              </h2>
-              <p className="text-sm text-white/55">
-                Latest published value + 12-month YoY change. Monthly, seasonally adjusted.
-              </p>
-            </div>
-            <p className="text-[10px] uppercase tracking-widest text-white/40">
-              Source · S&amp;P Case-Shiller via FRED
+      {/* ─── 20-metro Case-Shiller grid ─── */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-foreground flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-violet-400" />
+              US metros — Case-Shiller HPI
+            </h2>
+            <p className="text-sm text-white/55">
+              Latest published value + 12-month YoY change. Monthly, seasonally adjusted.
             </p>
           </div>
-          {metros.isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <Skeleton key={i} className="h-24" />
+          <p className="text-[10px] uppercase tracking-widest text-white/40">
+            Source · S&amp;P Case-Shiller via FRED
+          </p>
+        </div>
+        {metros.isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+        ) : metros.data?.metros && metros.data.metros.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {metros.data.metros
+              .filter((m) => m.slug !== 'us-composite')
+              .sort((a, b) => (b.latestValue ?? 0) - (a.latestValue ?? 0))
+              .map((m) => (
+                <MetroTile key={m.slug} metro={m} />
               ))}
-            </div>
-          ) : metros.data?.metros && metros.data.metros.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {metros.data.metros
-                .filter((m) => m.slug !== 'us-composite')
-                .sort((a, b) => (b.latestValue ?? 0) - (a.latestValue ?? 0))
-                .map((m) => (
-                  <MetroTile key={m.slug} metro={m} />
-                ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center">
-              <ArrowUpRight className="h-6 w-6 text-white/30 mx-auto mb-2" />
-              <p className="text-sm text-white/55">FRED metro snapshot not yet available.</p>
-              <p className="text-[11px] text-white/35 mt-1">
-                Make sure FRED_API_KEY is set in Supabase secrets and us-proxy is deployed.
-              </p>
-            </div>
-          )}
-        </section>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center">
+            <ArrowUpRight className="h-6 w-6 text-white/30 mx-auto mb-2" />
+            <p className="text-sm text-white/55">FRED metro snapshot not yet available.</p>
+            <p className="text-[11px] text-white/35 mt-1">
+              Make sure FRED_API_KEY is set in Supabase secrets and us-proxy is deployed.
+            </p>
+          </div>
+        )}
+      </section>
 
-        {/* ─── Manhattan recent sales ─── */}
-        <MetroSection
-          title="Manhattan, NYC"
-          subtitle="Recent sales over $1M — NYC OpenData"
-          isLoading={manhattanSales.isLoading}
-          empty={!manhattanSales.data?.sales || manhattanSales.data.sales.length === 0}
-        >
-          {manhattanSales.data?.sales.map((s, i) => (
-            <SaleCard
-              key={`${s.address}-${s.apartment_number}-${i}`}
-              price={Number(s.sale_price)}
-              date={fmtDate(s.sale_date)}
-              address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
-              area={s.neighborhood}
-              zip={s.zip_code}
-            />
-          ))}
-        </MetroSection>
+      <MetroSection
+        title="Manhattan, NYC"
+        subtitle="Recent sales over $1M — NYC OpenData"
+        isLoading={manhattanSales.isLoading}
+        empty={!manhattanSales.data?.sales || manhattanSales.data.sales.length === 0}
+      >
+        {manhattanSales.data?.sales.map((s, i) => (
+          <SaleCard
+            key={`${s.address}-${s.apartment_number}-${i}`}
+            price={Number(s.sale_price)}
+            date={fmtDate(s.sale_date)}
+            address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
+            area={s.neighborhood}
+            zip={s.zip_code}
+          />
+        ))}
+      </MetroSection>
 
-        {/* ─── Brooklyn ─── */}
-        <MetroSection
-          title="Brooklyn, NYC"
-          subtitle="Recent sales over $500K"
-          isLoading={brooklynSales.isLoading}
-          empty={!brooklynSales.data?.sales || brooklynSales.data.sales.length === 0}
-        >
-          {brooklynSales.data?.sales.map((s, i) => (
-            <SaleCard
-              key={`${s.address}-${s.apartment_number}-${i}`}
-              price={Number(s.sale_price)}
-              date={fmtDate(s.sale_date)}
-              address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
-              area={s.neighborhood}
-              zip={s.zip_code}
-            />
-          ))}
-        </MetroSection>
+      <MetroSection
+        title="Brooklyn, NYC"
+        subtitle="Recent sales over $500K"
+        isLoading={brooklynSales.isLoading}
+        empty={!brooklynSales.data?.sales || brooklynSales.data.sales.length === 0}
+      >
+        {brooklynSales.data?.sales.map((s, i) => (
+          <SaleCard
+            key={`${s.address}-${s.apartment_number}-${i}`}
+            price={Number(s.sale_price)}
+            date={fmtDate(s.sale_date)}
+            address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
+            area={s.neighborhood}
+            zip={s.zip_code}
+          />
+        ))}
+      </MetroSection>
 
-        {/* ─── Chicago ─── */}
-        <MetroSection
-          title="Chicago, IL"
-          subtitle="Recent sales over $500K — Cook County records"
-          isLoading={chicagoSales.isLoading}
-          empty={!chicagoSales.data?.sales || chicagoSales.data.sales.length === 0}
-        >
-          {chicagoSales.data?.sales.map((s, i) => (
-            <SaleCard
-              key={`${s.pin}-${i}`}
-              price={Number(s.sale_price)}
-              date={fmtDate(s.sale_date)}
-              address={`Parcel ${s.pin}`}
-              area={s.nbhd ?? '—'}
-              zip={s.deed_type ?? '—'}
-            />
-          ))}
-        </MetroSection>
+      <MetroSection
+        title="Chicago, IL"
+        subtitle="Recent sales over $500K — Cook County records"
+        isLoading={chicagoSales.isLoading}
+        empty={!chicagoSales.data?.sales || chicagoSales.data.sales.length === 0}
+      >
+        {chicagoSales.data?.sales.map((s, i) => (
+          <SaleCard
+            key={`${s.pin}-${i}`}
+            price={Number(s.sale_price)}
+            date={fmtDate(s.sale_date)}
+            address={`Parcel ${s.pin}`}
+            area={s.nbhd ?? '—'}
+            zip={s.deed_type ?? '—'}
+          />
+        ))}
+      </MetroSection>
 
-      {/* ─── Source footer ─── */}
       <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
         Data sourced from{' '}
         <a href="https://data.cityofnewyork.us" target="_blank" rel="noreferrer" className="underline hover:text-white/55">NYC OpenData</a>,{' '}
@@ -255,43 +266,18 @@ export default function UsMarketHome() {
 
 /* ─── Subcomponents ─── */
 
-function MacroTile({
-  label,
-  value,
-  hint,
-  positive,
-}: {
-  label: string;
-  value: string | null;
-  hint?: string;
-  positive?: boolean;
-}) {
-  const color =
-    positive === undefined ? 'text-foreground' : positive ? 'text-emerald-400' : 'text-amber-400';
+function MacroTile({ label, value, hint, positive }: { label: string; value: string | null; hint?: string; positive?: boolean }) {
+  const color = positive === undefined ? 'text-foreground' : positive ? 'text-emerald-400' : 'text-amber-400';
   return (
     <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3">
       <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">{label}</p>
-      <p className={`text-lg font-black tabular-nums ${color}`} style={{ letterSpacing: '-0.02em' }}>
-        {value ?? '—'}
-      </p>
+      <p className={`text-lg font-black tabular-nums ${color}`} style={{ letterSpacing: '-0.02em' }}>{value ?? '—'}</p>
       {hint && <p className="text-[10px] text-white/40 mt-0.5">{hint}</p>}
     </div>
   );
 }
 
-function MetroSection({
-  title,
-  subtitle,
-  isLoading,
-  empty,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  isLoading: boolean;
-  empty: boolean;
-  children: React.ReactNode;
-}) {
+function MetroSection({ title, subtitle, isLoading, empty, children }: { title: string; subtitle: string; isLoading: boolean; empty: boolean; children: React.ReactNode }) {
   return (
     <section>
       <div className="flex items-end justify-between mb-4">
@@ -305,9 +291,7 @@ function MetroSection({
       </div>
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
       ) : empty ? (
         <div className="rounded-xl border border-dashed border-white/[0.08] p-8 text-center">
@@ -357,19 +341,7 @@ function MetroTile({ metro }: { metro: UsMetroSnapshot }) {
   );
 }
 
-function SaleCard({
-  price,
-  date,
-  address,
-  area,
-  zip,
-}: {
-  price: number;
-  date: string;
-  address: string;
-  area: string;
-  zip: string;
-}) {
+function SaleCard({ price, date, address, area, zip }: { price: number; date: string; address: string; area: string; zip: string }) {
   return (
     <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4">
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -385,7 +357,6 @@ function SaleCard({
   );
 }
 
-/** Year-over-year % change from FRED observations (sorted desc, monthly). */
 function computeYoY(observations?: Array<{ date: string; value: string }>): number | null {
   if (!observations || observations.length < 13) return null;
   const latest = parseFloat(observations[0].value);

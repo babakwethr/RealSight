@@ -1,34 +1,35 @@
 /**
  * UkMarketHome — UK market dashboard, backed by HM Land Registry UKHPI.
  *
- * Phase 2 of the global-launch plan. Self-contained page (does not yet
- * unify with the UAE MarketHome — that refactor happens in Phase 4).
- * Renders:
- *   - Hero: UK national average + last-month HPI + YoY change
- *   - Region grid: 10 major regions side-by-side
- *   - Property-type breakdown for London (detached / semi / terrace / flat)
+ * Visually mirrors the UAE market home: same hero shell, same filter
+ * bar shape. Filter semantics adjusted to UK reality:
+ *   - Search: regions + outer postcodes (SW1, M1, EH3…)
+ *   - Beds, Sales/Rental, Status, Type — Status is hidden (UKHPI has
+ *     no off-plan concept), Type maps to UK categories
+ *     (Detached / Semi / Terrace / Flat).
+ *
+ * Submitting a search scrolls the matching region tile into view.
+ * Picking a suggestion from the dropdown does the same.
  *
  * Data source: free, OGL v3.0 licensed, redistributable. Backed by
- * `supabase/functions/uk-proxy/index.ts`. If the proxy is disabled
- * (UK_ENABLED=false) or returns 503, hooks return `null` and the
- * component renders a graceful empty state.
+ * `supabase/functions/uk-proxy/index.ts`.
  */
+import { useMemo, useState } from 'react';
 import { ArrowUpRight, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
 import { useUkRegion, useUkRegionsSnapshot } from '@/hooks/useUkMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MarketSearchBar, type MarketSearchOption } from '@/components/MarketSearchBar';
+import { MarketHeroShell } from '@/components/MarketHeroShell';
+import {
+  MarketHeroFilterBar,
+  type MarketHeroSuggestionGroup,
+  type MarketHeroFilters,
+} from '@/components/MarketHeroFilterBar';
 import type { UkRegionSlug } from '@/lib/ukApi';
 
-// Postcode-prefix → UK region slug. Covers the main outer-postcode
-// areas; ?postcode=SW1A 1AA is parsed by taking the first 1-2 letters +
-// the first digit. Punch-list item 7.
 const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
-  // London
   E: 'london', EC: 'london', N: 'london', NW: 'london',
   SE: 'london', SW: 'london', W: 'london', WC: 'london',
-  // Major cities
   M: 'manchester', B: 'birmingham', EH: 'edinburgh', BS: 'bristol',
-  // Regions (rough)
   L: 'north-west', LS: 'yorkshire-and-the-humber',
   S: 'yorkshire-and-the-humber', HU: 'yorkshire-and-the-humber',
   NE: 'north-east', SR: 'north-east',
@@ -36,6 +37,27 @@ const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
   G: 'scotland', AB: 'scotland', DD: 'scotland', PA: 'scotland',
   BT: 'northern-ireland',
 };
+
+const UK_REGIONS: Array<{ slug: UkRegionSlug; label: string; aliases: string[] }> = [
+  { slug: 'london',                   label: 'London',                   aliases: ['SW1', 'E14', 'NW1', 'EC1'] },
+  { slug: 'manchester',               label: 'Manchester',               aliases: ['M1', 'M2', 'M3'] },
+  { slug: 'birmingham',               label: 'Birmingham',               aliases: ['B1', 'B2'] },
+  { slug: 'edinburgh',                label: 'Edinburgh',                aliases: ['EH1', 'EH2'] },
+  { slug: 'bristol',                  label: 'Bristol',                  aliases: ['BS1', 'BS2'] },
+  { slug: 'north-east',               label: 'North East England',       aliases: ['NE', 'Newcastle'] },
+  { slug: 'north-west',               label: 'North West England',       aliases: ['Liverpool', 'L1'] },
+  { slug: 'yorkshire-and-the-humber', label: 'Yorkshire & Humber',       aliases: ['Leeds', 'Sheffield'] },
+  { slug: 'east-midlands',            label: 'East Midlands',            aliases: ['Nottingham', 'Leicester'] },
+  { slug: 'west-midlands',            label: 'West Midlands',            aliases: ['Coventry', 'Wolverhampton'] },
+  { slug: 'east',                     label: 'East of England',          aliases: ['Cambridge', 'Norwich'] },
+  { slug: 'south-east',               label: 'South East England',       aliases: ['Brighton', 'Oxford'] },
+  { slug: 'south-west',               label: 'South West England',       aliases: ['Plymouth', 'Exeter'] },
+  { slug: 'scotland',                 label: 'Scotland',                 aliases: ['Glasgow', 'Aberdeen'] },
+  { slug: 'wales',                    label: 'Wales',                    aliases: ['Cardiff', 'Swansea'] },
+  { slug: 'northern-ireland',         label: 'Northern Ireland',         aliases: ['Belfast'] },
+  { slug: 'england',                  label: 'England (national)',       aliases: [] },
+  { slug: 'united-kingdom',           label: 'United Kingdom (national)',aliases: [] },
+];
 
 const POUND = '£';
 
@@ -53,10 +75,7 @@ function fmtGbp(value: number | null | undefined, opts: { compact?: boolean } = 
 function fmtPct(value: number | null | undefined): { text: string; positive: boolean | null } {
   if (value == null || !isFinite(value)) return { text: '—', positive: null };
   const sign = value >= 0 ? '+' : '';
-  return {
-    text: `${sign}${value.toFixed(1)}%`,
-    positive: value >= 0,
-  };
+  return { text: `${sign}${value.toFixed(1)}%`, positive: value >= 0 };
 }
 
 function regionLabel(slug: string): string {
@@ -67,170 +86,154 @@ function regionLabel(slug: string): string {
     .replace('Yorkshire And The Humber', 'Yorkshire & Humber');
 }
 
-/** Parse a postcode like "SW1A 1AA" or "M1" → region slug, or null. */
 function postcodeToRegion(postcode: string): UkRegionSlug | null {
   const match = postcode.trim().toUpperCase().match(/^([A-Z]{1,2})\d/);
   if (!match) return null;
   return POSTCODE_TO_REGION[match[1]] ?? null;
 }
 
-const REGION_OPTIONS: MarketSearchOption[] = [
-  { id: 'london', label: 'London', aliases: ['E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC', 'SW1', 'E14', 'NW1'] },
-  { id: 'manchester', label: 'Manchester', aliases: ['M1', 'M2', 'M3'] },
-  { id: 'birmingham', label: 'Birmingham', aliases: ['B1', 'B2', 'B3'] },
-  { id: 'edinburgh', label: 'Edinburgh', aliases: ['EH1', 'EH2'] },
-  { id: 'bristol', label: 'Bristol', aliases: ['BS1', 'BS2'] },
-  { id: 'north-east', label: 'North East England' },
-  { id: 'north-west', label: 'North West England' },
-  { id: 'yorkshire-and-the-humber', label: 'Yorkshire & Humber' },
-  { id: 'east-midlands', label: 'East Midlands' },
-  { id: 'west-midlands', label: 'West Midlands' },
-  { id: 'east', label: 'East of England' },
-  { id: 'south-east', label: 'South East England' },
-  { id: 'south-west', label: 'South West England' },
-  { id: 'scotland', label: 'Scotland' },
-  { id: 'wales', label: 'Wales' },
-  { id: 'northern-ireland', label: 'Northern Ireland' },
-  { id: 'england', label: 'England (national)' },
-  { id: 'united-kingdom', label: 'United Kingdom (national)' },
-];
+function scrollRegionIntoView(slug: string) {
+  const el = document.getElementById(`uk-region-${slug}`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-emerald-400/60');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400/60'), 2000);
+  }
+}
 
 export default function UkMarketHome() {
   const ukAggregate = useUkRegion('united-kingdom');
   const london = useUkRegion('london');
   const snapshot = useUkRegionsSnapshot();
 
-  const handleSearchSelect = (option: MarketSearchOption) => {
-    // Selected a known region from the dropdown — scroll the matching
-    // tile into view. (Future: drill into a per-region detail page.)
-    const el = document.getElementById(`uk-region-${option.id}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-emerald-400/60');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400/60'), 2000);
+  const [query, setQuery] = useState('');
+
+  // Build a single suggestion group from the regions list + postcode prefix.
+  const suggestions: MarketHeroSuggestionGroup[] = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    // Match against label + aliases.
+    const matched = UK_REGIONS
+      .map(r => {
+        const hay = [r.label, ...(r.aliases || [])].join(' ').toLowerCase();
+        const score = hay.includes(q) ? 1 : 0;
+        return { r, score };
+      })
+      .filter(x => x.score > 0)
+      .slice(0, 8)
+      .map(({ r }) => ({
+        id: r.slug,
+        primary: r.label,
+        secondary: r.aliases?.length ? `e.g. ${r.aliases.slice(0, 3).join(' · ')}` : undefined,
+        payload: r.slug,
+      }));
+    return [
+      { label: 'Regions & postcodes', icon: '🇬🇧', items: matched },
+    ];
+  }, [query]);
+
+  const handleSelectSuggestion = (_g: MarketHeroSuggestionGroup, item: { payload?: unknown }) => {
+    const slug = item.payload as UkRegionSlug;
+    scrollRegionIntoView(slug);
+  };
+
+  const handleSubmit = (filters: MarketHeroFilters) => {
+    const direct = postcodeToRegion(filters.query);
+    if (direct) {
+      scrollRegionIntoView(direct);
+      return;
+    }
+    if (suggestions[0]?.items[0]) {
+      scrollRegionIntoView(suggestions[0].items[0].payload as UkRegionSlug);
     }
   };
 
-  const handleSearchSubmit = (raw: string) => {
-    // User typed a raw postcode that didn't auto-match — parse it.
-    const slug = postcodeToRegion(raw);
-    if (slug) handleSearchSelect({ id: slug, label: raw });
-  };
-
-  // Renders inside <AppLayout /> — the sidebar + cinematic-bg + chrome
-  // are provided by the layout. This page only owns its body content.
   return (
     <div className="space-y-10 animate-fade-in">
-        {/* ─── Hero ─── */}
-        <section className="glass-card p-8">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80 mb-2">
-                United Kingdom · HM Land Registry
+      {/* ─── Hero (UAE-style shell) ─── */}
+      <MarketHeroShell
+        market="uk"
+        eyebrow="United Kingdom · HM Land Registry"
+        title="UK property intelligence"
+        subtitle="Backed by HM Land Registry's UK House Price Index — 24M+ residential transactions, published monthly under OGL v3.0."
+        metric={
+          ukAggregate.data ? (
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">
+                {ukAggregate.data.refMonth} · UK avg
               </p>
-              <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2" style={{ letterSpacing: '-0.02em' }}>
-                UK property intelligence
-              </h1>
-              <p className="text-sm text-white/55 max-w-lg">
-                Backed by HM Land Registry's UK House Price Index — 24M+ residential transactions,
-                published monthly under OGL v3.0.
+              <p className="text-3xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
+                {fmtGbp(ukAggregate.data.averagePrice)}
               </p>
-
-              {/* Punch-list item 7 — searchable areas / postcodes. Type
-                  "SW1" or "Manchester" → matching region scrolls into view. */}
-              <div className="mt-5">
-                <MarketSearchBar
-                  options={REGION_OPTIONS}
-                  onSelect={handleSearchSelect}
-                  onSubmit={handleSearchSubmit}
-                  placeholder="Search a postcode (SW1, M1, EH3…) or region"
-                />
-              </div>
+              <ChangeBadge value={ukAggregate.data.percentageChangeYear} suffix="YoY" />
             </div>
-            {ukAggregate.data && (
-              <div className="text-right shrink-0">
-                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">
-                  {ukAggregate.data.refMonth} · UK avg
-                </p>
-                <p className="text-3xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
-                  {fmtGbp(ukAggregate.data.averagePrice)}
-                </p>
-                <ChangeBadge value={ukAggregate.data.percentageChangeYear} suffix="YoY" />
-              </div>
-            )}
-          </div>
-
-          {/* London close-up */}
-          {london.isLoading ? (
+          ) : null
+        }
+        filterBar={
+          <MarketHeroFilterBar
+            market="uk"
+            placeholder="Search postcode or region (SW1, M1, EH3, London…)"
+            query={query}
+            onQueryChange={setQuery}
+            suggestions={suggestions}
+            onSelectSuggestion={handleSelectSuggestion}
+            onSubmit={handleSubmit}
+            filterOptions={{
+              types: ['Any', 'Detached', 'Semi-detached', 'Terrace', 'Flat'],
+              statuses: [], // UKHPI has no off-plan/ready concept
+            }}
+          />
+        }
+        footer={
+          /* London close-up tiles */
+          london.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : london.data ? (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-              <HeroMetric
-                label="London avg"
-                value={fmtGbp(london.data.averagePrice)}
-                hint={`HPI ${london.data.housePriceIndex?.toFixed(1) ?? '—'}`}
-              />
-              <HeroMetric
-                label="Detached"
-                value={fmtGbp(london.data.averagePriceDetached)}
-                hint="London"
-              />
-              <HeroMetric
-                label="Semi"
-                value={fmtGbp(london.data.averagePriceSemiDetached)}
-                hint="London"
-              />
-              <HeroMetric
-                label="Terrace"
-                value={fmtGbp(london.data.averagePriceTerraced)}
-                hint="London"
-              />
-              <HeroMetric
-                label="Flat"
-                value={fmtGbp(london.data.averagePriceFlatMaisonette)}
-                hint="London"
-              />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <HeroMetric label="London avg" value={fmtGbp(london.data.averagePrice)} hint={`HPI ${london.data.housePriceIndex?.toFixed(1) ?? '—'}`} />
+              <HeroMetric label="Detached" value={fmtGbp(london.data.averagePriceDetached)} hint="London" />
+              <HeroMetric label="Semi" value={fmtGbp(london.data.averagePriceSemiDetached)} hint="London" />
+              <HeroMetric label="Terrace" value={fmtGbp(london.data.averagePriceTerraced)} hint="London" />
+              <HeroMetric label="Flat" value={fmtGbp(london.data.averagePriceFlatMaisonette)} hint="London" />
             </div>
-          ) : (
-            <EmptyState reason="London data not yet available — proxy may need deploying." />
-          )}
-        </section>
+          ) : null
+        }
+      />
 
-        {/* ─── Regions snapshot ─── */}
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-foreground">Regions</h2>
-              <p className="text-sm text-white/55">
-                Most-recent published month. Tap any region for the trend chart.
-              </p>
-            </div>
-            <p className="text-[10px] uppercase tracking-widest text-white/40">
-              Source · HM Land Registry
+      {/* ─── Regions snapshot ─── */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-foreground">Regions</h2>
+            <p className="text-sm text-white/55">
+              Most-recent published month. Tap any region for the trend chart.
             </p>
           </div>
+          <p className="text-[10px] uppercase tracking-widest text-white/40">
+            Source · HM Land Registry
+          </p>
+        </div>
 
-          {snapshot.isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
-          ) : snapshot.data?.regions && snapshot.data.regions.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {snapshot.data.regions.map((r) => (
-                <RegionCard key={r.region} entry={r} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState reason="Regions snapshot not yet available — proxy may need deploying." />
-          )}
-        </section>
+        {snapshot.isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+        ) : snapshot.data?.regions && snapshot.data.regions.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {snapshot.data.regions.map((r) => (
+              <RegionCard key={r.region} entry={r} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState reason="Regions snapshot not yet available — proxy may need deploying." />
+        )}
+      </section>
 
-      {/* ─── Source footer ─── */}
       <section className="text-center text-[11px] text-white/35 pt-4 border-t border-white/[0.05]">
-        Data sourced from HM Land Registry under the
-        {' '}<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Open Government Licence v3.0</a>.
+        Data sourced from HM Land Registry under the{' '}
+        <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="underline hover:text-white/55">Open Government Licence v3.0</a>.
         Contains public sector information licensed under the OGL v3.0.
       </section>
     </div>
@@ -276,18 +279,10 @@ function RegionCard({ entry }: { entry: import('@/lib/ukApi').UkhpiSnapshotEntry
 }
 
 function ChangeBadge({
-  value,
-  suffix,
-  compact = false,
-}: {
-  value: number | null | undefined;
-  suffix?: string;
-  compact?: boolean;
-}) {
+  value, suffix, compact = false,
+}: { value: number | null | undefined; suffix?: string; compact?: boolean }) {
   const { text, positive } = fmtPct(value);
-  if (positive === null) {
-    return <span className="text-[10px] text-white/35">{text}{suffix ? ` ${suffix}` : ''}</span>;
-  }
+  if (positive === null) return <span className="text-[10px] text-white/35">{text}{suffix ? ` ${suffix}` : ''}</span>;
   const color = positive ? 'text-emerald-400' : 'text-amber-400';
   const Icon = positive ? TrendingUp : TrendingDown;
   return (
