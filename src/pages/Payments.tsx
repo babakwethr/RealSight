@@ -23,8 +23,8 @@ import { cn } from '@/lib/utils';
 import { formatDualPrice } from '@/lib/currency'
 const formatCurrency = (value: number) => formatDualPrice(value)
 
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+import { fmtDate } from '@/lib/dateFormat'
+const formatDate = (dateString: string) => fmtDate(dateString)
 
 // ─── Main page — Payment SCHEDULE ONLY (subscription/plan lives at /billing) ─
 export default function Payments() {

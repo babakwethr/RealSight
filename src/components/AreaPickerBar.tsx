@@ -22,11 +22,8 @@ interface AreaPickerBarProps {
 }
 
 interface DldArea {
-  id: string;
   name: string;
-  transaction_volume_30d?: number | null;
-  avg_price_per_sqft_current?: number | null;
-  rental_yield_avg?: number | null;
+  totalSales: number;
 }
 
 export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }: AreaPickerBarProps) {
@@ -36,15 +33,21 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Pull EVERY area DLD has recorded sales in (~71 areas vs the 8
+  // curated rows we used to show). Backed by the catalogue table.
   const { data: areas = [], isLoading } = useQuery({
-    queryKey: ['dld-areas-picker'],
+    queryKey: ['dld-areas-picker-all'],
     queryFn: async (): Promise<DldArea[]> => {
-      const { data } = await supabase
-        .from('dld_areas')
-        .select('id, name, transaction_volume_30d, avg_price_per_sqft_current, rental_yield_avg')
-        .order('transaction_volume_30d', { ascending: false })
-        .limit(200);
-      return (data as DldArea[]) || [];
+      const { data, error } = await supabase.rpc('list_dld_areas');
+      if (error) {
+        console.error('[area-picker] list_dld_areas error', error);
+        return [];
+      }
+      type Row = { area_name: string; total_sales: number };
+      return ((data ?? []) as Row[]).map(r => ({
+        name: r.area_name,
+        totalSales: Number(r.total_sales) || 0,
+      }));
     },
     staleTime: 30 * 60 * 1000,
   });
@@ -67,10 +70,12 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
     }
   }, [open]);
 
+  // Show ALL areas by default (no slice). When filtering, also no slice
+  // — the list is small (~71 areas) and the container scrolls.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return areas.slice(0, 20);
-    return areas.filter(a => a.name.toLowerCase().includes(q)).slice(0, 20);
+    if (!q) return areas;
+    return areas.filter(a => a.name.toLowerCase().includes(q));
   }, [query, areas]);
 
   const pickArea = (name: string | null) => {
@@ -153,7 +158,7 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
               const active = currentArea.toLowerCase() === a.name.toLowerCase();
               return (
                 <button
-                  key={a.id}
+                  key={a.name}
                   onClick={() => pickArea(a.name)}
                   className={cn(
                     'w-full flex items-center justify-between gap-3 px-4 py-3 text-left border-b border-border/10 last:border-0 transition-colors min-h-[52px]',
@@ -164,9 +169,9 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
                     <MapPin className="h-3.5 w-3.5 text-primary/70 shrink-0" />
                     <span className="font-semibold text-sm truncate">{a.name}</span>
                   </span>
-                  {typeof a.transaction_volume_30d === 'number' && a.transaction_volume_30d > 0 && (
+                  {a.totalSales > 0 && (
                     <span className="text-[10px] text-white/45 tabular-nums shrink-0">
-                      {a.transaction_volume_30d.toLocaleString()} txns
+                      {a.totalSales.toLocaleString()} sales
                     </span>
                   )}
                 </button>

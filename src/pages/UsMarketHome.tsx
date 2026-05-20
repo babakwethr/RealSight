@@ -25,6 +25,7 @@ import {
 } from '@/components/MarketHeroFilterBar';
 import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
 
 const US_METROS: Array<{ slug: string; label: string; series: string; aliases: string[] }> = [
   { slug: 'new-york',      label: 'New York City',  series: 'NYXRSA', aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
@@ -50,19 +51,23 @@ const US_METROS: Array<{ slug: string; label: string; series: string; aliases: s
 ];
 
 const DOLLAR = '$';
+const USD_SUFFIX = ' USD';
 
+/**
+ * Format a USD figure. Babak directive (20 May 2026): every US-market
+ * amount must end with " USD" so the currency is unambiguous next to
+ * UAE AED and UK GBP numbers on the same product.
+ */
 function fmtUsd(value: number | null | undefined, opts: { compact?: boolean } = {}): string {
   if (value == null || !isFinite(value)) return '—';
   const compact = opts.compact ?? true;
   if (compact) {
-    if (Math.abs(value) >= 1_000_000) return `${DOLLAR}${(value / 1_000_000).toFixed(2)}M`;
-    if (Math.abs(value) >= 1_000) return `${DOLLAR}${Math.round(value / 1_000)}K`;
-    return `${DOLLAR}${Math.round(value).toLocaleString()}`;
+    if (Math.abs(value) >= 1_000_000) return `${DOLLAR}${(value / 1_000_000).toFixed(2)}M${USD_SUFFIX}`;
+    if (Math.abs(value) >= 1_000) return `${DOLLAR}${Math.round(value / 1_000)}K${USD_SUFFIX}`;
+    return `${DOLLAR}${Math.round(value).toLocaleString()}${USD_SUFFIX}`;
   }
-  return `${DOLLAR}${Math.round(value).toLocaleString()}`;
+  return `${DOLLAR}${Math.round(value).toLocaleString()}${USD_SUFFIX}`;
 }
-
-function fmtDate(iso: string): string { return iso ? iso.slice(0, 10) : '—'; }
 
 function scrollMetroIntoView(slug: string) {
   const el = document.getElementById(`us-metro-${slug}`);
@@ -99,7 +104,7 @@ export default function UsMarketHome() {
     return [...obs]
       .filter(o => o.value && o.value !== '.')
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(o => ({ month: o.date.slice(0, 7), v: parseFloat(o.value) }));
+      .map(o => ({ month: fmtMonthString(o.date.slice(0, 7)), v: parseFloat(o.value) }));
   }, [caseShillerHist.data]);
 
   // 30-yr mortgage 60-month trend
@@ -108,7 +113,7 @@ export default function UsMarketHome() {
     return [...obs]
       .filter(o => o.value && o.value !== '.')
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(o => ({ month: o.date.slice(0, 7), v: parseFloat(o.value) }));
+      .map(o => ({ month: fmtMonthString(o.date.slice(0, 7)), v: parseFloat(o.value) }));
   }, [mortgage30Hist.data]);
 
   const suggestions: MarketHeroSuggestionGroup[] = useMemo(() => {
@@ -173,12 +178,12 @@ export default function UsMarketHome() {
             <MacroTile
               label="30-yr mortgage"
               value={mortgage30.data?.observations?.[0]?.value ? `${parseFloat(mortgage30.data.observations[0].value).toFixed(2)}%` : null}
-              hint={mortgage30.data?.observations?.[0]?.date ? `as of ${mortgage30.data.observations[0].date}` : 'FRED key needed'}
+              hint={mortgage30.data?.observations?.[0]?.date ? `as of ${fmtDate(mortgage30.data.observations[0].date)}` : 'FRED key needed'}
             />
             <MacroTile
               label="Case-Shiller HPI"
               value={caseShiller.data?.observations?.[0]?.value ? parseFloat(caseShiller.data.observations[0].value).toFixed(1) : null}
-              hint={caseShiller.data?.observations?.[0]?.date ? `as of ${caseShiller.data.observations[0].date}` : 'FRED key needed'}
+              hint={caseShiller.data?.observations?.[0]?.date ? `as of ${fmtDate(caseShiller.data.observations[0].date)}` : 'FRED key needed'}
             />
             <MacroTile
               label="HPI YoY"
@@ -243,21 +248,21 @@ export default function UsMarketHome() {
             value={housingStarts.data?.observations?.[0]?.value
               ? `${Number(housingStarts.data.observations[0].value).toLocaleString()}K`
               : null}
-            hint={housingStarts.data?.observations?.[0]?.date ? `as of ${housingStarts.data.observations[0].date}` : 'monthly · annualised'}
+            hint={housingStarts.data?.observations?.[0]?.date ? `as of ${fmtDate(housingStarts.data.observations[0].date)}` : 'monthly · annualised'}
           />
           <MacroTile
             label="Building permits"
             value={buildingPermits.data?.observations?.[0]?.value
               ? `${Number(buildingPermits.data.observations[0].value).toLocaleString()}K`
               : null}
-            hint={buildingPermits.data?.observations?.[0]?.date ? `as of ${buildingPermits.data.observations[0].date}` : 'monthly · annualised'}
+            hint={buildingPermits.data?.observations?.[0]?.date ? `as of ${fmtDate(buildingPermits.data.observations[0].date)}` : 'monthly · annualised'}
           />
           <MacroTile
             label="Existing home sales"
             value={existingSales.data?.observations?.[0]?.value
               ? `${Number(existingSales.data.observations[0].value).toLocaleString()}K`
               : null}
-            hint={existingSales.data?.observations?.[0]?.date ? `as of ${existingSales.data.observations[0].date}` : 'monthly · annualised'}
+            hint={existingSales.data?.observations?.[0]?.date ? `as of ${fmtDate(existingSales.data.observations[0].date)}` : 'monthly · annualised'}
           />
         </div>
       </section>
@@ -532,7 +537,7 @@ function MetroTile({ metro }: { metro: UsMetroSnapshot }) {
         ) : (
           <span className="text-[10px] text-white/35">—</span>
         )}
-        <p className="text-[10px] text-white/40">{metro.latestDate?.slice(0, 7)}</p>
+        <p className="text-[10px] text-white/40">{fmtMonthString(metro.latestDate?.slice(0, 7))}</p>
       </div>
     </div>
   );

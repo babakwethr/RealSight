@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FeatureGate } from '@/components/FeatureGate';
 import { UpsellBanner } from '@/components/UpsellBanner';
 import { getAreaPhotoUrl } from '@/lib/areaPhotos';
+import { fmtDate } from '@/lib/dateFormat';
 
 type WatchlistType = 'projects' | 'areas' | 'signals';
 
@@ -291,7 +292,7 @@ function WatchlistContent() {
                           <p className="text-[12px] text-muted-foreground truncate mt-0.5">{item.description}</p>
                         )}
                         <p className="text-[10.5px] text-muted-foreground/60 mt-0.5">
-                          Saved {new Date(item.savedAt).toLocaleDateString()}
+                          Saved {fmtDate(item.savedAt)}
                         </p>
                       </div>
                       {/* Always-visible 44 px tap target on mobile, hover-reveal on desktop */}
