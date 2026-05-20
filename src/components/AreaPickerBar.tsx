@@ -96,9 +96,9 @@ export function AreaPickerBar({ currentArea, baseHref = '/market-intelligence' }
       <button
         onClick={() => setOpen(o => !o)}
         className={cn(
-          'group w-full sm:w-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl',
-          'bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.10] hover:border-white/[0.18] transition-colors',
-          'min-w-[260px] text-left',
+          'group w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl',
+          'bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.12] hover:border-white/[0.22] transition-colors',
+          'text-left',
         )}
       >
         <div className="flex items-center gap-2 min-w-0">

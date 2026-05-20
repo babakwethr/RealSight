@@ -16,6 +16,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction, type AreaRental } from '@/hooks/useDldData';
 import { AreaPickerBar } from '@/components/AreaPickerBar';
 import { BackButton } from '@/components/BackButton';
+import { MarketHeroShell } from '@/components/MarketHeroShell';
 import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import type { ReellyProject } from '@/types/reelly';
@@ -25,11 +26,9 @@ import {
   Shield, Lock, Sparkles, Target,
 } from 'lucide-react';
 import { RealEstateMetricCard } from '@/components/RealEstateMetricCard';
-import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { HeroMetricCard } from '@/components/HeroMetricCard';
 import { AIVerdict } from '@/components/AIVerdict';
-import { GuidanceCard } from '@/components/GuidanceCard';
 import { formatPriceSplit } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import { getAreaPhotoUrl } from '@/lib/areaPhotos';
@@ -417,24 +416,42 @@ function MarketIntelligenceContent() {
   }, [allAreas]);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
+    <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-4 sm:pt-6">
       <BackButton />
-      {/* Persistent area picker — lets the user switch areas without
-          going back to the home search. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <AreaPickerBar currentArea={areaParam} />
-        {areaParam && (
-          <Link
-            to="/market-intelligence"
-            className="text-[11px] text-white/55 hover:text-white underline underline-offset-2"
-          >
-            ← View all of Dubai
-          </Link>
-        )}
-      </div>
 
-      {/* Top-of-page mode banner — makes it crystal-clear whether the
-          user is looking at Sales or Rental data. */}
+      {/* Hero — same shell as the UK + US market pages. Eyebrow, big
+          title, subtitle and the area picker all live inside one
+          gradient card so the page reads as part of a system. */}
+      <MarketHeroShell
+        market="uae"
+        eyebrow={
+          areaParam
+            ? `United Arab Emirates · Dubai Land Department · ${areaParam.toUpperCase()}`
+            : 'United Arab Emirates · Dubai Land Department'
+        }
+        title={areaParam ? areaParam : 'UAE Market Intelligence'}
+        subtitle={
+          areaParam
+            ? 'Area deep-dive — every metric powered by live DLD transactions.'
+            : 'Live Dubai property data — prices, yields, sales volume, every area covered by the Dubai Land Department.'
+        }
+        filterBar={
+          <div className="w-full max-w-2xl">
+            <AreaPickerBar currentArea={areaParam} />
+          </div>
+        }
+        metric={
+          areaParam ? (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30">
+              <Activity className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[11px] font-bold text-primary uppercase tracking-widest">DLD live</span>
+            </div>
+          ) : null
+        }
+      />
+
+      {/* Mode banner — kept slim, only shown when a building or area is
+          picked. Tells the user whether sales or rentals are loaded. */}
       {(areaParam || buildingParam) && (
         <div className={cn(
           'flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-2.5 border text-xs',
@@ -480,107 +497,6 @@ function MarketIntelligenceContent() {
           type={typeParam}
         />
       )}
-
-      <div className="flex flex-col gap-3">
-        {/* Mobile-only slim header */}
-        <div className="lg:hidden">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-semibold">
-              <span>Markets</span>
-              {areaParam && <><span className="text-foreground/30">·</span><span className="text-foreground">{areaParam}</span></>}
-            </div>
-            <div className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1 shrink-0">
-              <Activity className="h-3 w-3" /> DLD LIVE
-            </div>
-          </div>
-          <h1 className="text-[26px] font-black text-foreground tracking-tight leading-[1.1]">
-            {areaParam
-              ? <span className="gradient-heading">{areaParam}</span>
-              : <>Market <span className="gradient-word">Intelligence</span></>}
-          </h1>
-          <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-snug">
-            {areaParam ? 'Area deep-dive · powered by DLD transaction data.' : 'Dubai property market overview · powered by DLD data.'}
-          </p>
-          {!user && (
-            <Link to="/login?mode=signup"
-              className="inline-flex items-center mt-3 text-[12px] bg-primary text-primary-foreground px-3.5 h-8 rounded-[10px] font-bold">
-              Start Free
-            </Link>
-          )}
-        </div>
-
-        {/* Desktop header — unchanged layout */}
-        <div className="hidden lg:flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-black text-foreground">
-                {areaParam
-                  ? <><span className="gradient-heading">{areaParam}</span></>
-                  : <>Market <span className="gradient-word">Intelligence</span></>
-                }
-              </h1>
-              {areaParam && <Badge variant="outline" className="text-xs">Dubai, UAE</Badge>}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {areaParam ? `Area deep-dive — powered by DLD transaction data` : 'Dubai property market overview — powered by DLD data'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-              <Activity className="h-3 w-3" /> DLD LIVE
-            </div>
-            {!user && (
-              <Link to="/login?mode=signup"
-                className="text-xs bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-bold hover:bg-primary/90 transition-colors">
-                Start Free
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Quick area switcher — compact pill row, edge-to-edge scroll on mobile.
-            Same chip pattern as the Home page so it reads as one design system. */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0">
-          <Link
-            to="/market-intelligence"
-            className={cn(
-              'shrink-0 inline-flex items-center h-8 px-3 rounded-[10px] text-[12px] font-semibold border transition-all whitespace-nowrap',
-              !areaParam
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-white/[0.04] text-foreground/65 border-transparent hover:bg-white/[0.07]'
-            )}
-          >
-            All Dubai
-          </Link>
-          {allAreas.slice(0, 8).map((a: any) => (
-            <Link
-              key={a.id}
-              to={`/market-intelligence?area=${encodeURIComponent(a.name)}`}
-              className={cn(
-                'shrink-0 inline-flex items-center h-8 px-3 rounded-[10px] text-[12px] font-semibold border transition-all whitespace-nowrap',
-                areaParam === a.name
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-white/[0.04] text-foreground/65 border-transparent hover:bg-white/[0.07]'
-              )}
-            >
-              {a.name}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <GuidanceCard
-        storageKey="market-intelligence-v1"
-        tone="info"
-        title="Live Dubai market data"
-        description="Pick an area for prices, yields, and volume — straight from DLD."
-        bullets={[
-          'Pick an area chip above',
-          'Hero shows the market score',
-          'Use this in Deal Analyzer',
-        ]}
-      />
 
       {/* When the picked area isn't yet enriched with curated metrics,
           show an honest banner. The DLD transactions panel + off-plan
