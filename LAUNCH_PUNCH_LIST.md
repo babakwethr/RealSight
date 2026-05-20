@@ -73,7 +73,7 @@ Three sub-items:
 - **Subscription products to model:** Investor Pro, Adviser Pro.
 - **Approach:** RevenueCat is recommended — handles receipt validation, restore purchases, family sharing, and works with our existing Stripe billing as a backup payment rail (web stays Stripe; iOS goes IAP). They have a Capacitor plugin.
 - **Files:** Capacitor config, new RevenueCat plugin install, `src/hooks/useSubscription.tsx` (route purchase intent to RevenueCat on iOS).
-- **Status:** TODO
+- **Status:** Code shipped (PR 7). Babak still needs: (a) RevenueCat account + paste API keys into Vercel env, (b) create the 4 products in App Store Connect, (c) RevenueCat → Supabase webhook.
 
 ### 10. Android — Google Play Store setup
 Babak hasn't published an Android app before. Needs hand-holding through:
@@ -87,7 +87,7 @@ Babak hasn't published an Android app before. Needs hand-holding through:
 ### 11. Android in-app purchase (Google Play Billing)
 - **Goal:** Same as #9 but for Google Play Billing Library (Apple's equivalent).
 - **Approach:** RevenueCat handles both stores via one plugin — easiest path if we pick it for iOS.
-- **Status:** TODO
+- **Status:** Code shipped (PR 7 — same plugin as iOS). Needs Babak: products created in Play Console + Android API key into Vercel env.
 
 ---
 

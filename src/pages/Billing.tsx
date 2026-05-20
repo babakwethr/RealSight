@@ -29,6 +29,8 @@ import { useSubscription, type PlanTier } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { isCapacitorNative } from '@/lib/capacitor';
+import { fetchOfferings, purchasePackage, PRODUCT_IDS } from '@/lib/revenuecat';
 import { cn } from '@/lib/utils';
 import {
   PRICING,
@@ -227,6 +229,39 @@ export default function Billing() {
   const handleUpgrade = async (planKey: LaunchTier) => {
     if (planKey === 'free' || planKey === currentPlan) return;
     setUpgrading(planKey);
+
+    // Apple + Google policy: digital goods sold inside the iOS/Android
+    // app MUST go through StoreKit / Play Billing — not Stripe. On
+    // Capacitor native, route to RevenueCat instead of the web
+    // checkout. Web visitors still get Stripe.
+    if (isCapacitorNative()) {
+      try {
+        const offering = await fetchOfferings();
+        const targetId = planKey === 'adviser_pro'
+          ? PRODUCT_IDS.adviser_pro_monthly
+          : PRODUCT_IDS.investor_pro_monthly;
+        const pkg = offering?.availablePackages.find(
+          (p) => p.product.identifier === targetId,
+        );
+        if (!pkg) {
+          toast.error('Subscription products not yet available on mobile. Subscribe via realsight.app.');
+          return;
+        }
+        const result = await purchasePackage(pkg);
+        if (result) {
+          toast.success('Subscription activated. Welcome to Pro.');
+          // The RevenueCat → Supabase webhook will flip the
+          // subscription row server-side; refresh to pick it up.
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Purchase failed');
+      } finally {
+        setUpgrading(null);
+      }
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Not authenticated');
