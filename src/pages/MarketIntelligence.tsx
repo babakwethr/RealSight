@@ -407,15 +407,49 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
-      {/* Building-specific drill-down — when the user picked a building
-          from the home search and refined Beds / Sales-Rent / Type /
-          Status. Shows ONLY transactions matching the criteria. */}
+      {/* Top-of-page mode banner — makes it crystal-clear whether the
+          user is looking at Sales or Rental data. */}
+      {(areaParam || buildingParam) && (
+        <div className={cn(
+          'flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-2.5 border text-xs',
+          modeParam === 'rental'
+            ? 'bg-cyan-500/10 border-cyan-500/25 text-cyan-200'
+            : 'bg-primary/10 border-primary/25 text-primary',
+        )}>
+          <span className="font-bold flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5" />
+            {modeParam === 'rental'
+              ? 'Showing RENTAL data — DLD Ejari contracts registry'
+              : 'Showing SALES data — DLD transaction registry'}
+          </span>
+          <span className="text-[10px] opacity-70">
+            {buildingParam ? `${buildingParam}${areaParam ? ` · ${areaParam}` : ''}` : areaParam}
+          </span>
+        </div>
+      )}
+
+      {/* Drill-down panel:
+          - building + sales/rental → building-specific sales OR area-level rentals
+            (DLD's rental dataset lacks building names, see BuildingResultsPanel)
+          - area-only + rental → area-level rentals panel
+          - area-only + sales → no panel (the area page below covers it). */}
       {buildingParam && (
         <BuildingResultsPanel
           buildingName={buildingParam}
           areaName={areaParam}
           beds={bedsParam}
           mode={modeParam}
+          status={statusParam}
+          type={typeParam}
+        />
+      )}
+      {!buildingParam && areaParam && modeParam === 'rental' && (
+        <BuildingResultsPanel
+          // pseudo-building = "All residential rentals in {area}"
+          buildingName={`Rentals · ${areaParam}`}
+          areaName={areaParam}
+          beds={bedsParam}
+          mode="rental"
           status={statusParam}
           type={typeParam}
         />
@@ -688,12 +722,15 @@ function MarketIntelligenceContent() {
               </div>
             </div>
 
-            {/* Recent transactions for this area */}
+            {/* Recent transactions for this area — sales mode only.
+                In rental mode the BuildingResultsPanel above already
+                renders the live Ejari contracts table for the area. */}
+            {modeParam !== 'rental' && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-black text-foreground flex items-center gap-2">
                   <Activity className="h-4 w-4 text-primary" />
-                  Recent DLD Transactions — {areaParam}
+                  Recent DLD Sales — {areaParam}
                 </h2>
                 <span className="text-[10px] text-muted-foreground">Last 10 days · DLD registered</span>
               </div>
@@ -758,6 +795,7 @@ function MarketIntelligenceContent() {
                 </table>
               </div>
             </div>
+            )}
 
             {/* Upsell — Deal Analyzer for this area */}
             <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 flex items-center gap-5">
@@ -1006,9 +1044,11 @@ function BuildingResultsPanel({
             {isRental ? 'Rentals in area · live DLD Ejari' : 'Building result · live DLD sales'}
           </p>
           <h2 className="text-xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
-            {buildingName}
+            {isRental && buildingName.startsWith('Rentals · ')
+              ? `Residential rentals in ${areaName || buildingName.replace('Rentals · ', '')}`
+              : buildingName}
           </h2>
-          {areaName && (
+          {areaName && !buildingName.startsWith('Rentals · ') && (
             <p className="text-xs text-white/55">{areaName}</p>
           )}
           {isRental && (

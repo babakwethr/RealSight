@@ -16,7 +16,7 @@ import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
 import {
   Search, TrendingUp, TrendingDown, ChevronDown, X,
   ArrowRight, Zap, BarChart2, Activity, Target,
-  Brain, FileText, BarChart3, Lock, Sparkles,
+  Brain, FileText, BarChart3, Lock, Sparkles, Loader2,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
@@ -195,11 +195,15 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
   // Per Babak QA 20 May: search is DLD-only. Reelly off-plan surfaces
   // at the BOTTOM of the area page instead, as suggestions with AI
   // verdicts comparing to DLD area data.
-  const debouncedQuery = useDebounce(query, 100);
-  const { data: dldMatches = [] } = useDldBuildingSearch(debouncedQuery, {
+  // Lower debounce + return isLoading so we can show a "Searching DLD…"
+  // line inline in the dropdown — the DLD relay is ~4 s on cold hits,
+  // localStorage prefix cache makes repeats instant.
+  const debouncedQuery = useDebounce(query, 80);
+  const { data: dldMatches = [], isLoading: dldLoading, isFetching: dldFetching } = useDldBuildingSearch(debouncedQuery, {
     enabled: showSugg && debouncedQuery !== 'Dubai',
   });
   const dldSuggestions = dldMatches;
+  const dldIsSearching = dldLoading || dldFetching;
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setShowSugg(false); };
@@ -250,9 +254,11 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
     navigate(`/market-intelligence?${params.toString()}`);
   };
 
-  const hasAnySuggestions =
-    areaSuggestions.length > 0 ||
-    dldSuggestions.length > 0;
+  // Show the dropdown whenever the user is typing (even if DLD is still
+  // loading + areas haven't matched), so they see "Searching DLD…"
+  // instead of a blank box.
+  const showDropdownShell =
+    showSugg && debouncedQuery.length >= 1 && debouncedQuery !== 'Dubai';
 
   return (
     <div ref={ref} className="relative w-full max-w-4xl mx-auto">
@@ -292,7 +298,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
             placeholder="Area, building, developer..."
             className="w-full h-12 pl-10 pr-4 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none border-r border-white/[0.08]"
           />
-          {showSugg && hasAnySuggestions && (
+          {showDropdownShell && (
             <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border border-border rounded-xl overflow-hidden shadow-2xl">
               {areaSuggestions.length > 0 && (
                 <>
@@ -305,20 +311,31 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                   ))}
                 </>
               )}
-              {dldSuggestions.length > 0 && (
-                <>
-                  <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings · DLD</p>
-                  {dldSuggestions.map(m => (
-                    <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
-                      className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
-                      <span className="text-cyan-400 text-xs pt-0.5">📊</span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-medium text-foreground/90 truncate">{m.buildingName}</span>
-                        <span className="block text-[11px] text-muted-foreground truncate">{m.areaName ?? '—'}{m.projectName && m.projectName !== m.buildingName ? ` · ${m.projectName}` : ''}</span>
-                      </span>
-                    </button>
-                  ))}
-                </>
+              <p className="px-4 pt-3 pb-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                Buildings · DLD
+                {dldIsSearching && (
+                  <span className="inline-flex items-center gap-1 text-cyan-400/90 normal-case tracking-normal font-normal text-[10px]">
+                    <Loader2 className="h-3 w-3 animate-spin" /> searching…
+                  </span>
+                )}
+              </p>
+              {dldSuggestions.length > 0 ? (
+                dldSuggestions.map(m => (
+                  <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
+                    className="w-full flex items-start gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0 transition-colors">
+                    <span className="text-cyan-400 text-xs pt-0.5">📊</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-medium text-foreground/90 truncate">{m.buildingName}</span>
+                      <span className="block text-[11px] text-muted-foreground truncate">{m.areaName ?? '—'}{m.projectName && m.projectName !== m.buildingName ? ` · ${m.projectName}` : ''}</span>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="px-4 py-2.5 text-[11px] text-muted-foreground italic">
+                  {dldIsSearching
+                    ? 'Looking up DLD residential buildings…'
+                    : `No DLD buildings match "${debouncedQuery}". Try a shorter prefix.`}
+                </p>
               )}
             </div>
           )}
@@ -359,7 +376,7 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
               className="w-full h-13 pl-10 pr-4 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none rounded-xl"
               style={{ fontSize: '16px', height: 52 }}
             />
-            {showSugg && hasAnySuggestions && (
+            {showDropdownShell && (
               <div className="absolute top-full left-0 right-0 mt-2 z-[9999] bg-popover border border-border rounded-xl overflow-hidden shadow-2xl">
                 {areaSuggestions.length > 0 && (
                   <>
@@ -372,20 +389,31 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
                     ))}
                   </>
                 )}
-                {dldSuggestions.length > 0 && (
-                  <>
-                    <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Buildings · DLD</p>
-                    {dldSuggestions.map(m => (
-                      <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
-                        className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">
-                        <span className="text-cyan-400 pt-0.5">📊</span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block font-medium text-foreground/90 truncate">{m.buildingName}</span>
-                          <span className="block text-[11px] text-muted-foreground truncate">{m.areaName ?? '—'}{m.projectName && m.projectName !== m.buildingName ? ` · ${m.projectName}` : ''}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </>
+                <p className="px-4 pt-2.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  Buildings · DLD
+                  {dldIsSearching && (
+                    <span className="inline-flex items-center gap-1 text-cyan-400/90 normal-case tracking-normal font-normal text-[10px]">
+                      <Loader2 className="h-3 w-3 animate-spin" /> searching…
+                    </span>
+                  )}
+                </p>
+                {dldSuggestions.length > 0 ? (
+                  dldSuggestions.map(m => (
+                    <button key={`dld-${m.buildingName}`} onMouseDown={() => handleSelectDldBuilding(m)}
+                      className="w-full flex items-start gap-3 px-4 py-3 text-sm text-foreground/80 hover:bg-muted text-left border-b border-border/10 last:border-0">
+                      <span className="text-cyan-400 pt-0.5">📊</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-foreground/90 truncate">{m.buildingName}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">{m.areaName ?? '—'}{m.projectName && m.projectName !== m.buildingName ? ` · ${m.projectName}` : ''}</span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-4 py-2.5 text-[11px] text-muted-foreground italic">
+                    {dldIsSearching
+                      ? 'Looking up DLD residential buildings…'
+                      : `No DLD buildings match "${debouncedQuery}". Try a shorter prefix.`}
+                  </p>
                 )}
               </div>
             )}
