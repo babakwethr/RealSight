@@ -87,13 +87,16 @@ const INVESTOR_SECTIONS = [
 ];
 
 export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
-  const { signOut, user } = useAuth();
+  const { signOut, user, loading: authLoading } = useAuth();
   const { plan } = useSubscription();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   const signupRole = user?.user_metadata?.signup_role;
   const isAdviserNav = isAdmin || signupRole === 'advisor';
   const SECTIONS = isAdviserNav ? ADVISER_SECTIONS : INVESTOR_SECTIONS;
+  // Avoid flashing the investor nav for admins while the role
+  // resolves on initial mount.
+  const navReady = !authLoading && !roleLoading;
 
   return (
     <>
@@ -147,7 +150,22 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Nav */}
         <nav className="relative flex-1 overflow-y-auto py-3 custom-scrollbar">
-          {SECTIONS.map(section => (
+          {!navReady ? (
+            <div className="px-5 pt-4 space-y-3 animate-pulse">
+              <div className="h-2.5 w-20 rounded bg-white/[0.08]" />
+              <div className="space-y-2">
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+              </div>
+              <div className="h-2.5 w-24 rounded bg-white/[0.08] mt-6" />
+              <div className="space-y-2">
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+                <div className="h-12 rounded-2xl bg-white/[0.04]" />
+              </div>
+            </div>
+          ) : SECTIONS.map(section => (
             <div key={section.label} className="mb-2">
               <p className="px-5 pt-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 select-none">
                 {section.label}
