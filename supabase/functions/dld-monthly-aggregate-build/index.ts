@@ -30,6 +30,7 @@ interface DldRow {
   instance_date?: string;
   actual_worth?: number | null;
   procedure_area?: number | null;
+  area_name_en?: string | null;
 }
 
 async function fetchDldPage(offset: number, pageSize: number, authToken: string): Promise<DldRow[]> {
@@ -94,7 +95,13 @@ serve(async (req) => {
   //     pass the outlier filter, used to compute a sensible monthly
   //     mean. Outlier filter drops land plots (huge sqm), bulk
   //     portfolio deals, and obvious data errors.
+  //
+  // Buckets are keyed `${month}|${area}`. Each row also folds into a
+  // synthetic Dubai-wide bucket `${month}|__all__` so the same chart
+  // works with or without an area selected.
   interface Bucket {
+    month: string;
+    area_name: string;
     sales_count: number;
     total_aed: number;
     total_sqm: number;
@@ -102,6 +109,19 @@ serve(async (req) => {
     psqft_count: number;
   }
   const agg = new Map<string, Bucket>();
+
+  const ensureBucket = (month: string, area_name: string): Bucket => {
+    const key = `${month}|${area_name}`;
+    const existing = agg.get(key);
+    if (existing) return existing;
+    const fresh: Bucket = {
+      month, area_name,
+      sales_count: 0, total_aed: 0, total_sqm: 0,
+      psqft_sum: 0, psqft_count: 0,
+    };
+    agg.set(key, fresh);
+    return fresh;
+  };
 
   const PSQFT_MIN = 200;    // AED 200/sqft floor — below this is a land/data error.
   const PSQFT_MAX = 6000;   // AED 6000/sqft ceiling — above this is luxury outliers.
@@ -130,49 +150,61 @@ serve(async (req) => {
       const price = typeof r.actual_worth === "number" ? r.actual_worth : 0;
       const sqm = typeof r.procedure_area === "number" ? r.procedure_area : 0;
       if (price <= 0) continue;
+      const area = (r.area_name_en ?? "").trim();
 
-      const bucket: Bucket = agg.get(date) ?? {
-        sales_count: 0, total_aed: 0, total_sqm: 0,
-        psqft_sum: 0, psqft_count: 0,
-      };
-      bucket.sales_count += 1;
-      bucket.total_aed += price;
-      bucket.total_sqm += sqm;
-
-      // Per-row psqft, only included in the average when it's plausible.
+      // Per-row psqft, only included in the average when plausible.
+      let psqft: number | null = null;
       if (sqm > 0) {
-        const psqft = price / (sqm * SQM_TO_SQFT);
-        if (psqft >= PSQFT_MIN && psqft <= PSQFT_MAX) {
-          bucket.psqft_sum += psqft;
-          bucket.psqft_count += 1;
-        }
+        const v = price / (sqm * SQM_TO_SQFT);
+        if (v >= PSQFT_MIN && v <= PSQFT_MAX) psqft = v;
       }
-      agg.set(date, bucket);
+
+      // Always fold into the Dubai-wide bucket.
+      const all = ensureBucket(date, "__all__");
+      all.sales_count += 1;
+      all.total_aed   += price;
+      all.total_sqm   += sqm;
+      if (psqft != null) { all.psqft_sum += psqft; all.psqft_count += 1; }
+
+      // Per-area bucket (only when the row has a usable area_name_en).
+      if (area) {
+        const ab = ensureBucket(date, area);
+        ab.sales_count += 1;
+        ab.total_aed   += price;
+        ab.total_sqm   += sqm;
+        if (psqft != null) { ab.psqft_sum += psqft; ab.psqft_count += 1; }
+      }
     }
 
     if (rows.length < pageSize) { done = true; break; }
   }
 
   if (agg.size > 0) {
-    const payload = Array.from(agg.entries()).map(([month, v]) => ({
-      month,
+    const payload = Array.from(agg.values()).map(v => ({
+      month: v.month,
+      area_name: v.area_name,
       sales_count: v.sales_count,
       total_aed: v.total_aed,
       total_sqm: v.total_sqm,
       psqft_sum: v.psqft_sum,
       psqft_count: v.psqft_count,
     }));
-    const { error } = await sb.rpc("_upsert_dld_monthly", { batch: payload });
-    if (error) {
-      return new Response(JSON.stringify({
-        ok: false,
-        last_offset: lastOffset,
-        rows_processed: rowsProcessed,
-        months_upserted: monthsUpserted,
-        error: error.message,
-      }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Chunk upserts — per-area means thousands of rows per page.
+    const CHUNK = 500;
+    for (let i = 0; i < payload.length; i += CHUNK) {
+      const slice = payload.slice(i, i + CHUNK);
+      const { error } = await sb.rpc("_upsert_dld_monthly", { batch: slice });
+      if (error) {
+        return new Response(JSON.stringify({
+          ok: false,
+          last_offset: lastOffset,
+          rows_processed: rowsProcessed,
+          months_upserted: monthsUpserted,
+          error: error.message,
+        }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      monthsUpserted += slice.length;
     }
-    monthsUpserted += payload.length;
   }
 
   return new Response(JSON.stringify({

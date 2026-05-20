@@ -478,9 +478,11 @@ function MarketIntelligenceContent() {
       )}
 
       {/* UAE 24-month price trend — sibling of the UK + US national
-          trend charts, shown only when no specific drill-down is
-          active (the building / area panels below take precedence). */}
-      {!areaParam && !buildingParam && <UaeMonthlyTrend />}
+          trend charts. When an area is selected, the chart scopes to
+          that area; otherwise it shows the Dubai-wide rollup. Hidden
+          on the building-drill view since BuildingPriceTrend covers
+          that case. */}
+      {!buildingParam && <UaeMonthlyTrend area={areaParam || null} />}
 
       {/* Drill-down panel:
           - building + sales/rental → building-specific sales OR area-level rentals
@@ -1136,12 +1138,12 @@ function BuildingResultsPanel({
  * so the line reads left-to-right like a stock chart.
  */
 /**
- * UaeMonthlyTrend — Dubai-wide 24-month price trend chart. Mirrors the
- * UK & US national-trend cards: live AED/sqft monthly average from the
- * dld_monthly_aggregates table.
+ * UaeMonthlyTrend — 24-month AED/sqft trend chart. Scopes to a
+ * specific area when one is passed; otherwise renders the
+ * Dubai-wide rollup. Mirrors the UK & US national-trend cards.
  */
-function UaeMonthlyTrend() {
-  const { data: rows = [], isLoading } = useDldMonthlyTrend(24);
+function UaeMonthlyTrend({ area }: { area: string | null }) {
+  const { data: rows = [], isLoading } = useDldMonthlyTrend(24, area);
 
   const data = useMemo(() => {
     return rows
@@ -1152,16 +1154,21 @@ function UaeMonthlyTrend() {
       }));
   }, [rows]);
 
+  const headline = area
+    ? `${area} · 24-month price trend`
+    : 'UAE 24-month price trend';
+  const subline = area
+    ? `Average DLD-registered sale in ${area}, AED per sqft, by month.`
+    : 'Average DLD-registered sale across Dubai, AED per sqft, by month.';
+
   return (
     <section>
       <div className="flex items-end justify-between mb-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
-            UAE 24-month price trend
+            {headline}
           </h2>
-          <p className="text-sm text-white/55">
-            Average DLD-registered sale, AED per sqft, by month.
-          </p>
+          <p className="text-sm text-white/55">{subline}</p>
         </div>
         <p className="text-[10px] uppercase tracking-widest text-white/40">
           Source · Dubai Land Department
