@@ -66,7 +66,7 @@ Three sub-items:
 - **Approach:** Detect Capacitor native iOS at runtime; render a native-feeling tab bar via SwiftUI or via Capacitor plugin that surfaces the native `UITabBarController` with Liquid Glass material.
 - **Open question:** Are we OK shipping iOS 26+ only, or do we need a fallback for iOS 17–25?
 - **Files:** `src/components/layout/MobileNav.tsx`, `src/lib/capacitor.ts`, plus a new iOS native plugin or SwiftUI host module.
-- **Status:** TODO
+- **Status:** Code shipped (PR 6). Babak still needs to: (a) add the plugin file to the Xcode target — see `docs/LIQUID_GLASS_TAB_BAR_SETUP.md`, (b) build via Xcode + TestFlight on an iOS 26 device to confirm the real Liquid Glass material renders.
 
 ### 9. iOS in-app purchase
 - **Goal:** Replace Stripe checkout on iOS with **Apple In-App Purchase** (RevenueCat or native StoreKit 2). Apple requires this for digital goods.

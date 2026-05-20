@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { useLayoutEffect, useRef, useEffect } from 'react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home as HomeIcon,
   BarChart3,
@@ -21,6 +21,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { isCapacitorIos } from '@/lib/capacitor';
+import { LiquidGlassTabBar, type LiquidGlassTabBarItem } from '@/plugins/liquid-glass-tab-bar';
 
 // Spring used to animate the lens's X position between tabs.
 // Soft + slightly under-damped so the lens visibly drags and lands
@@ -56,6 +58,23 @@ const BAR_MASK_URL = `url("data:image/svg+xml;utf8,${encodeURIComponent(BAR_SHAP
 
 const LENS_WIDTH = 60;
 
+/**
+ * Map a React route to the SF Symbol name the native iOS Liquid Glass
+ * tab bar should render. Keeps the icon language consistent between the
+ * web Lucide icons and the native UIImage(systemName:) symbols.
+ */
+function sfSymbolFor(to: string): string {
+  if (to.startsWith('/dashboard')) return 'house.fill';
+  if (to.startsWith('/portfolio')) return 'chart.pie.fill';
+  if (to.startsWith('/market-intelligence') || to.startsWith('/market/')) return 'chart.bar.fill';
+  if (to.startsWith('/deal-analyzer')) return 'sparkles';
+  if (to.startsWith('/concierge')) return 'bubble.left.and.bubble.right.fill';
+  if (to.startsWith('/admin')) return 'shield.fill';
+  if (to.startsWith('/off-plan')) return 'building.2.fill';
+  if (to.startsWith('/heatmap')) return 'globe.europe.africa.fill';
+  return 'circle.fill';
+}
+
 interface MobileNavProps {
   onMenuClick: () => void;
 }
@@ -84,11 +103,17 @@ interface MobileNavProps {
  */
 export function MobileNav({ onMenuClick }: MobileNavProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
 
   const signupRole = user?.user_metadata?.signup_role;
   const isAdviserNav = isAdmin || signupRole === 'advisor';
+
+  // Punch-list item 8 — on Capacitor iOS, replace the web tab bar with
+  // a native Liquid Glass UIView overlay (or a UIBlurEffect fallback on
+  // pre-iOS 26). The web component returns null in this branch.
+  const useNativeBar = isCapacitorIos();
 
   const isActive = (to: string) =>
     location.pathname === to || location.pathname.startsWith(to + '/');
@@ -123,6 +148,58 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   // Tabs that can host the lens (everything routed, not the FAB or More).
   const lensTabs = [...leftTabs, ...rightTabs];
   const activePath = lensTabs.find(t => isActive(t.to))?.to ?? null;
+
+  // ── Native iOS Liquid Glass bar (punch-list 8) ────────────────────────
+  // Builds the same set of tabs (left + FAB + right + More) as the web
+  // bar, mapped to SF Symbol names so the native plugin can render them.
+  const nativeTabs: Array<{ to: string; sfIcon: string; label: string }> = [
+    ...leftTabs.map(t => ({ to: t.to, sfIcon: sfSymbolFor(t.to), label: t.label })),
+    { to: fabConfig.to, sfIcon: sfSymbolFor(fabConfig.to), label: fabConfig.label },
+    ...rightTabs.map(t => ({ to: t.to, sfIcon: sfSymbolFor(t.to), label: t.label })),
+  ];
+
+  useEffect(() => {
+    if (!useNativeBar) return;
+    let removeListener: (() => Promise<void>) | undefined;
+
+    const items: LiquidGlassTabBarItem[] = nativeTabs.map(t => ({
+      title: t.label,
+      icon: t.sfIcon,
+    }));
+    const initialActive = Math.max(
+      0,
+      nativeTabs.findIndex(t => isActive(t.to)),
+    );
+
+    LiquidGlassTabBar.present({ items, activeIndex: initialActive }).catch(() => {
+      // Plugin not available (web build): the no-op fallback swallows.
+    });
+
+    LiquidGlassTabBar.addListener('tabSelected', ({ index }) => {
+      const target = nativeTabs[index];
+      if (target) navigate(target.to);
+    }).then(handle => { removeListener = handle.remove; }).catch(() => {});
+
+    return () => {
+      void removeListener?.();
+      void LiquidGlassTabBar.hide();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useNativeBar, isAdviserNav]);
+
+  // Sync native bar active index when the route changes.
+  useEffect(() => {
+    if (!useNativeBar) return;
+    const idx = nativeTabs.findIndex(t => isActive(t.to));
+    if (idx >= 0) {
+      void LiquidGlassTabBar.setActiveIndex({ index: idx });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, useNativeBar]);
+
+  // On Capacitor iOS, hide the web bar entirely — the native overlay
+  // renders the visible tab bar via UIView.
+  if (useNativeBar) return null;
 
   // ─────────────────────── Liquid lens motion plumbing ───────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
