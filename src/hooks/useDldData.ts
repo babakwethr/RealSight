@@ -274,34 +274,86 @@ export function useDldAreaRentals(
  * Search DLD residential transactions for buildings matching the query.
  * Deduplicates rows to unique building names + bundles area + activity.
  *
- * Implementation note: DDA's filter syntax is SQL-like.
- *   building_name_en like '%foo%'
- *
- * We send TWO requests in parallel — one matching building_name_en, one
- * matching project_name_en — and merge the unique results client-side.
- * That catches both individual towers and umbrella projects.
+ * Latency note: the DLD relay is slow (~4 s/call). We do three things
+ * to make the autocomplete feel responsive:
+ *   1. Send ONE combined OR query instead of two parallel calls.
+ *   2. Cache results in localStorage for 24 h, so repeat searches and
+ *      prefix-of-cached-query searches return instantly.
+ *   3. Expose `isLoading` so the UI can show a "Searching DLD…" line
+ *      while the network request is in flight.
  */
+const LS_CACHE_PREFIX = 'realsight:dld-search:';
+const LS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readLsCache(key: string): DldBuildingMatch[] | null {
+  try {
+    const raw = localStorage.getItem(`${LS_CACHE_PREFIX}${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ts: number; data: DldBuildingMatch[] };
+    if (Date.now() - parsed.ts > LS_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch { return null; }
+}
+
+function writeLsCache(key: string, data: DldBuildingMatch[]) {
+  try {
+    localStorage.setItem(`${LS_CACHE_PREFIX}${key}`, JSON.stringify({ ts: Date.now(), data }));
+  } catch { /* quota — ignore */ }
+}
+
+/**
+ * Look for a cached result for the longest prefix of `q` we have. So if
+ * the user has searched "Kempinski" before, typing "Kempi" can serve the
+ * cached "Kempinski" rows + filter client-side — instantly.
+ */
+function findPrefixCache(q: string): DldBuildingMatch[] | null {
+  const lower = q.toLowerCase();
+  // Exact hit first.
+  const exact = readLsCache(lower);
+  if (exact) return exact;
+  // Look up to 3 longer-prefix entries we know about.
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(LS_CACHE_PREFIX)) continue;
+      const cachedQ = k.slice(LS_CACHE_PREFIX.length);
+      if (cachedQ.includes(lower) || lower.includes(cachedQ)) {
+        const hit = readLsCache(cachedQ);
+        if (hit) return hit.filter(m =>
+          m.buildingName.toLowerCase().includes(lower) ||
+          (m.projectName ?? '').toLowerCase().includes(lower) ||
+          (m.areaName ?? '').toLowerCase().includes(lower),
+        );
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function useDldBuildingSearch(query: string, opts: { limit?: number; enabled?: boolean } = {}) {
-  const limit = opts.limit ?? 25;
-  const enabled = (opts.enabled ?? true) && query.trim().length >= 2;
+  const limit = opts.limit ?? 12;
   const trimmed = query.trim();
+  const enabled = (opts.enabled ?? true) && trimmed.length >= 2;
+  const lower = trimmed.toLowerCase();
 
   return useQuery({
-    queryKey: ['dld-building-search', trimmed, limit],
+    queryKey: ['dld-building-search', lower, limit],
     queryFn: async (): Promise<DldBuildingMatch[]> => {
-      // Escape single quotes (rare in building names but cheap to guard).
-      const safe = trimmed.replace(/'/g, "''");
-      const byBuilding = getJson<DldListResponse>(
-        buildDldUrl(`building_name_en like '%${safe}%'`, limit),
-      );
-      const byProject = getJson<DldListResponse>(
-        buildDldUrl(`project_name_en like '%${safe}%'`, limit),
-      );
-      const [a, b] = await Promise.all([byBuilding, byProject]);
-      const rows = [...(a?.results ?? []), ...(b?.results ?? [])];
+      // 1) Instant: check localStorage for the same query OR a related
+      //    prefix we've fetched before, AND fire the network call in the
+      //    background so we always end up with fresh data.
+      const prefixHit = findPrefixCache(lower);
 
-      // Dedupe by building name, keep the most-recent area + project +
-      // count occurrences for the activity hint.
+      const safe = lower.replace(/'/g, "''");
+      // 2) Single OR-combined query — half the latency of two parallel calls.
+      const json = await getJson<DldListResponse>(
+        buildDldUrl(
+          `(building_name_en like '%${safe}%' OR project_name_en like '%${safe}%')`,
+          limit,
+        ),
+      );
+      const rows = json?.results ?? [];
+
       const map = new Map<string, DldBuildingMatch>();
       for (const r of rows) {
         const key = r.building_name_en?.trim();
@@ -318,9 +370,17 @@ export function useDldBuildingSearch(query: string, opts: { limit?: number; enab
           });
         }
       }
-      return Array.from(map.values()).slice(0, 8);
+      const fresh = Array.from(map.values()).slice(0, 8);
+      writeLsCache(lower, fresh);
+      // If we had a prefix hit AND the network call returned nothing
+      // (relay timeout, transient error), fall back to it so we show
+      // something useful.
+      return fresh.length > 0 ? fresh : (prefixHit ?? []);
     },
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 24 * 60 * 60 * 1000,
+    // initialData makes the cached prefix appear synchronously — no
+    // loading flash on prefix hits.
+    initialData: () => (enabled ? findPrefixCache(lower) ?? undefined : undefined),
   });
 }
