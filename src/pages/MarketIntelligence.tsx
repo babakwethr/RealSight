@@ -13,7 +13,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useDldBuildingTransactions, type BuildingTransaction } from '@/hooks/useDldData';
+import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction, type AreaRental } from '@/hooks/useDldData';
+import { useReellyProjects } from '@/hooks/useReellyData';
+import type { ReellyProject } from '@/types/reelly';
 import {
   TrendingUp, TrendingDown, Activity, BarChart3,
   Crown, Building, ArrowRight, Zap, MapPin,
@@ -771,6 +773,12 @@ function MarketIntelligenceContent() {
                 <Target className="h-4 w-4" /> Analyse a Deal
               </Link>
             </div>
+
+            {/* Off-Plan suggestions in this area — Reelly catalogue cross-ref */}
+            <OffPlanSuggestionsSection
+              areaName={areaParam}
+              areaAvgPsf={area.avg_price_per_sqft_current || 0}
+            />
           </div>
         );
       })() : (
@@ -938,63 +946,76 @@ function BuildingResultsPanel({
   areaName: string;
   beds: string; mode: string; status: string; type: string;
 }) {
-  const { data, isLoading, modeUnavailable } = useDldBuildingTransactions(
-    buildingName,
-    { beds: beds || undefined, mode: mode || undefined, status: status || undefined, type: type || undefined },
+  const isRental = mode === 'rental';
+
+  const salesQuery = useDldBuildingTransactions(
+    isRental ? null : buildingName, // skip the sales call when in rental mode
+    { beds: beds || undefined, status: status || undefined, type: type || undefined },
+  );
+  const rentalQuery = useDldAreaRentals(
+    isRental ? areaName : null,
+    { beds: beds || undefined, type: type || undefined },
   );
 
   const activeFilters = [
     beds && beds !== 'Any' && beds,
-    mode && mode !== 'sales' && mode,
+    mode && mode !== 'sales' && (mode === 'rental' ? 'Rental' : mode),
     status && status !== 'Any' && status,
     type && type !== 'Any' && type,
   ].filter(Boolean) as string[];
 
-  // Aggregates from the returned rows
-  const aggregates = useMemo(() => {
-    const rows = data ?? [];
+  const median = (arr: number[]) => {
+    if (!arr.length) return null;
+    const sorted = [...arr].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+
+  // Sales aggregates (only meaningful when isRental === false)
+  const salesAgg = useMemo(() => {
+    const rows = salesQuery.data ?? [];
     const prices = rows.map(r => r.price).filter((p): p is number => typeof p === 'number' && p > 0);
     const psqfts = rows.map(r => r.pricePerSqft).filter((p): p is number => typeof p === 'number' && p > 0);
-    const median = (arr: number[]) => {
-      if (!arr.length) return null;
-      const sorted = [...arr].sort((a, b) => a - b);
-      return sorted[Math.floor(sorted.length / 2)];
-    };
     return {
       count: rows.length,
       medianPrice: median(prices),
       medianPsqft: median(psqfts),
       latest: rows[0]?.date ?? null,
     };
-  }, [data]);
+  }, [salesQuery.data]);
 
-  if (modeUnavailable) {
-    return (
-      <section className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-5">
-        <p className="text-sm font-bold text-foreground">
-          🏢 {buildingName}{areaName && <span className="text-white/55"> · {areaName}</span>}
-        </p>
-        <p className="text-xs text-amber-200 mt-2">
-          Rental data isn't in DLD's public residential dataset yet.
-          Switch the filter to <strong>Sales</strong> to see live transactions
-          for this building, or browse the area below for broader context.
-        </p>
-      </section>
-    );
-  }
+  // Rental aggregates
+  const rentAgg = useMemo(() => {
+    const rows = rentalQuery.data ?? [];
+    const annuals = rows.map(r => r.annualAmount).filter((p): p is number => typeof p === 'number' && p > 0);
+    return {
+      count: rows.length,
+      medianAnnual: median(annuals),
+      latest: rows[0]?.startDate ?? null,
+    };
+  }, [rentalQuery.data]);
+
+  const isLoading = isRental ? rentalQuery.isLoading : salesQuery.isLoading;
+  const count = isRental ? rentAgg.count : salesAgg.count;
+  const latest = isRental ? rentAgg.latest : salesAgg.latest;
 
   return (
     <section className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-5 space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 mb-1">
-            Building result · live DLD data
+            {isRental ? 'Rentals in area · live DLD Ejari' : 'Building result · live DLD sales'}
           </p>
           <h2 className="text-xl font-black text-foreground" style={{ letterSpacing: '-0.02em' }}>
             {buildingName}
           </h2>
           {areaName && (
             <p className="text-xs text-white/55">{areaName}</p>
+          )}
+          {isRental && (
+            <p className="text-[11px] text-amber-300 mt-1.5">
+              DLD's rental registry doesn't include building names — showing all
+              residential rentals in <strong>{areaName || 'this area'}</strong>.
+            </p>
           )}
           {activeFilters.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1007,54 +1028,354 @@ function BuildingResultsPanel({
           )}
         </div>
         <div className="text-right">
-          <p className="text-[10px] uppercase tracking-widest text-white/40">Matching transactions</p>
-          <p className="text-2xl font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
-            {isLoading ? '…' : aggregates.count}
+          <p className="text-[10px] uppercase tracking-widest text-white/40">
+            {isRental ? 'Matching contracts' : 'Matching sales'}
           </p>
-          {aggregates.latest && (
-            <p className="text-[10px] text-white/45">Latest: {aggregates.latest.slice(0, 10)}</p>
+          <p className="text-2xl font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+            {isLoading ? '…' : count}
+          </p>
+          {latest && (
+            <p className="text-[10px] text-white/45">Latest: {latest.slice(0, 10)}</p>
           )}
         </div>
       </header>
 
       {/* Aggregate tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <AggregateTile label="Median price" value={aggregates.medianPrice ? `AED ${aggregates.medianPrice.toLocaleString()}` : '—'} />
-        <AggregateTile label="Median AED/sqft" value={aggregates.medianPsqft ? `AED ${Math.round(aggregates.medianPsqft).toLocaleString()}` : '—'} />
-        <AggregateTile label="Sales returned" value={isLoading ? '…' : String(aggregates.count)} />
-      </div>
+      {isRental ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <AggregateTile label="Median annual rent" value={rentAgg.medianAnnual ? `AED ${rentAgg.medianAnnual.toLocaleString()}/yr` : '—'} />
+          <AggregateTile label="Median monthly" value={rentAgg.medianAnnual ? `AED ${Math.round(rentAgg.medianAnnual / 12).toLocaleString()}/mo` : '—'} />
+          <AggregateTile label="Contracts returned" value={isLoading ? '…' : String(rentAgg.count)} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <AggregateTile label="Median price" value={salesAgg.medianPrice ? `AED ${salesAgg.medianPrice.toLocaleString()}` : '—'} />
+          <AggregateTile label="Median AED/sqft" value={salesAgg.medianPsqft ? `AED ${Math.round(salesAgg.medianPsqft).toLocaleString()}` : '—'} />
+          <AggregateTile label="Sales returned" value={isLoading ? '…' : String(salesAgg.count)} />
+        </div>
+      )}
 
-      {/* Transaction list — last N */}
+      {/* Transaction / contract list */}
       {isLoading ? (
-        <p className="text-xs text-white/45 text-center py-6">Loading transactions…</p>
-      ) : !data || data.length === 0 ? (
+        <p className="text-xs text-white/45 text-center py-6">Loading {isRental ? 'contracts' : 'transactions'}…</p>
+      ) : count === 0 ? (
         <p className="text-xs text-white/45 text-center py-6">
-          No transactions match those filters. Try widening — e.g. drop the bedroom filter, or pick <strong>Any</strong> on Status.
+          No {isRental ? 'rentals' : 'transactions'} match those filters. Try widening — e.g. drop the bedroom filter, or pick <strong>Any</strong> on Status.
         </p>
       ) : (
         <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Recent transactions</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">
+            {isRental ? 'Recent contracts' : 'Recent transactions'}
+          </p>
           <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-widest text-white/40 border-b border-white/[0.05]">
-                  <th className="py-1.5 pr-2 font-semibold">Date</th>
-                  <th className="py-1.5 pr-2 font-semibold">Beds</th>
-                  <th className="py-1.5 pr-2 font-semibold">Type</th>
-                  <th className="py-1.5 pr-2 font-semibold text-right">Price (AED)</th>
-                  <th className="py-1.5 pr-2 font-semibold text-right">AED/sqft</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.slice(0, 12).map((t) => (
-                  <TxRow key={t.transaction_id} t={t} />
-                ))}
-              </tbody>
-            </table>
+            {isRental ? (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-widest text-white/40 border-b border-white/[0.05]">
+                    <th className="py-1.5 pr-2 font-semibold">Start</th>
+                    <th className="py-1.5 pr-2 font-semibold">Type</th>
+                    <th className="py-1.5 pr-2 font-semibold">Subtype</th>
+                    <th className="py-1.5 pr-2 font-semibold text-right">Annual (AED)</th>
+                    <th className="py-1.5 pr-2 font-semibold text-right">Monthly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(rentalQuery.data ?? []).slice(0, 12).map((r) => (
+                    <RentRow key={r.contract_id} r={r} />
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-widest text-white/40 border-b border-white/[0.05]">
+                    <th className="py-1.5 pr-2 font-semibold">Date</th>
+                    <th className="py-1.5 pr-2 font-semibold">Beds</th>
+                    <th className="py-1.5 pr-2 font-semibold">Type</th>
+                    <th className="py-1.5 pr-2 font-semibold text-right">Price (AED)</th>
+                    <th className="py-1.5 pr-2 font-semibold text-right">AED/sqft</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(salesQuery.data ?? []).slice(0, 12).map((t) => (
+                    <TxRow key={t.transaction_id} t={t} />
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+function RentRow({ r }: { r: AreaRental }) {
+  return (
+    <tr className="border-b border-white/[0.04]">
+      <td className="py-1.5 pr-2 text-white/70">{r.startDate?.slice(0, 10)}</td>
+      <td className="py-1.5 pr-2 text-white/70">{r.propertyType ?? '—'}</td>
+      <td className="py-1.5 pr-2 text-white/70">{r.subType ?? '—'}</td>
+      <td className="py-1.5 pr-2 text-right tabular-nums text-foreground font-semibold">
+        {r.annualAmount ? r.annualAmount.toLocaleString() : '—'}
+      </td>
+      <td className="py-1.5 pr-2 text-right tabular-nums text-white/70">
+        {r.annualAmount ? Math.round(r.annualAmount / 12).toLocaleString() : '—'}
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * Map a DLD area name to the equivalent name in Reelly's catalogue. Reelly
+ * uses the marketing-friendly name; DLD uses the registered land-department
+ * name. Keep this list small — most areas already align.
+ */
+const DLD_TO_REELLY_AREA: Record<string, string> = {
+  'Marsa Dubai': 'Dubai Marina',
+  'Burj Khalifa': 'Downtown Dubai',
+  'Wadi Al Safa 5': 'Dubai Hills Estate',
+  'Al Thanyah Fifth': 'Jumeirah Lakes Towers',
+  'Al Thanyah Third': 'The Greens',
+  'Al Thanyah Fourth': 'Emirates Hills',
+  'Hadaeq Sheikh Mohammed Bin Rashid': 'Mohammed Bin Rashid City',
+};
+
+/**
+ * Off-plan suggestions for the selected DLD area.
+ *
+ * 1. Translate DLD area name → Reelly-friendly name where needed.
+ * 2. Query Reelly's catalogue via `search_query` (matches name + developer + district).
+ * 3. Filter results client-side to only those whose `location.district`
+ *    actually matches the searched area (Reelly's search is fuzzy).
+ * 4. For each project compute AED/sqft from min_price + min_size, compare
+ *    to the area's DLD average, and emit a one-line verdict.
+ */
+function OffPlanSuggestionsSection({
+  areaName, areaAvgPsf,
+}: {
+  areaName: string;
+  areaAvgPsf: number;
+}) {
+  const reellyName = DLD_TO_REELLY_AREA[areaName] || areaName;
+
+  const { data, isLoading } = useReellyProjects({
+    country: 'United Arab Emirates',
+    searchQuery: reellyName,
+    limit: 24,
+  });
+
+  const projects: ReellyProject[] = useMemo(() => {
+    const all = data?.results ?? [];
+    const needle = reellyName.toLowerCase();
+    // Keep only on-sale projects whose district matches what the user searched.
+    return all
+      .filter((p) => {
+        const district = (p.location?.district || '').toLowerCase();
+        const region = (p.location?.region || '').toLowerCase();
+        return district.includes(needle) || needle.includes(district) || region.includes(needle);
+      })
+      .filter((p) => p.sale_status !== 'out_of_stock')
+      .slice(0, 6);
+  }, [data, reellyName]);
+
+  if (!areaName) return null;
+
+  if (isLoading) {
+    return (
+      <section className="space-y-3">
+        <h2 className="text-sm font-black text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Off-Plan opportunities in {areaName}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl bg-white/[0.04] border border-white/[0.08] h-44 animate-pulse" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <section className="space-y-3">
+        <h2 className="text-sm font-black text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Off-Plan opportunities in {areaName}
+        </h2>
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            No active off-plan launches matched <strong>{areaName}</strong> right now.
+          </p>
+          <Link
+            to="/off-plan"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-primary hover:text-primary/80"
+          >
+            Browse all off-plan projects <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-black text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Off-Plan opportunities in {areaName}
+        </h2>
+        <Link
+          to="/off-plan"
+          className="text-[11px] font-bold text-primary hover:text-primary/80 flex items-center gap-1"
+        >
+          See all <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        AI verdict compares each project's launch price to the live DLD average
+        for {areaName} (AED {fmtNum(areaAvgPsf)}/sqft).
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {projects.map((p) => (
+          <OffPlanSuggestionCard key={p.id} project={p} areaAvgPsf={areaAvgPsf} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+interface VerdictRead {
+  tone: 'positive' | 'caution' | 'neutral';
+  label: string;
+  detail: string;
+}
+
+function readOffPlanVerdict(projectPsf: number | null, areaAvgPsf: number): VerdictRead {
+  if (!projectPsf || !areaAvgPsf) {
+    return {
+      tone: 'neutral',
+      label: 'Pricing not disclosed',
+      detail: 'Developer has not published a starting price — request a brochure for the full picture.',
+    };
+  }
+  const ratio = projectPsf / areaAvgPsf;
+  const diffPct = Math.round((ratio - 1) * 100);
+  if (ratio <= 0.9) {
+    return {
+      tone: 'positive',
+      label: 'Strong value vs area',
+      detail: `Launch price is ${Math.abs(diffPct)}% below the DLD area average — room for capital growth on hand-over.`,
+    };
+  }
+  if (ratio >= 1.15) {
+    return {
+      tone: 'caution',
+      label: 'Premium pricing',
+      detail: `Launch price is ${diffPct}% above the DLD area average — needs strong amenities or branding to justify.`,
+    };
+  }
+  return {
+    tone: 'neutral',
+    label: 'In line with area',
+    detail: `Launch price is ${diffPct >= 0 ? '+' : ''}${diffPct}% vs the DLD area average — fair entry point at current market.`,
+  };
+}
+
+function OffPlanSuggestionCard({
+  project, areaAvgPsf,
+}: {
+  project: ReellyProject;
+  areaAvgPsf: number;
+}) {
+  const projectPsf = project.min_price && project.min_size
+    ? Math.round(project.min_price / project.min_size)
+    : null;
+  const verdict = readOffPlanVerdict(projectPsf, areaAvgPsf);
+  const toneColor =
+    verdict.tone === 'positive' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : verdict.tone === 'caution' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    : 'bg-white/5 text-white/70 border-white/15';
+  const verdictTrim =
+    verdict.tone === 'positive' ? 'text-emerald-300'
+    : verdict.tone === 'caution' ? 'text-amber-300'
+    : 'text-white/75';
+
+  const completion = project.completion_date || project.completion_datetime?.slice(0, 10);
+  const target = project.slug_name ? `/projects/${project.slug_name}` : `/projects/${project.id}`;
+
+  return (
+    <Link
+      to={target}
+      className="group rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:border-primary/30 transition-colors overflow-hidden flex flex-col"
+    >
+      {/* Cover */}
+      <div className="relative h-32 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent overflow-hidden">
+        {project.cover_image?.url ? (
+          <img
+            src={project.cover_image.url}
+            alt={project.name}
+            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Building className="h-10 w-10 text-white/20" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        <span className={`absolute top-2 left-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${toneColor}`}>
+          {verdict.label}
+        </span>
+      </div>
+
+      <div className="p-3 flex-1 flex flex-col gap-2">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold truncate">
+            {project.developer || 'Developer'}
+          </p>
+          <p className="text-sm font-black text-foreground truncate" style={{ letterSpacing: '-0.01em' }}>
+            {project.name}
+          </p>
+          {project.location?.district && (
+            <p className="text-[11px] text-white/55 flex items-center gap-1 mt-0.5">
+              <MapPin className="h-3 w-3" /> {project.location.district}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-1">
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-white/40">From</p>
+            <p className="text-xs font-bold text-foreground tabular-nums">
+              {project.min_price ? `AED ${fmtNum(project.min_price)}` : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-white/40">AED/sqft</p>
+            <p className="text-xs font-bold text-foreground tabular-nums">
+              {projectPsf ? `AED ${fmtNum(projectPsf)}` : '—'}
+            </p>
+          </div>
+        </div>
+
+        {/* AI verdict mini-card */}
+        <div className="rounded-lg bg-white/[0.04] border border-white/[0.06] p-2 mt-auto">
+          <p className="text-[9px] uppercase tracking-wider text-primary/80 font-black flex items-center gap-1 mb-0.5">
+            <Sparkles className="h-2.5 w-2.5" /> RealSight AI · Verdict
+          </p>
+          <p className={`text-[11px] leading-snug ${verdictTrim}`}>
+            {verdict.detail}
+          </p>
+        </div>
+
+        {completion && (
+          <p className="text-[10px] text-white/40 mt-1">Hand-over: {completion}</p>
+        )}
+      </div>
+    </Link>
   );
 }
 
