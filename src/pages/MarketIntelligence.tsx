@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useDldBuildingTransactions, useDldAreaRentals, type BuildingTransaction, type AreaRental } from '@/hooks/useDldData';
+import { AreaPickerBar } from '@/components/AreaPickerBar';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import type { ReellyProject } from '@/types/reelly';
 import {
@@ -407,6 +408,20 @@ function MarketIntelligenceContent() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 px-4 md:px-6 max-w-[1400px] mx-auto pt-6">
+      {/* Persistent area picker — lets the user switch areas without
+          going back to the home search. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <AreaPickerBar currentArea={areaParam} />
+        {areaParam && (
+          <Link
+            to="/market-intelligence"
+            className="text-[11px] text-white/55 hover:text-white underline underline-offset-2"
+          >
+            ← View all of Dubai
+          </Link>
+        )}
+      </div>
+
       {/* Top-of-page mode banner — makes it crystal-clear whether the
           user is looking at Sales or Rental data. */}
       {(areaParam || buildingParam) && (

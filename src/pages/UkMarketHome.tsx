@@ -16,7 +16,7 @@
  */
 import { useMemo, useState } from 'react';
 import { ArrowUpRight, TrendingUp, TrendingDown, Building2 } from 'lucide-react';
-import { useUkRegion, useUkRegionsSnapshot } from '@/hooks/useUkMarketData';
+import { useUkRegion, useUkRegionHistory, useUkRegionsSnapshot } from '@/hooks/useUkMarketData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarketHeroShell } from '@/components/MarketHeroShell';
 import {
@@ -24,6 +24,8 @@ import {
   type MarketHeroSuggestionGroup,
   type MarketHeroFilters,
 } from '@/components/MarketHeroFilterBar';
+import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { UkRegionSlug } from '@/lib/ukApi';
 
 const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
@@ -103,10 +105,24 @@ function scrollRegionIntoView(slug: string) {
 
 export default function UkMarketHome() {
   const ukAggregate = useUkRegion('united-kingdom');
-  const london = useUkRegion('london');
-  const snapshot = useUkRegionsSnapshot();
+  const ukHistory   = useUkRegionHistory('united-kingdom', 24);
+  const london      = useUkRegion('london');
+  const snapshot    = useUkRegionsSnapshot();
 
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<{ slug: UkRegionSlug; label: string } | null>(null);
+
+  // National 24-month trend chart data.
+  const ukTrendData = useMemo(() => {
+    const series = ukHistory.data?.series ?? [];
+    return [...series]
+      .filter(p => p.averagePrice != null)
+      .sort((a, b) => (a.refMonth || '').localeCompare(b.refMonth || ''))
+      .map(p => ({
+        month: (p.refMonth ?? '').slice(0, 7),
+        price: Math.round(p.averagePrice ?? 0),
+      }));
+  }, [ukHistory.data]);
 
   // Build a single suggestion group from the regions list + postcode prefix.
   const suggestions: MarketHeroSuggestionGroup[] = useMemo(() => {
@@ -132,19 +148,28 @@ export default function UkMarketHome() {
     ];
   }, [query]);
 
+  const openRegion = (slug: UkRegionSlug) => {
+    const entry = UK_REGIONS.find(r => r.slug === slug);
+    setSelected({ slug, label: entry?.label ?? regionLabel(slug) });
+    // Scroll the deep-dive into view smoothly after it renders.
+    setTimeout(() => {
+      const el = document.getElementById('uk-deep-dive');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
   const handleSelectSuggestion = (_g: MarketHeroSuggestionGroup, item: { payload?: unknown }) => {
-    const slug = item.payload as UkRegionSlug;
-    scrollRegionIntoView(slug);
+    openRegion(item.payload as UkRegionSlug);
   };
 
   const handleSubmit = (filters: MarketHeroFilters) => {
     const direct = postcodeToRegion(filters.query);
     if (direct) {
-      scrollRegionIntoView(direct);
+      openRegion(direct);
       return;
     }
     if (suggestions[0]?.items[0]) {
-      scrollRegionIntoView(suggestions[0].items[0].payload as UkRegionSlug);
+      openRegion(suggestions[0].items[0].payload as UkRegionSlug);
     }
   };
 
@@ -199,6 +224,56 @@ export default function UkMarketHome() {
           ) : null
         }
       />
+
+      {/* ─── Selected-region deep dive (rendered when user picks one) ─── */}
+      {selected && (
+        <div id="uk-deep-dive">
+          <MarketRegionDeepDive
+            market="uk"
+            regionSlug={selected.slug}
+            regionLabel={selected.label}
+            onClear={() => setSelected(null)}
+          />
+        </div>
+      )}
+
+      {/* ─── UK national 24-month trend ─── */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-foreground">UK 24-month price trend</h2>
+            <p className="text-sm text-white/55">Average residential price across the UK, by month.</p>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-white/40">Source · HM Land Registry</p>
+        </div>
+        {ukHistory.isLoading ? (
+          <Skeleton className="h-[200px] w-full" />
+        ) : ukTrendData.length >= 3 ? (
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-4 h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={ukTrendData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="uk-trend-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#18d6a4" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#18d6a4" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis domain={['dataMin', 'dataMax']} hide />
+                <Tooltip
+                  contentStyle={{ background: 'rgba(10,15,30,0.92)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, fontSize: 12 }}
+                  labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
+                  itemStyle={{ color: '#fff' }}
+                  formatter={(v: number) => [`£${Math.round(v).toLocaleString()}`, 'Avg price']}
+                />
+                <Area type="monotone" dataKey="price" stroke="#18d6a4" strokeWidth={2} fill="url(#uk-trend-grad)" dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <EmptyState reason="National trend not yet available." />
+        )}
+      </section>
 
       {/* ─── Regions snapshot ─── */}
       <section>
