@@ -23,28 +23,30 @@ import {
   type MarketHeroSuggestionGroup,
   type MarketHeroFilters,
 } from '@/components/MarketHeroFilterBar';
+import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 
-const US_METROS: Array<{ slug: string; label: string; aliases: string[] }> = [
-  { slug: 'new-york',      label: 'New York City',  aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
-  { slug: 'los-angeles',   label: 'Los Angeles',    aliases: ['LA', '90001', '90210', '90028'] },
-  { slug: 'chicago',       label: 'Chicago',        aliases: ['Cook County', '60601', '60614'] },
-  { slug: 'miami',         label: 'Miami',          aliases: ['33101', '33139', 'Miami Beach'] },
-  { slug: 'san-francisco', label: 'San Francisco',  aliases: ['SF', '94102', '94110'] },
-  { slug: 'boston',        label: 'Boston',         aliases: ['02108', '02115'] },
-  { slug: 'washington-dc', label: 'Washington DC',  aliases: ['DC', '20001', '20002'] },
-  { slug: 'seattle',       label: 'Seattle',        aliases: ['98101', '98109'] },
-  { slug: 'denver',        label: 'Denver',         aliases: ['80202', '80203'] },
-  { slug: 'phoenix',       label: 'Phoenix',        aliases: ['85001', '85003'] },
-  { slug: 'dallas',        label: 'Dallas',         aliases: ['75201', '75202'] },
-  { slug: 'san-diego',     label: 'San Diego',      aliases: ['92101', '92103'] },
-  { slug: 'portland',      label: 'Portland',       aliases: ['97201', '97204'] },
-  { slug: 'charlotte',     label: 'Charlotte',      aliases: ['28202', '28203'] },
-  { slug: 'detroit',       label: 'Detroit',        aliases: ['48201', '48226'] },
-  { slug: 'las-vegas',     label: 'Las Vegas',      aliases: ['89101', '89109'] },
-  { slug: 'minneapolis',   label: 'Minneapolis',    aliases: ['55401', '55402'] },
-  { slug: 'cleveland',     label: 'Cleveland',      aliases: ['44101', '44113'] },
-  { slug: 'tampa',         label: 'Tampa',          aliases: ['33602', '33606'] },
-  { slug: 'atlanta',       label: 'Atlanta',        aliases: ['30301', '30303'] },
+const US_METROS: Array<{ slug: string; label: string; series: string; aliases: string[] }> = [
+  { slug: 'new-york',      label: 'New York City',  series: 'NYXRSA', aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
+  { slug: 'los-angeles',   label: 'Los Angeles',    series: 'LXXRSA', aliases: ['LA', '90001', '90210', '90028'] },
+  { slug: 'chicago',       label: 'Chicago',        series: 'CHXRSA', aliases: ['Cook County', '60601', '60614'] },
+  { slug: 'miami',         label: 'Miami',          series: 'MIXRSA', aliases: ['33101', '33139', 'Miami Beach'] },
+  { slug: 'san-francisco', label: 'San Francisco',  series: 'SFXRSA', aliases: ['SF', '94102', '94110'] },
+  { slug: 'boston',        label: 'Boston',         series: 'BOXRSA', aliases: ['02108', '02115'] },
+  { slug: 'washington-dc', label: 'Washington DC',  series: 'WDXRSA', aliases: ['DC', '20001', '20002'] },
+  { slug: 'seattle',       label: 'Seattle',        series: 'SEXRSA', aliases: ['98101', '98109'] },
+  { slug: 'denver',        label: 'Denver',         series: 'DNXRSA', aliases: ['80202', '80203'] },
+  { slug: 'phoenix',       label: 'Phoenix',        series: 'PHXRSA', aliases: ['85001', '85003'] },
+  { slug: 'dallas',        label: 'Dallas',         series: 'DAXRSA', aliases: ['75201', '75202'] },
+  { slug: 'san-diego',     label: 'San Diego',      series: 'SDXRSA', aliases: ['92101', '92103'] },
+  { slug: 'portland',      label: 'Portland',       series: 'POXRSA', aliases: ['97201', '97204'] },
+  { slug: 'charlotte',     label: 'Charlotte',      series: 'CRXRSA', aliases: ['28202', '28203'] },
+  { slug: 'detroit',       label: 'Detroit',        series: 'DEXRSA', aliases: ['48201', '48226'] },
+  { slug: 'las-vegas',     label: 'Las Vegas',      series: 'LVXRSA', aliases: ['89101', '89109'] },
+  { slug: 'minneapolis',   label: 'Minneapolis',    series: 'MNXRSA', aliases: ['55401', '55402'] },
+  { slug: 'cleveland',     label: 'Cleveland',      series: 'CEXRSA', aliases: ['44101', '44113'] },
+  { slug: 'tampa',         label: 'Tampa',          series: 'TPXRSA', aliases: ['33602', '33606'] },
+  { slug: 'atlanta',       label: 'Atlanta',        series: 'ATXRSA', aliases: ['30301', '30303'] },
 ];
 
 const DOLLAR = '$';
@@ -74,14 +76,40 @@ function scrollMetroIntoView(slug: string) {
 export default function UsMarketHome() {
   const manhattanSales = useNycSales({ borough: 'manhattan', limit: 8, minPrice: 1_000_000 });
   const brooklynSales  = useNycSales({ borough: 'brooklyn',  limit: 6, minPrice: 500_000 });
+  const queensSales    = useNycSales({ borough: 'queens',    limit: 6, minPrice: 500_000 });
+  const bronxSales     = useNycSales({ borough: 'bronx',     limit: 6, minPrice: 350_000 });
   const chicagoSales   = useChicagoSales({ limit: 6, minPrice: 500_000 });
   const mortgage30     = useFredSeries('MORTGAGE30US', 1);
+  const mortgage30Hist = useFredSeries('MORTGAGE30US', 60);
   const caseShiller    = useFredSeries('CSUSHPINSA', 13);
+  const caseShillerHist = useFredSeries('CSUSHPINSA', 60); // 5y trend
+  const housingStarts  = useFredSeries('HOUST', 1);
+  const buildingPermits = useFredSeries('PERMIT', 1);
+  const existingSales  = useFredSeries('EXHOSLUSM495S', 1);
   const metros         = useUsMetrosSnapshot();
 
   const hpiTrend = computeYoY(caseShiller.data?.observations);
 
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<{ slug: string; label: string; series: string } | null>(null);
+
+  // National HPI 60-month trend
+  const hpiTrendData = useMemo(() => {
+    const obs = caseShillerHist.data?.observations ?? [];
+    return [...obs]
+      .filter(o => o.value && o.value !== '.')
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(o => ({ month: o.date.slice(0, 7), v: parseFloat(o.value) }));
+  }, [caseShillerHist.data]);
+
+  // 30-yr mortgage 60-month trend
+  const mortgageTrendData = useMemo(() => {
+    const obs = mortgage30Hist.data?.observations ?? [];
+    return [...obs]
+      .filter(o => o.value && o.value !== '.')
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(o => ({ month: o.date.slice(0, 7), v: parseFloat(o.value) }));
+  }, [mortgage30Hist.data]);
 
   const suggestions: MarketHeroSuggestionGroup[] = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -98,13 +126,23 @@ export default function UsMarketHome() {
     return [{ label: 'Metros, boroughs & ZIPs', icon: '🇺🇸', items: matched }];
   }, [query]);
 
+  const openMetro = (slug: string) => {
+    const entry = US_METROS.find(m => m.slug === slug);
+    if (!entry) return;
+    setSelected({ slug, label: entry.label, series: entry.series });
+    setTimeout(() => {
+      const el = document.getElementById('us-deep-dive');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
   const handleSelectSuggestion = (_g: MarketHeroSuggestionGroup, item: { payload?: unknown }) => {
-    scrollMetroIntoView(item.payload as string);
+    openMetro(item.payload as string);
   };
 
   const handleSubmit = (_filters: MarketHeroFilters) => {
     if (suggestions[0]?.items[0]) {
-      scrollMetroIntoView(suggestions[0].items[0].payload as string);
+      openMetro(suggestions[0].items[0].payload as string);
     }
   };
 
@@ -156,6 +194,73 @@ export default function UsMarketHome() {
           </div>
         }
       />
+
+      {/* ─── Selected-metro deep dive (rendered when user picks one) ─── */}
+      {selected && (
+        <div id="us-deep-dive">
+          <MarketRegionDeepDive
+            market="us"
+            metroSlug={selected.slug}
+            metroLabel={selected.label}
+            fredSeriesId={selected.series}
+            onClear={() => setSelected(null)}
+          />
+        </div>
+      )}
+
+      {/* ─── National macro trends (5-year) ─── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <MacroChartCard
+          title="Case-Shiller National HPI"
+          subtitle="60-month index trend"
+          data={hpiTrendData}
+          color="#a78bfa"
+          formatter={(v) => v.toFixed(1)}
+          loading={caseShillerHist.isLoading}
+        />
+        <MacroChartCard
+          title="30-yr mortgage rate"
+          subtitle="60-month FRED series"
+          data={mortgageTrendData}
+          color="#34d399"
+          formatter={(v) => `${v.toFixed(2)}%`}
+          loading={mortgage30Hist.isLoading}
+        />
+      </section>
+
+      {/* ─── Supply-side tiles ─── */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-foreground">National supply & demand</h2>
+            <p className="text-sm text-white/55">Latest FRED indicators driving the market.</p>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-white/40">Source · FRED (Federal Reserve)</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <MacroTile
+            label="Housing starts"
+            value={housingStarts.data?.observations?.[0]?.value
+              ? `${Number(housingStarts.data.observations[0].value).toLocaleString()}K`
+              : null}
+            hint={housingStarts.data?.observations?.[0]?.date ? `as of ${housingStarts.data.observations[0].date}` : 'monthly · annualised'}
+          />
+          <MacroTile
+            label="Building permits"
+            value={buildingPermits.data?.observations?.[0]?.value
+              ? `${Number(buildingPermits.data.observations[0].value).toLocaleString()}K`
+              : null}
+            hint={buildingPermits.data?.observations?.[0]?.date ? `as of ${buildingPermits.data.observations[0].date}` : 'monthly · annualised'}
+          />
+          <MacroTile
+            label="Existing home sales"
+            value={existingSales.data?.observations?.[0]?.value
+              ? `${Number(existingSales.data.observations[0].value).toLocaleString()}K`
+              : null}
+            hint={existingSales.data?.observations?.[0]?.date ? `as of ${existingSales.data.observations[0].date}` : 'monthly · annualised'}
+          />
+        </div>
+      </section>
 
       {/* ─── 20-metro Case-Shiller grid ─── */}
       <section>
@@ -236,6 +341,42 @@ export default function UsMarketHome() {
       </MetroSection>
 
       <MetroSection
+        title="Queens, NYC"
+        subtitle="Recent sales over $500K"
+        isLoading={queensSales.isLoading}
+        empty={!queensSales.data?.sales || queensSales.data.sales.length === 0}
+      >
+        {queensSales.data?.sales.map((s, i) => (
+          <SaleCard
+            key={`${s.address}-${s.apartment_number}-${i}`}
+            price={Number(s.sale_price)}
+            date={fmtDate(s.sale_date)}
+            address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
+            area={s.neighborhood}
+            zip={s.zip_code}
+          />
+        ))}
+      </MetroSection>
+
+      <MetroSection
+        title="Bronx, NYC"
+        subtitle="Recent sales over $350K"
+        isLoading={bronxSales.isLoading}
+        empty={!bronxSales.data?.sales || bronxSales.data.sales.length === 0}
+      >
+        {bronxSales.data?.sales.map((s, i) => (
+          <SaleCard
+            key={`${s.address}-${s.apartment_number}-${i}`}
+            price={Number(s.sale_price)}
+            date={fmtDate(s.sale_date)}
+            address={`${s.address}${s.apartment_number ? ` ${s.apartment_number}` : ''}`}
+            area={s.neighborhood}
+            zip={s.zip_code}
+          />
+        ))}
+      </MetroSection>
+
+      <MetroSection
         title="Chicago, IL"
         subtitle="Recent sales over $500K — Cook County records"
         isLoading={chicagoSales.isLoading}
@@ -265,6 +406,62 @@ export default function UsMarketHome() {
 }
 
 /* ─── Subcomponents ─── */
+
+function MacroChartCard({
+  title, subtitle, data, color, formatter, loading,
+}: {
+  title: string;
+  subtitle: string;
+  data: { month: string; v: number }[];
+  color: string;
+  formatter: (v: number) => string;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-4">
+      <div className="flex items-end justify-between mb-2">
+        <div>
+          <p className="text-xs font-black text-foreground">{title}</p>
+          <p className="text-[10px] text-white/45">{subtitle}</p>
+        </div>
+        {data.length > 0 && (
+          <p className="text-base font-black text-foreground tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+            {formatter(data[data.length - 1].v)}
+          </p>
+        )}
+      </div>
+      <div className="h-[130px]">
+        {loading ? (
+          <Skeleton className="h-full w-full" />
+        ) : data.length >= 3 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.45} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 9 }} axisLine={false} tickLine={false} />
+              <YAxis domain={['dataMin', 'dataMax']} hide />
+              <Tooltip
+                contentStyle={{ background: 'rgba(10,15,30,0.92)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, fontSize: 12 }}
+                labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
+                itemStyle={{ color: '#fff' }}
+                formatter={(v: number) => [formatter(v), '']}
+              />
+              <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#grad-${color})`} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-[11px] text-white/45 italic">
+            FRED key needed for historical series.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function MacroTile({ label, value, hint, positive }: { label: string; value: string | null; hint?: string; positive?: boolean }) {
   const color = positive === undefined ? 'text-foreground' : positive ? 'text-emerald-400' : 'text-amber-400';
