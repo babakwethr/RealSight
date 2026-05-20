@@ -16,6 +16,7 @@
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { BackButton } from '@/components/BackButton';
 import { useReellyProjects } from '@/hooks/useReellyData';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -92,6 +93,7 @@ export default function OffPlan() {
   // Renders inside <AppLayout /> — sidebar + bg are provided by the layout.
   return (
     <div className="space-y-8 animate-fade-in">
+        <BackButton />
         {/* ─── Hero ─── */}
         <section className="glass-card p-8">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">

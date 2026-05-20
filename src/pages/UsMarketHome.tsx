@@ -26,6 +26,7 @@ import {
 import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { fmtDate, fmtMonthString } from '@/lib/dateFormat';
+import { BackButton } from '@/components/BackButton';
 
 const US_METROS: Array<{ slug: string; label: string; series: string; aliases: string[] }> = [
   { slug: 'new-york',      label: 'New York City',  series: 'NYXRSA', aliases: ['NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', '10001', '10011', '11201'] },
@@ -153,6 +154,7 @@ export default function UsMarketHome() {
 
   return (
     <div className="space-y-10 animate-fade-in">
+      <BackButton />
       <MarketHeroShell
         market="us"
         eyebrow="United States · Public Records"

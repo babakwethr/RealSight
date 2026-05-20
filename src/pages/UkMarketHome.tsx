@@ -27,6 +27,7 @@ import {
 import { MarketRegionDeepDive } from '@/components/MarketRegionDeepDive';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { fmtMonthString } from '@/lib/dateFormat';
+import { BackButton } from '@/components/BackButton';
 import type { UkRegionSlug } from '@/lib/ukApi';
 
 const POSTCODE_TO_REGION: Record<string, UkRegionSlug> = {
@@ -176,6 +177,7 @@ export default function UkMarketHome() {
 
   return (
     <div className="space-y-10 animate-fade-in">
+      <BackButton />
       {/* ─── Hero (UAE-style shell) ─── */}
       <MarketHeroShell
         market="uk"
