@@ -45,16 +45,23 @@ export function AppLayout() {
   const showUpgradeBanner = !loading && upsell && !stripDismissed;
 
   return (
+    // Fixed-height app shell: the root is exactly one viewport tall and
+    // never scrolls. Only the inner content area scrolls — that keeps the
+    // upgrade strip + market ticker pinned to the top instead of scrolling
+    // away with the page. `100dvh` tracks the real visible height on iOS.
     <div
-      className="relative min-h-screen cinematic-bg flex w-full"
+      className="relative h-[100dvh] overflow-hidden cinematic-bg flex w-full"
       style={{ isolation: 'isolate' }}
     >
       {/* Desktop sidebar — always-expanded fixed-width rail. Sticky to viewport. */}
-      <div className="relative hidden lg:block shrink-0 sticky top-0 h-screen z-20">
+      <div className="relative hidden lg:block shrink-0 h-full z-20">
         <AppSidebar />
       </div>
 
-      <main className="relative flex-1 flex flex-col min-h-screen min-w-0 z-10">
+      <main
+        className="relative flex-1 flex flex-col min-h-0 min-w-0 z-10"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
+      >
         {/* Upgrade strip — plan-aware via getUpsellTarget(). Investor-path
             users see "Investor Pro · $4/mo"; adviser-path users see "Adviser
             Pro · $99/mo"; top-tier users see nothing. */}
@@ -143,8 +150,11 @@ export function AppLayout() {
             Billing, …). Source map: src/components/ticker/MarketTickerSlot.tsx */}
         <MarketTickerSlot />
 
-        {/* Content area — extra bottom padding on mobile to clear the curved nav */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-[120px] lg:pb-6 custom-scrollbar mobile-scroll-pad">
+        {/* Content area — the ONLY scroll container. `min-h-0` lets this
+            flex child shrink so its own overflow works (without it the
+            whole page scrolls and the ticker scrolls away). Extra bottom
+            padding clears the curved mobile nav. */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pb-[120px] lg:pb-6 custom-scrollbar mobile-scroll-pad">
           <Outlet />
         </div>
       </main>

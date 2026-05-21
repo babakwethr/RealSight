@@ -40,7 +40,8 @@ const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n
 // Public nav for logged-out users
 function PublicBar() {
   return (
-    <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/40 mb-0">
+    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40 mb-0"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}>
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link to="/">
           <Logo variant="white" className="h-7 w-auto" />
@@ -773,17 +774,20 @@ function MarketIntelligenceContent() {
             </div>
             )}
 
-            {/* Upsell — Deal Analyzer for this area */}
-            <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 flex items-center gap-5">
-              <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
-                <Target className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">Analyse a property in {areaParam}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Paste any listing link — get AI verdict, market comps, yield scenarios and a branded PDF report.</p>
+            {/* Upsell — Deal Analyzer for this area. Stacks vertically on
+                mobile so the copy never gets squeezed to one-word-per-line. */}
+            <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+              <div className="flex items-start gap-4 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+                  <Target className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-foreground">Analyse a property in {areaParam}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Paste any listing link — get AI verdict, market comps, yield scenarios and a branded PDF report.</p>
+                </div>
               </div>
               <Link to={user ? '/deal-analyzer' : '/login?mode=signup'}
-                className="shrink-0 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap flex items-center gap-2">
+                className="shrink-0 w-full sm:w-auto justify-center px-5 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap flex items-center gap-2">
                 <Target className="h-4 w-4" /> Analyse a Deal
               </Link>
             </div>
