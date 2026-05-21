@@ -64,7 +64,7 @@ function demandLabel(score: number) {
 // ─── Public top nav — modal-based auth (Flova-style) ─────────────────────────
 function PublicTopNav({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   return (
-    <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/40"
+    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40"
       style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}>
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <Link to="/">
@@ -369,8 +369,12 @@ function SearchFilterBar({ areas, onSearch }: { areas: { id: string; name: strin
 
       {/* Mobile: search → segment → filter chips, three rows. Soft-square corners. */}
       <div className="sm:hidden space-y-2.5">
-        {/* Search row */}
-        <div className="flex gap-2">
+        {/* Search row — relative z-[55] lifts the whole row (and its
+            autocomplete dropdown) above the Sales/Rental segment and the
+            filter chips below. Without this the input's `backdrop-blur`
+            traps the dropdown in a stacking context that the later-in-DOM
+            chips paint over. */}
+        <div className="relative z-[55] flex gap-2">
           <div className="relative flex-1 backdrop-blur-md bg-white/[0.06] border border-white/[0.12] rounded-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
             <input
@@ -1240,7 +1244,7 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
               },
             ].map((c, i) => (
               <div key={i} className="backdrop-blur-md bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_4px_20px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 mb-4">
                   <div className="flex items-center gap-2 text-sm font-semibold text-foreground">{c.icon}{c.title}</div>
                   <span className="text-xs text-muted-foreground">{c.sub}</span>
                 </div>
@@ -1253,12 +1257,12 @@ export default function MarketHome({ isPublic = false }: { isPublic?: boolean })
         {/* ── Area performance table ── */}
         {areas.length > 0 && (
           <div className="backdrop-blur-md bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden pb-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_rgba(0,0,0,0.18)]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-5 py-4 border-b border-white/[0.06]">
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" /> Area Performance
-                <span className="text-[9px] font-black px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 tracking-wide">DLD LIVE</span>
+                <Activity className="h-4 w-4 text-primary shrink-0" /> Area Performance
+                <span className="text-[9px] font-black px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 tracking-wide shrink-0">DLD LIVE</span>
               </h2>
-              <Link to="/market-intelligence" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 group font-semibold">
+              <Link to="/market-intelligence" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 group font-semibold shrink-0">
                 Full analysis <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
