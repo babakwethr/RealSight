@@ -27,11 +27,16 @@ For the full public-launch playbook see `APPLE_APP_STORE_LAUNCH.md`.
 
 ## Prerequisites (on the Mac doing the build)
 
-- macOS with **Xcode 15+**
-- **CocoaPods** (`sudo gem install cocoapods` if missing)
+- macOS with **Xcode 16+** (Xcode 26 used for the first build)
 - **Node 18+** + `npm`
 - Signed into Xcode with an Apple ID that's a member of the Apple
   Developer team you're testing under (Xcode → Settings → Accounts)
+
+> The project uses Swift Package Manager — **no CocoaPods needed**.
+> Env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) are committed
+> in `.env.production`, so `npm run build` produces a working app. Do
+> NOT build without those — the native app boots to a blank navy
+> screen if the Supabase client can't initialise.
 
 ---
 
@@ -45,6 +50,30 @@ npm install
 npm run build
 npx cap sync ios
 ```
+
+### CLI archive + upload (what we actually used)
+
+The whole archive + upload can be driven from the terminal — no
+Xcode GUI needed. From `ios/App`:
+
+```bash
+# 1. Archive
+xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+  -destination 'generic/platform=iOS' \
+  -archivePath /tmp/RealSight-App.xcarchive archive -allowProvisioningUpdates
+
+# 2. Export + upload (exportOptions plist: method=app-store-connect,
+#    teamID=VUBM98B6AJ, destination=upload, signingStyle=automatic)
+xcodebuild -exportArchive -archivePath /tmp/RealSight-App.xcarchive \
+  -exportPath /tmp/RealSight-upload \
+  -exportOptionsPlist /tmp/uploadOptions.plist -allowProvisioningUpdates
+```
+
+Bump the build number before each upload: `cd ios/App && xcrun agvtool next-version -all`.
+
+The Xcode-GUI path below is the alternative if you prefer it.
+
+---
 
 `cap sync` copies the built web app into `ios/App/App/public/` and
 refreshes the native dependencies (runs `pod install`).
