@@ -58,10 +58,7 @@ export function AppLayout() {
         <AppSidebar />
       </div>
 
-      <main
-        className="relative flex-1 flex flex-col min-h-0 min-w-0 z-10"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
-      >
+      <main className="relative flex-1 flex flex-col min-h-0 min-w-0 z-10">
         {/* Upgrade strip — plan-aware via getUpsellTarget(). Investor-path
             users see "Investor Pro · $4/mo"; adviser-path users see "Adviser
             Pro · $99/mo"; top-tier users see nothing. */}

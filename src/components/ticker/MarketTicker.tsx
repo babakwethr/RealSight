@@ -162,7 +162,7 @@ export function MarketTicker({ source, areaName }: MarketTickerProps) {
       aria-label="Live market ticker"
       aria-live="off"
       className={cn(
-        'relative flex items-stretch h-9 sm:h-10 border-b border-white/[0.06]',
+        'relative flex items-stretch h-10 border-b border-white/[0.06]',
         'overflow-hidden',
       )}
       style={{

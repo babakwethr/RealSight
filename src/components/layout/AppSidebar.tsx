@@ -182,10 +182,7 @@ export function AppSidebar() {
       />
 
       {/* Logo */}
-      <div
-        className="relative flex items-center h-[57px] px-4 border-b border-white/[0.06] shrink-0 overflow-hidden"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0)', height: 'calc(57px + env(safe-area-inset-top, 0))' }}
-      >
+      <div className="relative flex items-center h-[57px] px-4 border-b border-white/[0.06] shrink-0 overflow-hidden">
         <Link to="/dashboard" className="flex items-center min-w-0">
           <Logo variant="white" className="h-6 w-auto shrink-0" />
         </Link>

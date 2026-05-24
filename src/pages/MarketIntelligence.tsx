@@ -40,8 +40,7 @@ const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n
 // Public nav for logged-out users
 function PublicBar() {
   return (
-    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40 mb-0"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}>
+    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40 mb-0">
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link to="/">
           <Logo variant="white" className="h-7 w-auto" />

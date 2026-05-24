@@ -64,8 +64,7 @@ function demandLabel(score: number) {
 // ─── Public top nav — modal-based auth (Flova-style) ─────────────────────────
 function PublicTopNav({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   return (
-    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}>
+    <div className="sticky top-0 z-[60] bg-background/95 backdrop-blur-md border-b border-border/40">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <Link to="/">
           <Logo variant="white" className="h-6 w-auto max-w-[120px]" />

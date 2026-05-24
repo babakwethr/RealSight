@@ -1131,15 +1131,14 @@
     }
   }
 
-  /* ── Capacitor iOS: safe-area for the app shell ── */
-  #root {
-    /* No top padding on root — sticky headers handle their own safe area */
-  }
-
-  /* All sticky/fixed headers must account for the notch */
-  .sticky, [class*="sticky"] {
-    padding-top: env(safe-area-inset-top, 0) !important;
-  }
+  /* ── Capacitor iOS: safe-area model ──
+     The native iOS status bar is OPAQUE — `overlaysWebView: false` in
+     capacitor.config.ts. The WKWebView already begins BELOW the status
+     bar, so NOTHING in the web layer adds `env(safe-area-inset-top)`:
+     doing so stacks a phantom empty band on top of the screen. The
+     BOTTOM is different — the webview does reach the home-indicator
+     edge, so `env(safe-area-inset-bottom)` still applies on the bottom
+     nav and `.mobile-scroll-pad`. */
 
   /* ── Mobile scroll padding — clears the bottom nav (64px) + safe area ── */
   .mobile-scroll-pad {
