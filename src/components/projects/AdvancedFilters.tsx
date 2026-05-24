@@ -37,7 +37,7 @@ export function AdvancedFilters({ filters, onChange }: AdvancedFiltersProps) {
           <span className="sm:hidden">Filters</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md bg-background/95 backdrop-blur-xl border-l border-glass-border p-0 flex flex-col pt-[env(safe-area-inset-top)]">
+      <SheetContent className="w-full sm:max-w-md bg-background/95 backdrop-blur-xl border-l border-glass-border p-0 flex flex-col">
         <SheetHeader className="px-5 py-5 sm:p-6 border-b border-white/[0.06] flex-none">
           <SheetTitle className="text-[20px] sm:text-xl font-black text-foreground text-left tracking-tight">
             Advanced Filters

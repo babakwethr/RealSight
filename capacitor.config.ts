@@ -6,8 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   // No server.url — app loads from local dist/ files (required for App Store)
   ios: {
-    // automatic = safe-area insets handled by the WKWebView automatically
-    contentInset: 'automatic',
+    // `never` = the WKWebView does NOT add its own safe-area content
+    // inset. The native status bar is opaque (overlaysWebView: false)
+    // so the webview already sits below it — letting the scroll view
+    // ALSO inset would stack a second empty band at the top.
+    contentInset: 'never',
     scrollEnabled: true,
     // Prevent the WKWebView from showing a browser URL bar
     allowsLinkPreview: false,
@@ -21,13 +24,13 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 1500,
-      backgroundColor: '#0B1120',
+      backgroundColor: '#07040F',
       showSpinner: false,
       launchAutoHide: true,
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#0B1120',
+      backgroundColor: '#07040F',
       overlaysWebView: false,
     },
   },

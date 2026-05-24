@@ -18,6 +18,7 @@ import {
   animate,
   type MotionValue,
 } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -110,10 +111,16 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
   const signupRole = user?.user_metadata?.signup_role;
   const isAdviserNav = isAdmin || signupRole === 'advisor';
 
-  // Punch-list item 8 — on Capacitor iOS, replace the web tab bar with
-  // a native Liquid Glass UIView overlay (or a UIBlurEffect fallback on
-  // pre-iOS 26). The web component returns null in this branch.
-  const useNativeBar = isCapacitorIos();
+  // Punch-list item 8 — on Capacitor iOS we CAN replace the web tab bar
+  // with a native Liquid Glass UIView overlay. But the native plugin is
+  // optional and may not be compiled into the iOS target (see
+  // docs/LIQUID_GLASS_TAB_BAR_SETUP.md). We only hand off to it when
+  // `isPluginAvailable` confirms the native class is actually present —
+  // otherwise we render the web tab bar so there is ALWAYS a working
+  // bottom nav. The value is constant for the session, so the
+  // conditional early-return below stays hooks-safe.
+  const useNativeBar =
+    isCapacitorIos() && Capacitor.isPluginAvailable('LiquidGlassTabBar');
 
   const isActive = (to: string) =>
     location.pathname === to || location.pathname.startsWith(to + '/');
@@ -197,11 +204,10 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, useNativeBar]);
 
-  // On Capacitor iOS, hide the web bar entirely — the native overlay
-  // renders the visible tab bar via UIView.
-  if (useNativeBar) return null;
-
   // ─────────────────────── Liquid lens motion plumbing ───────────────────────
+  // Every hook below runs unconditionally — the `useNativeBar`
+  // early-return lives AFTER the last hook so React always sees the
+  // same hook order on every render (rules-of-hooks).
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const lastPathRef = useRef<string | null>(null);
@@ -262,6 +268,12 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
     // x / opacity are stable motion values — safe to omit from deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePath]);
+
+  // On Capacitor iOS WITH the native Liquid Glass plugin compiled in,
+  // the web bar renders nothing — the native UIView overlay is the
+  // visible tab bar. Placed after every hook above so hook order is
+  // identical on every render.
+  if (useNativeBar) return null;
 
   const FabIcon = fabConfig.icon;
 

@@ -131,13 +131,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         </div>
 
         {/* Header */}
-        <div
-          className="relative flex items-center justify-between px-5 border-b border-white/[0.08]"
-          style={{
-            height: 'calc(64px + env(safe-area-inset-top, 0))',
-            paddingTop: 'env(safe-area-inset-top, 0)',
-          }}
-        >
+        <div className="relative flex items-center justify-between h-16 px-5 border-b border-white/[0.08]">
           <Logo variant="white" className="h-7 w-auto max-w-[150px]" />
           <button
             onClick={onClose}
