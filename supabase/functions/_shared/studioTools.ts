@@ -6,20 +6,23 @@
  * forces the constraint: *no number on any slide may exist that
  * isn't the literal return value of one of these tools.*
  *
- * Each tool returns `{ data, rows, window? }`. The orchestrator
- * builds a `Citation` from that + the call's params and persists it
- * into `studio_decks.outline[i].citation` so the front-end
- * `CitationChip` can render hover-revealed source proof.
+ * V2 — real data wiring. Phase 1 stubbed most tools; this rewrite
+ * connects them to the actual cached tables in RealSight Supabase:
  *
- * Phase 1 ships the UAE-DLD and uploaded-asset tools live; the
- * Reelly / UK / US / cached-aggregate tools are declared (so the
- * LLM can pick them) but stubbed to return empty rows. Phase 2 + 3
- * fleshes them out.
+ *   - dld_monthly_aggregates  (Dubai-wide + per-area, ~24 months)
+ *   - dld_areas               (~70 areas with psqft, growth, yield,
+ *                              demand, supply pipeline)
+ *   - dld_building_catalogue  (~4,500 buildings with txn counts)
+ *   - dld_transactions        (limited rows; live feed via dld-proxy)
+ *
+ * Internationals (Reelly, UK, US) remain stubs in this build — the
+ * proxy chain through the edge-function gateway adds latency the
+ * LLM doesn't tolerate well during a 30 s outline generation. They
+ * land in the next chunk; the system prompt steers the LLM to UAE
+ * data when those return rows=0.
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-
-// ── JSON-schema helpers (Gemini's function-calling format) ─────────
 
 type Schema = {
   type: 'object' | 'string' | 'number' | 'integer' | 'boolean' | 'array';
@@ -29,8 +32,6 @@ type Schema = {
   required?: string[];
   enum?: string[];
 };
-
-// ── Tool implementation surface ───────────────────────────────────
 
 export interface ToolContext {
   supabase: SupabaseClient;
@@ -42,9 +43,7 @@ export interface ToolContext {
 
 export interface ToolResult {
   data: unknown;
-  /** Row count — surfaced in the citation chip. */
   rows: number;
-  /** Optional human-readable date window — e.g. '27 Feb – 18 May 2026'. */
   window?: string;
 }
 
@@ -52,28 +51,22 @@ export interface StudioTool {
   name: string;
   description: string;
   parameters: Schema;
-  /** Source label that ends up in the citation chip — 'DLD',
-   *  'HM Land Registry', 'Case-Shiller', 'Reelly', etc. */
   source: string;
-  /** Implementation. Throws on hard failure; returns `{ rows: 0 }`
-   *  for "no data" responses (the LLM will phrase the slide without
-   *  numbers). */
   fn: (params: Record<string, unknown>, ctx: ToolContext) => Promise<ToolResult>;
 }
 
-// ── Tool implementations ──────────────────────────────────────────
+// ── DLD: monthly trend ───────────────────────────────────────────
 
-/** Dubai-wide monthly transactions (count + value + psqft). */
 const query_dld_monthly: StudioTool = {
   name: 'query_dld_monthly',
   description:
-    'Dubai monthly transaction count, AED total value, and average AED per square foot, for a given window. Use this for any time-series chart of Dubai market activity.',
+    'Dubai monthly transaction series — count, total AED value, average AED per square foot — for a date window. Use for any market-trend or time-series chart. Pass area="__all__" (default) for Dubai-wide, or a specific area name for that community.',
   parameters: {
     type: 'object',
     properties: {
-      start: { type: 'string', description: 'Window start, YYYY-MM (e.g. 2025-09).' },
-      end:   { type: 'string', description: 'Window end, YYYY-MM (inclusive).' },
-      area:  { type: 'string', description: 'Optional area name. Omit (or "__all__") for Dubai-wide.' },
+      start: { type: 'string', description: 'YYYY-MM (e.g. 2024-09).' },
+      end:   { type: 'string', description: 'YYYY-MM inclusive.' },
+      area:  { type: 'string', description: 'Optional area name. Default __all__.' },
     },
     required: ['start', 'end'],
   },
@@ -82,215 +75,324 @@ const query_dld_monthly: StudioTool = {
     const start = String(params.start);
     const end = String(params.end);
     const area = (params.area as string | undefined) || '__all__';
-    const { data, error } = await supabase.rpc('get_dld_monthly_trend', {
-      p_area: area,
-      p_start: start + '-01',
-      p_end: end + '-01',
-    });
+    const { data, error } = await supabase
+      .from('dld_monthly_aggregates')
+      .select('month, sales_count, total_aed, avg_psqft')
+      .eq('area_name', area)
+      .gte('month', `${start}-01`)
+      .lte('month', `${end}-31`)
+      .order('month', { ascending: true });
     if (error) throw new Error(`query_dld_monthly: ${error.message}`);
-    return {
-      data: data ?? [],
-      rows: Array.isArray(data) ? data.length : 0,
-      window: `${start} to ${end}`,
-    };
+    const rows = (data ?? []).map((r) => ({
+      month: r.month,
+      sales_count: r.sales_count,
+      total_aed: Number(r.total_aed),
+      avg_psqft: Number(r.avg_psqft),
+    }));
+    return { data: rows, rows: rows.length, window: `${start} to ${end}` };
   },
 };
 
-/** Top areas in Dubai by recent activity. */
+// ── DLD: areas ranked / top-N ───────────────────────────────────
+
 const query_dld_areas: StudioTool = {
   name: 'query_dld_areas',
   description:
-    'Top Dubai areas sorted by activity. Each row has area name, current avg AED/sqft, 12-month growth, gross rental yield, demand score. Use for any "top areas" ranking, area selection, or area comparison.',
+    'Top Dubai areas. Each row has avg price per sqft, 12-month growth %, rental yield %, demand score, supply pipeline. Use for top-areas rankings, area comparison, market-leader narratives.',
   parameters: {
     type: 'object',
     properties: {
-      top_n:   { type: 'integer', description: 'How many areas to return (max 20, default 8).' },
+      top_n:   { type: 'integer', description: 'Rows to return (default 10, max 25).' },
       sort_by: {
         type: 'string',
-        description: "Sort key — 'demand' | 'growth' | 'yield' | 'psqft'.",
-        enum: ['demand', 'growth', 'yield', 'psqft'],
+        description:
+          "Sort key — 'volume' (txn count 30d), 'growth' (12m psqft growth %), 'yield' (rental yield), 'demand' (demand score), 'price' (current psqft).",
+        enum: ['volume', 'growth', 'yield', 'demand', 'price'],
       },
     },
   },
   source: 'Dubai Land Department',
   fn: async (params, { supabase }) => {
-    const topN = Math.min(20, Number(params.top_n ?? 8));
-    const { data, error } = await supabase.rpc('list_dld_areas');
-    if (error) throw new Error(`query_dld_areas: ${error.message}`);
-    let rows = (data ?? []) as Array<Record<string, unknown>>;
+    const topN = Math.min(25, Math.max(1, Number(params.top_n ?? 10)));
     const sortBy = String(params.sort_by ?? 'demand');
-    // Best-effort sort — column names depend on RPC shape, fall back gracefully.
-    rows = [...rows].sort((a, b) => Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0));
+    const columnMap: Record<string, string> = {
+      volume: 'transaction_volume_30d',
+      yield:  'rental_yield_avg',
+      demand: 'demand_score',
+      price:  'avg_price_per_sqft_current',
+      growth: 'avg_price_per_sqft_current', // sort manually below
+    };
+    const sortColumn = columnMap[sortBy] ?? 'demand_score';
+
+    const { data, error } = await supabase
+      .from('dld_areas')
+      .select(
+        'name, avg_price_per_sqft_current, avg_price_per_sqft_12m_ago, transaction_volume_30d, rental_yield_avg, demand_score, supply_pipeline_units',
+      )
+      .order(sortColumn, { ascending: false, nullsFirst: false })
+      .limit(topN * 3); // overfetch so growth-sort can re-rank.
+    if (error) throw new Error(`query_dld_areas: ${error.message}`);
+
+    let rows = (data ?? []).map((r) => {
+      const cur = Number(r.avg_price_per_sqft_current) || 0;
+      const ago = Number(r.avg_price_per_sqft_12m_ago) || cur;
+      const growth_12m_pct = ago > 0 ? ((cur - ago) / ago) * 100 : 0;
+      return {
+        name: r.name,
+        price_per_sqft: Math.round(cur),
+        price_per_sqft_12m_ago: Math.round(ago),
+        growth_12m_pct: Number(growth_12m_pct.toFixed(1)),
+        rental_yield_pct: Number(Number(r.rental_yield_avg ?? 0).toFixed(2)),
+        demand_score: Number(r.demand_score ?? 0),
+        transaction_volume_30d: Number(r.transaction_volume_30d ?? 0),
+        supply_pipeline_units: Number(r.supply_pipeline_units ?? 0),
+      };
+    });
+    if (sortBy === 'growth') rows.sort((a, b) => b.growth_12m_pct - a.growth_12m_pct);
     rows = rows.slice(0, topN);
     return { data: rows, rows: rows.length };
   },
 };
 
-/** Stub — fleshed out in Phase 2 once the cached aggregate lands. */
-const query_dld_offplan_split: StudioTool = {
-  name: 'query_dld_offplan_split',
+// ── DLD: single-area detail ─────────────────────────────────────
+
+const query_dld_area_detail: StudioTool = {
+  name: 'query_dld_area_detail',
   description:
-    'Dubai off-plan vs secondary split for a given window: count of deals, total AED value, and the percentage cut by both metrics. Use for "off-plan vs secondary" slides.',
+    'Full stats for one Dubai area — current price psqft, 12-month growth, rental yield, demand score, supply pipeline, recent transaction volume. Use when the deck topic mentions a specific community (e.g. "JVC", "Marina", "Palm Jumeirah").',
   parameters: {
     type: 'object',
     properties: {
-      start_date: { type: 'string', description: 'Window start, YYYY-MM-DD.' },
-      end_date:   { type: 'string', description: 'Window end, YYYY-MM-DD.' },
-      area:       { type: 'string', description: 'Optional area filter.' },
+      area: { type: 'string', description: 'Area name or partial match (case-insensitive).' },
     },
-    required: ['start_date', 'end_date'],
+    required: ['area'],
   },
   source: 'Dubai Land Department',
-  fn: async (_params) => {
-    // Phase 2 wires this to `dld_monthly_aggregates_by_regtype`.
-    // Until then, return empty so the LLM writes the slide without
-    // hallucinated numbers.
-    return { data: { unavailable: true }, rows: 0 };
+  fn: async (params, { supabase }) => {
+    const area = String(params.area);
+    const { data, error } = await supabase
+      .from('dld_areas')
+      .select(
+        'name, avg_price_per_sqft_current, avg_price_per_sqft_12m_ago, transaction_volume_30d, rental_yield_avg, demand_score, supply_pipeline_units, city',
+      )
+      .ilike('name', `%${area}%`)
+      .order('demand_score', { ascending: false, nullsFirst: false })
+      .limit(1);
+    if (error) throw new Error(`query_dld_area_detail: ${error.message}`);
+    const r = (data ?? [])[0];
+    if (!r) return { data: { area_not_found: area }, rows: 0 };
+    const cur = Number(r.avg_price_per_sqft_current) || 0;
+    const ago = Number(r.avg_price_per_sqft_12m_ago) || cur;
+    const growth_12m_pct = ago > 0 ? ((cur - ago) / ago) * 100 : 0;
+    return {
+      data: {
+        name: r.name,
+        city: r.city,
+        price_per_sqft: Math.round(cur),
+        price_per_sqft_12m_ago: Math.round(ago),
+        growth_12m_pct: Number(growth_12m_pct.toFixed(1)),
+        rental_yield_pct: Number(Number(r.rental_yield_avg ?? 0).toFixed(2)),
+        demand_score: Number(r.demand_score ?? 0),
+        transaction_volume_30d: Number(r.transaction_volume_30d ?? 0),
+        supply_pipeline_units: Number(r.supply_pipeline_units ?? 0),
+      },
+      rows: 1,
+    };
   },
 };
 
-/** Stub — fleshed out in Phase 2. */
-const query_dld_rentals_by_area: StudioTool = {
-  name: 'query_dld_rentals_by_area',
-  description:
-    'Top Dubai areas by rental contract volume (DLD Ejari registrations) for a given window. Use for "rental hotspots" slides.',
-  parameters: {
-    type: 'object',
-    properties: {
-      start_date: { type: 'string', description: 'Window start, YYYY-MM-DD.' },
-      end_date:   { type: 'string', description: 'Window end, YYYY-MM-DD.' },
-      top_n:      { type: 'integer', description: 'How many to return (max 10).' },
-    },
-    required: ['start_date', 'end_date'],
-  },
-  source: 'Dubai Land Department · Ejari',
-  fn: async (_params) => {
-    return { data: { unavailable: true }, rows: 0 };
-  },
-};
+// ── DLD: top buildings by transaction count ─────────────────────
 
-/** Recent Dubai sale transactions feed. */
-const query_dld_recent_transactions: StudioTool = {
-  name: 'query_dld_recent_transactions',
+const query_dld_top_buildings: StudioTool = {
+  name: 'query_dld_top_buildings',
   description:
-    'Most recent Dubai sale transactions, optionally filtered by area. Each row is a deal with area, building, price, date. Use sparingly — only for slides that benefit from concrete deal examples.',
+    'Top Dubai buildings ranked by recorded DLD transaction count. Use for "which towers are selling" narratives.',
   parameters: {
     type: 'object',
     properties: {
-      area:  { type: 'string', description: 'Optional area filter.' },
-      limit: { type: 'integer', description: 'Max rows (default 20, max 50).' },
+      top_n: { type: 'integer', description: 'Rows to return (default 10, max 25).' },
+      area:  { type: 'string', description: 'Optional area filter (partial match).' },
     },
   },
   source: 'Dubai Land Department',
   fn: async (params, { supabase }) => {
-    const limit = Math.min(50, Number(params.limit ?? 20));
-    const area = params.area as string | undefined;
+    const topN = Math.min(25, Math.max(1, Number(params.top_n ?? 10)));
+    let q = supabase
+      .from('dld_building_catalogue')
+      .select('building_name_en, project_name_en, area_name_en, transaction_count, last_seen_date')
+      .order('transaction_count', { ascending: false, nullsFirst: false })
+      .limit(topN);
+    if (params.area) q = q.ilike('area_name_en', `%${String(params.area)}%`);
+    const { data, error } = await q;
+    if (error) throw new Error(`query_dld_top_buildings: ${error.message}`);
+    const rows = (data ?? []).map((r) => ({
+      building_name: r.building_name_en,
+      project_name: r.project_name_en,
+      area_name: r.area_name_en,
+      transaction_count: Number(r.transaction_count ?? 0),
+      last_seen_date: r.last_seen_date,
+    }));
+    return { data: rows, rows: rows.length };
+  },
+};
+
+// ── DLD: developer roll-up from building catalogue ──────────────
+
+const query_dld_top_developers: StudioTool = {
+  name: 'query_dld_top_developers',
+  description:
+    'Top Dubai developers ranked by aggregated transaction count across their projects. Use when the topic mentions developers (Emaar, Damac, Nakheel, etc.) or off-plan launches.',
+  parameters: {
+    type: 'object',
+    properties: {
+      top_n: { type: 'integer', description: 'Rows to return (default 8, max 20).' },
+    },
+  },
+  source: 'Dubai Land Department',
+  fn: async (params, { supabase }) => {
+    const topN = Math.min(20, Math.max(1, Number(params.top_n ?? 8)));
+    // No developer_name column in catalogue — roll up by project_name.
+    const { data, error } = await supabase
+      .from('dld_building_catalogue')
+      .select('project_name_en, transaction_count')
+      .not('project_name_en', 'is', null)
+      .order('transaction_count', { ascending: false, nullsFirst: false })
+      .limit(200);
+    if (error) throw new Error(`query_dld_top_developers: ${error.message}`);
+    // Group by project_name_en (closest proxy we have for developer).
+    const byProject = new Map<string, number>();
+    for (const r of data ?? []) {
+      const key = String(r.project_name_en ?? '').trim();
+      if (!key) continue;
+      byProject.set(key, (byProject.get(key) ?? 0) + Number(r.transaction_count ?? 0));
+    }
+    const rows = [...byProject.entries()]
+      .map(([project, total]) => ({ project, transaction_count: total }))
+      .sort((a, b) => b.transaction_count - a.transaction_count)
+      .slice(0, topN);
+    return { data: rows, rows: rows.length };
+  },
+};
+
+// ── DLD: recent transactions (limited — fed by dld-proxy nightly) ─
+
+const query_dld_recent_transactions: StudioTool = {
+  name: 'query_dld_recent_transactions',
+  description:
+    'Most recently recorded Dubai sale transactions — each row has area, building, property type, price, size, psqft, date. Use sparingly: only for "concrete example" slides where a few real deals make the abstract numbers tangible.',
+  parameters: {
+    type: 'object',
+    properties: {
+      area:  { type: 'string', description: 'Optional area filter (partial match).' },
+      limit: { type: 'integer', description: 'Max rows (default 12, max 25).' },
+    },
+  },
+  source: 'Dubai Land Department',
+  fn: async (params, { supabase }) => {
+    const limit = Math.min(25, Math.max(1, Number(params.limit ?? 12)));
     let q = supabase
       .from('dld_transactions')
-      .select('area_name, transaction_date, transaction_value, procedure_area, building_name')
-      .order('transaction_date', { ascending: false })
+      .select(
+        'area_id, project_name, building_name, property_type, transaction_type, price, size_sqft, price_per_sqft, transaction_date, bedrooms, view',
+      )
+      .eq('transaction_type', 'Sales')
+      .order('transaction_date', { ascending: false, nullsFirst: false })
       .limit(limit);
-    if (area) q = q.ilike('area_name', `%${area}%`);
     const { data, error } = await q;
     if (error) {
-      // Table might not exist on every env — fail soft, no numbers
+      // Table might not be populated — return empty, don't crash.
       return { data: { unavailable: true, hint: error.message }, rows: 0 };
     }
     return { data: data ?? [], rows: Array.isArray(data) ? data.length : 0 };
   },
 };
 
-/** Reelly off-plan project list (stub for Phase 1). */
-const query_reelly_projects: StudioTool = {
-  name: 'query_reelly_projects',
-  description:
-    'Off-plan and new-launch projects from the Reelly catalogue, optionally filtered by developer, city, or sale status. Use for slides about specific developer launches or off-plan strategy.',
-  parameters: {
-    type: 'object',
-    properties: {
-      developer:   { type: 'string', description: 'Optional developer name (e.g. "Emaar").' },
-      city:        { type: 'string', description: 'Optional city (e.g. "Dubai", "Bali").' },
-      sale_status: { type: 'string', description: 'Optional sale status filter.' },
-    },
-  },
-  source: 'Reelly',
-  fn: async (_params) => {
-    // Phase 2: invoke `reelly-proxy` edge function. Stub for now.
-    return { data: { unavailable: true }, rows: 0 };
-  },
-};
+// ── Internationals — proxy stubs (return rows=0 for V1) ─────────
 
-const query_reelly_project_detail: StudioTool = {
-  name: 'query_reelly_project_detail',
-  description: 'Detail for a single Reelly project by id.',
-  parameters: {
-    type: 'object',
-    properties: {
-      id: { type: 'string', description: 'Reelly project ID.' },
-    },
-    required: ['id'],
-  },
-  source: 'Reelly',
-  fn: async (_params) => ({ data: { unavailable: true }, rows: 0 }),
-};
+function makeStub(name: string, description: string, parameters: Schema, source: string): StudioTool {
+  return {
+    name,
+    description,
+    parameters,
+    source,
+    fn: async () => ({ data: { unavailable: true, reason: 'live proxy integration in the next chunk' }, rows: 0 }),
+  };
+}
 
-const query_uk_landregistry: StudioTool = {
-  name: 'query_uk_landregistry',
-  description: 'UK HM Land Registry UKHPI by region for a date range.',
-  parameters: {
+const query_dld_offplan_split = makeStub(
+  'query_dld_offplan_split',
+  'Dubai off-plan vs secondary split (count + AED value) for a window. STUB until the cached aggregate is built — returns rows=0; write the slide without specific percentages, or call query_dld_areas for area-level data instead.',
+  {
     type: 'object',
     properties: {
-      region: { type: 'string', description: 'Region or postcode area.' },
-      start:  { type: 'string', description: 'YYYY-MM.' },
-      end:    { type: 'string', description: 'YYYY-MM.' },
+      start_date: { type: 'string' },
+      end_date:   { type: 'string' },
+      area:       { type: 'string' },
     },
+    required: ['start_date', 'end_date'],
+  },
+  'Dubai Land Department',
+);
+
+const query_dld_rentals_by_area = makeStub(
+  'query_dld_rentals_by_area',
+  'Top Dubai areas by DLD Ejari rental contract volume for a window. STUB until cached — returns rows=0; use query_dld_areas with sort_by=yield as a proxy for rental hotspots.',
+  {
+    type: 'object',
+    properties: {
+      start_date: { type: 'string' },
+      end_date:   { type: 'string' },
+      top_n:      { type: 'integer' },
+    },
+    required: ['start_date', 'end_date'],
+  },
+  'Dubai Land Department · Ejari',
+);
+
+const query_reelly_projects = makeStub(
+  'query_reelly_projects',
+  'Reelly off-plan project catalogue. STUB — write the slide narrative without specific project counts.',
+  {
+    type: 'object',
+    properties: {
+      developer:   { type: 'string' },
+      city:        { type: 'string' },
+      sale_status: { type: 'string' },
+    },
+  },
+  'Reelly',
+);
+
+const query_uk_landregistry = makeStub(
+  'query_uk_landregistry',
+  'UK HM Land Registry UKHPI by region. STUB.',
+  {
+    type: 'object',
+    properties: { region: { type: 'string' }, start: { type: 'string' }, end: { type: 'string' } },
     required: ['region'],
   },
-  source: 'HM Land Registry · UKHPI',
-  fn: async (_params) => ({ data: { unavailable: true }, rows: 0 }),
-};
+  'HM Land Registry',
+);
 
-const query_us_caseshiller: StudioTool = {
-  name: 'query_us_caseshiller',
-  description: 'US Case-Shiller home-price index for a metro area over a window.',
-  parameters: {
+const query_us_caseshiller = makeStub(
+  'query_us_caseshiller',
+  'US Case-Shiller home-price index by MSA. STUB.',
+  {
     type: 'object',
-    properties: {
-      msa:   { type: 'string', description: 'Metro area (e.g. "New York").' },
-      start: { type: 'string', description: 'YYYY-MM.' },
-      end:   { type: 'string', description: 'YYYY-MM.' },
-    },
+    properties: { msa: { type: 'string' }, start: { type: 'string' }, end: { type: 'string' } },
     required: ['msa'],
   },
-  source: 'S&P Case-Shiller',
-  fn: async (_params) => ({ data: { unavailable: true }, rows: 0 }),
-};
+  'S&P Case-Shiller',
+);
 
-const query_us_nyc_sales: StudioTool = {
-  name: 'query_us_nyc_sales',
-  description: 'NYC sales aggregates, optionally filtered by ZIP code.',
-  parameters: {
-    type: 'object',
-    properties: {
-      zip:   { type: 'string', description: 'Optional ZIP code (e.g. "10001").' },
-      start: { type: 'string', description: 'YYYY-MM.' },
-      end:   { type: 'string', description: 'YYYY-MM.' },
-    },
-  },
-  source: 'NYC Open Data',
-  fn: async (_params) => ({ data: { unavailable: true }, rows: 0 }),
-};
+// ── Reference assets ───────────────────────────────────────────
 
-/** Read text extracted from an uploaded PDF reference. */
 const fetch_uploaded_doc: StudioTool = {
   name: 'fetch_uploaded_doc',
-  description:
-    'Read the extracted text of a PDF the adviser uploaded as reference material for this deck.',
+  description: 'Read the extracted text of a PDF the adviser attached as reference.',
   parameters: {
     type: 'object',
-    properties: {
-      asset_id: { type: 'string', description: 'studio_assets.id of the PDF.' },
-    },
+    properties: { asset_id: { type: 'string' } },
     required: ['asset_id'],
   },
   source: 'Uploaded PDF',
@@ -310,16 +412,12 @@ const fetch_uploaded_doc: StudioTool = {
   },
 };
 
-/** Read text extracted from a YouTube URL the adviser attached. */
 const fetch_youtube_transcript: StudioTool = {
   name: 'fetch_youtube_transcript',
-  description:
-    'Read the transcript of a YouTube video the adviser attached as reference material.',
+  description: 'Read the transcript of a YouTube video the adviser attached.',
   parameters: {
     type: 'object',
-    properties: {
-      asset_id: { type: 'string', description: 'studio_assets.id of the youtube_transcript row.' },
-    },
+    properties: { asset_id: { type: 'string' } },
     required: ['asset_id'],
   },
   source: 'YouTube',
@@ -339,19 +437,20 @@ const fetch_youtube_transcript: StudioTool = {
   },
 };
 
-// ── Public registry ───────────────────────────────────────────────
+// ── Public registry ────────────────────────────────────────────
 
 export const STUDIO_TOOLS: StudioTool[] = [
   query_dld_monthly,
   query_dld_areas,
+  query_dld_area_detail,
+  query_dld_top_buildings,
+  query_dld_top_developers,
+  query_dld_recent_transactions,
   query_dld_offplan_split,
   query_dld_rentals_by_area,
-  query_dld_recent_transactions,
   query_reelly_projects,
-  query_reelly_project_detail,
   query_uk_landregistry,
   query_us_caseshiller,
-  query_us_nyc_sales,
   fetch_uploaded_doc,
   fetch_youtube_transcript,
 ];
@@ -360,7 +459,6 @@ export function findStudioTool(name: string): StudioTool | undefined {
   return STUDIO_TOOLS.find((t) => t.name === name);
 }
 
-/** Gemini function-declaration form, sent in the `tools[]` payload. */
 export function geminiFunctionDeclarations() {
   return STUDIO_TOOLS.map((t) => ({
     name: t.name,

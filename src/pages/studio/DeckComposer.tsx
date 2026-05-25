@@ -18,9 +18,11 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Layers, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Layers, Loader2, Sparkles, PlusCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { lightTap, mediumTap } from '@/lib/capacitor';
 
@@ -37,7 +39,9 @@ import {
   WIZARD_STEPS,
   type DraftDeck,
   type ComposerContext,
+  type ComposerAudience,
 } from '@/features/studio/deck-builder/composer/types';
+import type { OutlineEntry } from '@/features/studio/deck-builder/runtime/types';
 
 const STEP_PANE_VARIANTS = {
   enter:  { opacity: 0, y: 8 },
@@ -46,9 +50,88 @@ const STEP_PANE_VARIANTS = {
 };
 
 export function DeckComposer() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deckIdParam = searchParams.get('deck');
   const [draft, setDraft] = useState<DraftDeck>(() => EMPTY_DRAFT);
   const [step, setStep] = useState(0);
+  const [loadingDraft, setLoadingDraft] = useState<boolean>(Boolean(deckIdParam));
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Load existing deck when ?deck=ID is in the URL (coming back from
+  // the preview, or a saved-state shareable link). Without this the
+  // composer used to reset to step 1 with an empty draft.
+  useEffect(() => {
+    let cancelled = false;
+    if (!deckIdParam) {
+      setLoadingDraft(false);
+      return;
+    }
+    (async () => {
+      setLoadingDraft(true);
+      const { data, error } = await supabase
+        .from('studio_decks')
+        .select(
+          'id, template_slug, topic, audience, brief, outline, visuals, reference_assets',
+        )
+        .eq('id', deckIdParam)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error || !data) {
+        toast.error('Could not load that deck — starting fresh');
+        // Clear the bad ?deck= so refresh doesn't keep failing.
+        setSearchParams({}, { replace: true });
+        setLoadingDraft(false);
+        return;
+      }
+      const brief = (data.brief ?? {}) as {
+        topic?: string;
+        audience?: string;
+        voice_notes?: string;
+        contact_bg_prompt?: string;
+        reference_asset_ids?: string[];
+      };
+      const refs = (Array.isArray(data.reference_assets)
+        ? data.reference_assets
+        : []) as DraftDeck['reference_assets'];
+      const loaded: DraftDeck = {
+        id: data.id,
+        topic: data.topic ?? brief.topic ?? '',
+        audience: (data.audience as ComposerAudience | null) ?? (brief.audience as ComposerAudience) ?? 'investor',
+        voice_notes: brief.voice_notes ?? '',
+        contact_bg_prompt: brief.contact_bg_prompt ?? '',
+        reference_assets: refs,
+        template_slug: data.template_slug ?? 'cinematic-gold',
+        outline: (data.outline ?? null) as OutlineEntry[] | null,
+        visuals: (data.visuals ?? {}) as Record<string, string>,
+      };
+      setDraft(loaded);
+      // Jump the wizard to the most-relevant step based on draft progress.
+      const hasOutline = Array.isArray(loaded.outline) && loaded.outline.length > 0;
+      const resumeStep = hasOutline
+        ? WIZARD_STEPS.findIndex((s) => s.id === 'outline')
+        : 0;
+      setStep(resumeStep >= 0 ? resumeStep : 0);
+      setLoadingDraft(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [deckIdParam, setSearchParams]);
+
+  // Whenever the deck gets persisted (first Generate sets draft.id),
+  // mirror that into the URL so refresh + Back-button keep state.
+  useEffect(() => {
+    if (draft.id && draft.id !== deckIdParam) {
+      setSearchParams({ deck: draft.id }, { replace: true });
+    }
+  }, [draft.id, deckIdParam, setSearchParams]);
+
+  const startFresh = () => {
+    void lightTap();
+    setDraft(EMPTY_DRAFT);
+    setStep(0);
+    setSearchParams({}, { replace: true });
+  };
 
   useEffect(() => {
     contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -109,13 +192,25 @@ export function DeckComposer() {
             <Sparkles className="h-3 w-3" />
             RealSight · Studio
           </div>
-          <Link
-            to="/studio"
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-white/[0.20] hover:text-white"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Studio
-          </Link>
+          <div className="flex items-center gap-2">
+            {draft.id ? (
+              <button
+                type="button"
+                onClick={startFresh}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-[#18d6a4]/40 hover:text-[#2effc0]"
+              >
+                <PlusCircle className="h-3 w-3" />
+                Start new
+              </button>
+            ) : null}
+            <Link
+              to="/studio"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-white/[0.20] hover:text-white"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Studio
+            </Link>
+          </div>
         </div>
         <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-5xl">
           Deck Builder
@@ -176,23 +271,30 @@ export function DeckComposer() {
       {/* App-frame card with current step */}
       <main className="mx-auto mb-12 max-w-7xl px-4 sm:px-8" ref={contentRef}>
         <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-md">
-          <AnimatePresence mode="wait">
-            <motion.section
-              key={currentId}
-              variants={STEP_PANE_VARIANTS}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-              className="p-5 sm:p-8"
-            >
-              {currentId === 'brief'    && <StepBrief    {...ctx} />}
-              {currentId === 'template' && <StepTemplate {...ctx} />}
-              {currentId === 'outline'  && <StepOutline  {...ctx} />}
-              {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
-              {currentId === 'publish'  && <StepPublish  {...ctx} />}
-            </motion.section>
-          </AnimatePresence>
+          {loadingDraft ? (
+            <div className="flex min-h-[480px] items-center justify-center p-12 text-white/55">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#18d6a4]" />
+              Loading your draft…
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.section
+                key={currentId}
+                variants={STEP_PANE_VARIANTS}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+                className="p-5 sm:p-8"
+              >
+                {currentId === 'brief'    && <StepBrief    {...ctx} />}
+                {currentId === 'template' && <StepTemplate {...ctx} />}
+                {currentId === 'outline'  && <StepOutline  {...ctx} />}
+                {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
+                {currentId === 'publish'  && <StepPublish  {...ctx} />}
+              </motion.section>
+            </AnimatePresence>
+          )}
         </div>
 
         {/* Trust / Time / Reuse strip */}

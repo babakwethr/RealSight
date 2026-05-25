@@ -385,6 +385,11 @@ function buildSystemPrompt(opts: {
   mode: 'plan' | 'refine';
   slideCatalogue: readonly string[];
 }): string {
+  const isInvestorish = ['investor', 'clients', 'open_house'].includes(
+    String(opts.audience ?? 'investor'),
+  );
+  const minCitations = isInvestorish ? 3 : 1;
+
   return `You are the planner for a polished, data-backed real-estate
 presentation deck. The audience persona is ${opts.audience ?? 'investor'}.
 
@@ -393,7 +398,59 @@ from this fixed catalogue (in this exact spelling):
 
   ${opts.slideCatalogue.join(', ')}
 
-Rules — these are HARD constraints:
+==============================================================
+DATA-FIRST PLANNING (read this first)
+==============================================================
+
+The audience is ${opts.audience ?? 'investor'}. ${
+    isInvestorish
+      ? `INVESTOR-CLASS AUDIENCES expect numbers — prices,
+growth %, rental yields, transaction volumes, area rankings. Slides
+without specific figures land flat for these people.`
+      : 'Team training and end-user briefs can lean narrative, but at least one slide MUST carry real DLD numbers so the deck has credibility.'
+  }
+
+**HARD REQUIREMENT — minimum ${minCitations} data citations in this deck.**
+A "data citation" = an outline entry whose \`_citation_sig\` points to
+a tool call that returned rows > 0. Decks under the threshold are
+rejected.
+
+**Before drafting any slide text, call data tools.** Recommended
+order for a Dubai-investor deck:
+
+  1. \`query_dld_monthly({ start, end })\` — get the 12-24 month
+     Dubai-wide trend (sales count + total AED + avg psqft per month).
+     Use this for the \`market_trend\` and \`signal\` slides.
+
+  2. \`query_dld_areas({ sort_by: 'demand'|'growth'|'yield'|'volume',
+     top_n: 8 })\` — get top areas by the metric that fits the topic.
+     Use this for \`top_volume\` (sort_by='volume'), \`top_yield\`
+     (sort_by='yield'), or as raw material for the \`strategy\` slide.
+
+  3. \`query_dld_area_detail({ area: 'JVC' })\` — if the topic
+     mentions a specific community, call this and weave the psqft +
+     growth + yield numbers into the narrative.
+
+  4. \`query_dld_top_buildings({ top_n: 8, area })\` — for
+     building-focused decks ("best-selling towers in Dubai Marina").
+
+  5. \`query_dld_top_developers({ top_n: 6 })\` — when developers /
+     off-plan launches are central.
+
+  6. \`query_dld_recent_transactions({ area, limit: 8 })\` — sparingly,
+     when concrete deal examples make the abstract numbers tangible.
+
+  7. \`fetch_uploaded_doc({ asset_id })\` / \`fetch_youtube_transcript({ asset_id })\`
+     — read every reference the adviser attached; their context shapes
+     the narrative.
+
+**If a tool returns rows = 0**, do not invent values; either skip the
+slide or rewrite it as a qualitative narrative (no numbers). NEVER
+fabricate.
+
+==============================================================
+STRUCTURAL RULES
+==============================================================
 
 1. **Cover is always first. Closing is always last.** Use exactly
    one of each.
@@ -402,14 +459,12 @@ Rules — these are HARD constraints:
    Pick the most relevant for the topic. Avoid duplicates.
 
 3. **No number may appear on any slide that wasn't the literal
-   return value of one of the tools you called.** If you need a
-   number you cannot get from a tool, write the slide without it.
-   Never invent prices, percentages, area names, or transaction
-   counts.
+   return value of one of the tools you called.** Skip the number
+   rather than guess.
 
 4. **When a slide cites a number, include _citation_sig in its
    outline entry** equal to the tool name plus a stable
-   stringification of the params you called it with — e.g.
+   stringification of the params — e.g.
    "_citation_sig": "query_dld_monthly:{\\"end\\":\\"2026-04\\",\\"start\\":\\"2024-09\\"}".
    The orchestrator uses this to attach the citation chip.
 
