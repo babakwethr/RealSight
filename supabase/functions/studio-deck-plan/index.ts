@@ -157,7 +157,15 @@ Deno.serve(async (req) => {
     const contents: Array<Record<string, unknown>> = [
       { role: 'user', parts: [{ text: userMessage }] },
     ];
-    const tools = [{ functionDeclarations: geminiFunctionDeclarations() }];
+    // Plan mode needs DLD tool-calls; refine mode already has the cited
+    // data baked into existing slides, so we omit the tool catalogue to
+    // shrink the request and remove a class of failure modes (function-
+    // call loops over a deck that's already finished). The orchestrator
+    // loop still handles tool-calls if Gemini emits them.
+    const includeTools = (body.mode ?? 'plan') === 'plan';
+    const tools = includeTools
+      ? [{ functionDeclarations: geminiFunctionDeclarations() }]
+      : undefined;
     const citationsByCallSig: Record<string, {
       tool: string;
       params: Record<string, unknown>;
@@ -176,23 +184,32 @@ Deno.serve(async (req) => {
     };
 
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
-      const requestBody = {
+      // Refine mode emits the full deck verbatim (10 long HTML slides),
+      // so it needs more output budget than plan mode. Plan mode also
+      // benefits from thinking-on for the data-call planning.
+      const isRefine = (body.mode ?? 'plan') === 'refine';
+      const requestBody: Record<string, unknown> = {
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents,
-        tools,
         generationConfig: {
-          temperature: 0.55,
+          temperature: isRefine ? 0.5 : 0.55,
           topP: 0.95,
           topK: 40,
-          maxOutputTokens: 32768,
+          maxOutputTokens: isRefine ? 60000 : 32768,
           responseMimeType: 'text/plain',
+          // Disable thinking on refine — we're just rewriting HTML,
+          // not planning data-calls. Thinking eats into the same output
+          // budget on 2.5-flash and we need every token for the deck.
+          ...(isRefine ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
         },
       };
+      if (tools) requestBody.tools = tools;
       console.log(
         `[studio-deck-plan] iter=${iter} mode=${body.mode ?? 'plan'} ` +
           `system_prompt_chars=${systemPrompt.length} ` +
           `contents_count=${contents.length} ` +
-          `user_msg_chars=${userMessage.length}`,
+          `user_msg_chars=${userMessage.length} ` +
+          `tools=${tools ? 'on' : 'off'}`,
       );
       let upstream: Response;
       try {
