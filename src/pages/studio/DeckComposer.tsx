@@ -141,11 +141,14 @@ export function DeckComposer() {
   }, [step]);
 
   const canGoNext = (() => {
+    const slideCount =
+      (Array.isArray(draft.html_slides) ? draft.html_slides.length : 0) ||
+      (Array.isArray(draft.outline) ? draft.outline.length : 0);
     switch (WIZARD_STEPS[step].id) {
       case 'brief':    return draft.topic.trim().length >= 8;
       case 'template': return Boolean(draft.template_slug);
-      case 'outline':  return Array.isArray(draft.outline) && draft.outline.length >= 5;
-      case 'visuals':  return Array.isArray(draft.outline) && draft.outline.length >= 5;
+      case 'outline':  return slideCount >= 4;
+      case 'visuals':  return slideCount >= 4;
       case 'publish':  return false;
     }
   })();

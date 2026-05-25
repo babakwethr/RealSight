@@ -131,12 +131,28 @@ Deno.serve(async (req) => {
     const apiUrl =
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
+    // Refine mode: load the existing slides so the LLM has the prior
+    // state to preserve. Without this it tends to emit only the slide
+    // it was asked to change and drop the rest of the deck.
+    let existingSlides: HtmlSlide[] = [];
+    if (body.mode === 'refine' && deckId) {
+      const { data: prior } = await supabase
+        .from('studio_decks')
+        .select('html_slides')
+        .eq('id', deckId)
+        .maybeSingle();
+      if (prior?.html_slides && Array.isArray(prior.html_slides)) {
+        existingSlides = prior.html_slides as HtmlSlide[];
+      }
+    }
+
     const systemPrompt = buildSystemPrompt({
       audience: body.audience,
       mode: body.mode ?? 'plan',
       templateSlug,
+      hasExistingSlides: existingSlides.length > 0,
     });
-    const userMessage = buildUserMessage(body, profile, templateSlug);
+    const userMessage = buildUserMessage(body, profile, templateSlug, existingSlides);
 
     const contents: Array<Record<string, unknown>> = [
       { role: 'user', parts: [{ text: userMessage }] },
@@ -249,7 +265,7 @@ Deno.serve(async (req) => {
 
     let slides = (parsed as { html_slides: HtmlSlide[] }).html_slides;
     if (slides.length > MAX_SLIDES) slides = slides.slice(0, MAX_SLIDES);
-    const cleanSlides: HtmlSlide[] = slides.map((s, i) => {
+    let cleanSlides: HtmlSlide[] = slides.map((s, i) => {
       const sig = (s as { _citation_sig?: string })._citation_sig;
       const citation = sig && citationsByCallSig[sig] ? citationsByCallSig[sig] : undefined;
       return {
@@ -259,6 +275,38 @@ Deno.serve(async (req) => {
         citation,
       };
     });
+
+    // Refine merge — if the LLM returned fewer slides than the prior
+    // deck has, treat it as a partial update: replace by id where it
+    // emitted a new version, keep the existing ones for the rest. The
+    // refine instruction often targets one slide and the LLM emits
+    // only that, dropping the rest. Without this merge the user loses
+    // their deck.
+    if (
+      body.mode === 'refine' &&
+      existingSlides.length > 0 &&
+      cleanSlides.length < existingSlides.length
+    ) {
+      const byId = new Map<string, HtmlSlide>();
+      for (const s of existingSlides) byId.set(s.id, s);
+      for (const s of cleanSlides) byId.set(s.id, s);
+      const ordered: HtmlSlide[] = [];
+      const seen = new Set<string>();
+      for (const orig of existingSlides) {
+        const merged = byId.get(orig.id);
+        if (merged) {
+          ordered.push(merged);
+          seen.add(orig.id);
+        }
+      }
+      for (const s of cleanSlides) {
+        if (!seen.has(s.id)) ordered.push(s);
+      }
+      cleanSlides = ordered;
+      console.log(
+        `[studio-deck-plan] refine merge — existing=${existingSlides.length} returned=${slides.length} final=${cleanSlides.length}`,
+      );
+    }
 
     if (cleanSlides.length < MIN_SLIDES) {
       return jsonResponse(
@@ -331,6 +379,7 @@ function buildSystemPrompt(opts: {
   audience?: string;
   mode: 'plan' | 'refine';
   templateSlug: string;
+  hasExistingSlides?: boolean;
 }): string {
   const isInvestorish = ['investor', 'clients', 'open_house'].includes(
     String(opts.audience ?? 'investor'),
@@ -523,12 +572,30 @@ analytics / future swapping; it does NOT constrain the HTML.
 ${
   opts.mode === 'refine'
     ? `\n==============================================================
-REFINE MODE
+REFINE MODE — READ CAREFULLY
 ==============================================================
 
-The user is asking you to adjust the existing deck. Re-emit the
-FULL html_slides array with the requested change applied. Preserve
-the layout invariants of slides you don't change.`
+You are editing an EXISTING deck. ${
+  opts.hasExistingSlides
+    ? `The current slides are provided in the user message under
+"EXISTING DECK". For EVERY slide in the existing deck, you MUST
+emit a corresponding entry in html_slides[] in the SAME ORDER and
+with the SAME id.
+
+Rules:
+  - If the refine instruction targets one specific slide, REWRITE
+    ONLY THAT SLIDE's html. Copy the OTHER slides byte-for-byte
+    from the existing version — same id, same type_hint, same
+    html, same _citation_sig.
+  - If the instruction is global ("make all slides punchier"),
+    rewrite every slide.
+  - NEVER return fewer html_slides entries than the existing deck
+    has. NEVER return only the changed slide alone — that drops
+    the rest of the deck.
+  - Keep the slide order. Do not reorder or remove unless the
+    instruction asks you to.`
+    : 'No prior slides were attached. Generate the full deck.'
+}`
     : ''
 }`;
 }
@@ -537,6 +604,7 @@ function buildUserMessage(
   body: PlanRequest,
   profile: { full_name: string | null; email: string | null },
   templateSlug: string,
+  existingSlides: HtmlSlide[] = [],
 ): string {
   const lines: string[] = [];
   lines.push(`Adviser: ${profile.full_name ?? '(name not set)'} (${profile.email ?? 'no email'})`);
@@ -549,6 +617,25 @@ function buildUserMessage(
     lines.push(`Reference assets attached (asset_id values): ${body.reference_asset_ids.join(', ')}`);
     lines.push('  → Use fetch_uploaded_doc(asset_id) / fetch_youtube_transcript(asset_id) to read them.');
   }
+
+  if (body.mode === 'refine' && existingSlides.length > 0) {
+    lines.push('');
+    lines.push('==============================================================');
+    lines.push(`EXISTING DECK (${existingSlides.length} slides) — PRESERVE ALL OF THESE`);
+    lines.push('==============================================================');
+    lines.push('Re-emit ALL of these slides in html_slides[] in this same');
+    lines.push('order. Rewrite ONLY the slide(s) the refine instruction');
+    lines.push('targets; copy the rest VERBATIM (same id, same type_hint,');
+    lines.push('same html, same _citation_sig).');
+    lines.push('');
+    for (const s of existingSlides) {
+      lines.push(`--- Slide id="${s.id}" type_hint="${s.type_hint}" ---`);
+      lines.push(s.html);
+      lines.push('');
+    }
+    lines.push('==============================================================');
+  }
+
   if (body.mode === 'refine' && body.refine_instruction) {
     lines.push('');
     lines.push(`Refine instruction: ${body.refine_instruction}`);
