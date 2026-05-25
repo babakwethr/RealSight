@@ -397,6 +397,44 @@ variables.
 The chosen template is **${opts.templateSlug}**. ${templateGuidance}
 
 ==============================================================
+THE CARDINAL RULE — 1280×800 FIXED CANVAS, NEVER OVERFLOW
+==============================================================
+
+Every slide renders inside a HARD 1280×800 canvas. The renderer
+clips overflow:hidden on the section, so any text or element that
+spills past the edges is invisible to the audience. You are
+designing for a deck, not a webpage.
+
+  - NO scrolling allowed inside a slide. Plan layouts so the
+    designed content uses ≈1180×720 of the 1280×800 frame, leaving
+    ~50px of breathing room on each edge.
+  - NO word longer than 18 characters on any one line of large
+    text. If a place name ("Mohammed Bin Rashid City") or topic
+    runs long, split across lines with <br> or smaller font.
+  - Use max-width constraints on text blocks: \`max-width:780px;\`
+    on h1/h2 and \`max-width:640px\` on body p. Combined with
+    word-wrap:break-word; overflow-wrap:break-word;
+  - For every cinematic background photo, position it absolutely
+    inset:0 and \`object-fit:cover;\` so it can't push content out.
+
+==============================================================
+SAFE FONT SIZES (do not exceed these on a 1280×800 canvas)
+==============================================================
+
+  - Cover headline (h1):           60–100px, line-height 1.04
+  - Mid-deck headline (h1/h2):     46–72px,  line-height 1.06
+  - Section subhead (h3):          22–32px,  line-height 1.2
+  - Body paragraph (p):            16–22px,  line-height 1.55
+  - Eyebrow / label / kicker:      10–13px, letter-spacing 0.2em
+  - StatCard primary number:       42–72px depending on stat count
+  - Chart axis / bar label:        12–16px
+
+  Recommended formula for resilient cover headlines:
+    font-size: clamp(56px, 7.5vw, 96px);
+  (vw still works inside the 1280-wide canvas because the renderer
+  applies transform:scale().)
+
+==============================================================
 HTML CONSTRAINTS — HARD
 ==============================================================
 
@@ -438,46 +476,235 @@ HTML CONSTRAINTS — HARD
    meta, link, base, on* event handler attributes, javascript:/vbscript:/
    data:text/html URLs, srcdoc attributes, @import in <style>.
 
-4. **<style> blocks are encouraged for animations** — ALWAYS scope
-   selectors to the slide id so styles don't leak between slides:
+4. **<style> blocks are REQUIRED** — every slide MUST have an inline
+   <style> with at least one animation. ALWAYS scope selectors to
+   the slide id so styles don't leak between slides:
 
      <style>
-       #slide-1 .bar { animation: bar-grow 0.7s cubic-bezier(0.16,1,0.3,1) both; }
-       @keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+       #slide-1 .hero-bg     { animation: ken-burns 18s ease-out both; }
+       #slide-1 .hero-title  { animation: rise 1.1s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
+       #slide-1 .hero-sub    { animation: rise 1.1s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
+       @keyframes ken-burns { from { transform: scale(1.05) } to { transform: scale(1.18) } }
+       @keyframes rise      { from { opacity: 0; transform: translateY(28px) } to { opacity: 1; transform: translateY(0) } }
      </style>
 
-5. **Imagery rules**:
-   - For background photos use a CSS gradient (preferred) OR an
-     Unsplash CDN URL: \`<img src="https://images.unsplash.com/photo-...?w=1920&q=80" ...>\`
-   - On the FIRST photo element of any slide add a
-     \`data-deck-image="<type_hint>"\` attribute. The composer's
-     Step 4 lets the adviser swap these.
-   - For data slides, prefer SVG / CSS bars over photos.
+5. **Imagery rules — REQUIRED for visual polish**:
+   - At MINIMUM, slides 1 (cover), 2, and at least one mid-deck
+     slide MUST include a cinematic Unsplash photo as a background
+     (use \`<img>\` positioned absolutely, NOT background-image).
+     Skipping photos makes the deck look amateur.
+   - On the cover's hero image add BOTH
+     \`class="hero-bg"\` AND \`data-deck-image="cover"\`. The
+     class is for the Ken-Burns animation; the attribute lets the
+     adviser swap the photo in Step 4.
+   - Photo source format (Unsplash CDN, w=1920, q=80, auto=format):
+       \`<img class="hero-bg" data-deck-image="<type_hint>"
+              src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1920&q=80&auto=format"
+              alt="Dubai skyline at dusk"
+              style="position:absolute;inset:0;width:100%;height:100%;
+                     object-fit:cover;z-index:0;">\`
+   - ALWAYS lay a scrim above the photo to keep text readable:
+       \`<div style="position:absolute;inset:0;
+              background:linear-gradient(180deg,
+                rgba(10,10,11,0.05) 0%,
+                rgba(10,10,11,0.55) 65%,
+                rgba(10,10,11,0.85) 100%);
+              z-index:1;"></div>\`
+     Then position content at z-index:2.
+   - For DATA slides (top areas, off-plan split, trends), prefer
+     animated SVG bars / charts over photos. Use the accent
+     variables.
 
-6. **Cinematic motion** — apply tasteful animation:
-   - Cover: slow Ken-Burns scale on background (1.05 → 1.15 over 16s).
-   - Data slides: stagger reveal of bars / stats by 0.05–0.1s.
-   - All easings: cubic-bezier(0.16, 1, 0.3, 1).
-   - Wrap motion in @media (prefers-reduced-motion: no-preference).
+   **Curated Unsplash photo IDs you can pull from** (always use the
+   \`?w=1920&q=80&auto=format\` query for performance):
 
-7. **Closing slide MUST include adviser placeholders.** Use these
-   EXACT element shells (the renderer rewrites text + src attrs):
+     Dubai skyline / Burj Khalifa / Marina:
+       photo-1582407947304-fd86f028f716
+       photo-1518684079-3c830dcef090
+       photo-1546412414-e1885259563a
+       photo-1535320903710-d993d3d77d29
+       photo-1512453979798-5ea266f8880c
+     Architectural / interior / luxury:
+       photo-1600585154340-be6161a56a0c
+       photo-1600596542815-ffad4c1539a9
+       photo-1600607687939-ce8a6c25118c
+       photo-1613490493576-7fde63acd811
+     Construction / off-plan:
+       photo-1503387762-592deb58ef4e
+       photo-1581094794329-c8112a89af12
+     Maps / abstract:
+       photo-1524661135-423995f22d0b
 
-     <span data-adviser="full_name">Adviser Name</span>
-     <span data-adviser="title">VP, Portfolio</span>
-     <span data-adviser="phone">+971 …</span>
-     <span data-adviser="email">…@…</span>
-     <span data-adviser="whatsapp">WhatsApp</span>
-     <a    data-adviser="calendar_url" href="#">Book a call</a>
-     <span data-adviser="rera_number">BRN ·····</span>
-     <img  data-adviser="avatar_url" src="" alt="Adviser portrait"
-           style="width:120px;height:120px;border-radius:50%;
-                  object-fit:cover;border:1px solid var(--deck-divider);">
-     <img  data-deck="agency_logo" src="" alt="Agency"
-           style="height:32px;opacity:0.9;">
-     <img  data-deck="rera_qr" src="" alt="RERA QR"
-           style="height:88px;background:#fff;padding:6px;
-                  border-radius:4px;">
+6. **Cinematic motion is REQUIRED** — never emit a slide without at
+   least one animation. Use these patterns:
+   - Cover background: \`@keyframes ken-burns { from{transform:scale(1.05)} to{transform:scale(1.18)} }\`
+     applied for 16–20s with \`ease-out both\`.
+   - Headline / subhead: rise from \`translateY(28px); opacity:0\`
+     over 1.0–1.4s with cubic-bezier(0.16, 1, 0.3, 1) and
+     0.15–0.45s stagger between lines.
+   - Stat numbers: count-up via animated opacity + translateY OR
+     a CSS @keyframe that scales 0.92→1.0 with a small bounce.
+   - Bars: \`@keyframes bar-grow { from{transform:scaleY(0)} to{transform:scaleY(1)} }\`
+     with \`transform-origin:bottom\` and per-bar
+     \`animation-delay\` of 0.06s × index.
+   - All easings default to cubic-bezier(0.16, 1, 0.3, 1) unless
+     a different vibe is needed.
+   - Wrap motion in
+     \`@media (prefers-reduced-motion: no-preference) { ... }\`
+     so users with reduced-motion preferences still see static layouts.
+
+7. **Closing slide — REQUIRED placeholder shells (verbatim).** The
+   closing slide MUST include EVERY one of these elements (don't
+   skip any — the renderer fills the text/src after mount, so empty
+   placeholders are fine):
+
+     <section id="slide-N" ...>
+       <!-- optional background photo with scrim -->
+
+       <header style="position:absolute;top:60px;left:60px;right:60px;
+                      display:flex;align-items:center;justify-content:space-between;
+                      z-index:3;">
+         <img data-deck="agency_logo" src="" alt="Agency logo"
+              style="height:36px;opacity:0.9;">
+         <span style="font-family:var(--deck-font-sans);
+                      font-size:11px;letter-spacing:0.24em;
+                      text-transform:uppercase;color:var(--deck-muted);">
+           Let's keep talking
+         </span>
+       </header>
+
+       <main style="position:absolute;inset:0;display:grid;
+                    grid-template-columns:1fr 1fr;align-items:center;
+                    padding:120px 90px;gap:80px;z-index:3;">
+         <div>
+           <img data-adviser="avatar_url" src="" alt="Adviser portrait"
+                style="width:140px;height:140px;border-radius:50%;
+                       object-fit:cover;margin-bottom:32px;
+                       border:1px solid var(--deck-divider);">
+           <h1 style="font-family:var(--deck-font-serif);
+                      font-size:54px;line-height:1.06;margin:0;">
+             <span data-adviser="full_name">Adviser Name</span>
+           </h1>
+           <p style="font-family:var(--deck-font-sans);
+                     font-size:18px;color:var(--deck-muted);
+                     letter-spacing:0.06em;margin:14px 0 0;">
+             <span data-adviser="title">VP, Portfolio</span>
+           </p>
+           <ul style="list-style:none;padding:0;margin:32px 0 0;
+                      font-family:var(--deck-font-sans);font-size:16px;
+                      line-height:1.9;color:var(--deck-fg);">
+             <li>📞 <span data-adviser="phone">+971 …</span></li>
+             <li>✉️ <span data-adviser="email">name@agency.ae</span></li>
+             <li>💬 WhatsApp · <span data-adviser="whatsapp">…</span></li>
+             <li>📅 <a data-adviser="calendar_url" href="#"
+                       style="color:var(--deck-accent);
+                              border-bottom:1px solid var(--deck-divider);
+                              text-decoration:none;">Book a 30-min call</a></li>
+           </ul>
+         </div>
+
+         <aside style="display:flex;flex-direction:column;
+                       align-items:flex-end;gap:24px;">
+           <img data-deck="rera_qr" src="" alt="RERA QR code"
+                style="width:160px;height:160px;background:#fff;
+                       padding:10px;border-radius:8px;
+                       box-shadow:0 12px 32px rgba(0,0,0,0.4);">
+           <div style="text-align:right;
+                       font-family:var(--deck-font-sans);font-size:14px;
+                       color:var(--deck-muted);line-height:1.55;">
+             <div style="text-transform:uppercase;letter-spacing:0.18em;
+                         font-size:10px;font-weight:700;
+                         color:var(--deck-accent);margin-bottom:6px;">
+               RERA Verified
+             </div>
+             <div>BRN · <span data-adviser="rera_number">·····</span></div>
+             <div>Scan to verify · Dubai Land Department</div>
+           </div>
+         </aside>
+       </main>
+
+       <style>
+         #slide-N .closing-rise { animation: rise 1s cubic-bezier(0.16,1,0.3,1) both; }
+         @keyframes rise { from { opacity:0; transform: translateY(20px) } to { opacity:1; transform: translateY(0) } }
+       </style>
+     </section>
+
+   This layout, palette swapped via CSS vars, is the canonical
+   closing slide. You may reposition / restyle but you MUST emit
+   ALL EIGHT placeholders:
+     [data-adviser="full_name"]      [data-adviser="title"]
+     [data-adviser="phone"]          [data-adviser="email"]
+     [data-adviser="whatsapp"]       [data-adviser="calendar_url"]
+     [data-adviser="rera_number"]    [data-adviser="avatar_url"]
+     [data-deck="agency_logo"]       [data-deck="rera_qr"]
+
+8. **Cover slide — REQUIRED shape (canonical layout you may riff on
+   but never violate):**
+
+     <section id="slide-1" class="deck-slide"
+              style="position:relative;width:1280px;height:800px;
+                     overflow:hidden;background:var(--deck-bg);
+                     color:var(--deck-fg);
+                     font-family:var(--deck-font-sans);">
+       <img class="hero-bg" data-deck-image="cover"
+            src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1920&q=80&auto=format"
+            alt="Dubai skyline"
+            style="position:absolute;inset:0;width:100%;height:100%;
+                   object-fit:cover;z-index:0;
+                   transform-origin:center;">
+       <div style="position:absolute;inset:0;
+                   background:linear-gradient(180deg,
+                     rgba(10,10,11,0.10) 0%,
+                     rgba(10,10,11,0.55) 60%,
+                     rgba(10,10,11,0.92) 100%);
+                   z-index:1;"></div>
+
+       <header style="position:absolute;top:64px;left:80px;right:80px;
+                      display:flex;align-items:center;justify-content:space-between;
+                      z-index:2;">
+         <span style="font-family:var(--deck-font-sans);font-size:11px;
+                      font-weight:700;letter-spacing:0.32em;
+                      text-transform:uppercase;color:var(--deck-accent);">
+           RealSight · Adviser Briefing
+         </span>
+         <span style="font-family:var(--deck-font-sans);font-size:11px;
+                      letter-spacing:0.22em;text-transform:uppercase;
+                      color:var(--deck-muted);">
+           ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+         </span>
+       </header>
+
+       <main style="position:absolute;bottom:90px;left:80px;right:80px;
+                    z-index:2;max-width:880px;">
+         <h1 class="hero-title"
+             style="font-family:var(--deck-font-serif);
+                    font-size:clamp(54px, 7vw, 92px);
+                    line-height:1.04;letter-spacing:-0.01em;
+                    margin:0 0 24px;color:var(--deck-fg);
+                    word-wrap:break-word;overflow-wrap:break-word;">
+           <!-- Cover headline derived from the topic. Keep ≤14 words. -->
+         </h1>
+         <p class="hero-sub"
+            style="font-family:var(--deck-font-sans);
+                   font-size:20px;line-height:1.55;
+                   color:var(--deck-muted);max-width:680px;
+                   margin:0;">
+           <!-- One subtitle sentence describing the deck's angle. -->
+         </p>
+       </main>
+
+       <style>
+         #slide-1 .hero-bg    { animation: ken-burns 20s ease-out both; }
+         #slide-1 .hero-title { animation: rise 1.1s cubic-bezier(0.16,1,0.3,1) 0.2s both; }
+         #slide-1 .hero-sub   { animation: rise 1.1s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
+         @keyframes ken-burns { from { transform: scale(1.05) } to { transform: scale(1.18) } }
+         @keyframes rise      { from { opacity:0; transform: translateY(28px) } to { opacity:1; transform: translateY(0) } }
+       </style>
+     </section>
+
+   The cover headline MUST be a tight, dramatic phrasing of the
+   user's topic (do NOT copy the topic verbatim if it's a question;
+   transform it into a statement). Limit to ≤14 words.
 
 ==============================================================
 DATA-FIRST PLANNING
@@ -532,6 +759,40 @@ DECK STRUCTURE
 - Audience-aware layout density: investor decks lean data-heavy
   (charts, stat grids); end-user decks lean narrative + photos;
   team decks can be split.
+
+==============================================================
+PRE-OUTPUT SELF-CHECK (do this mentally before emitting JSON)
+==============================================================
+
+For EVERY slide in your deck, confirm:
+
+  ☐ Single <section id="slide-N"> with width:1280px;height:800px;
+    overflow:hidden;
+  ☐ Has a scoped <style> with at least one @keyframes animation
+    referenced by an element inside the slide.
+  ☐ No text overflows the 1280×800 canvas (use max-width on h1/p,
+    safe font sizes from the guide above).
+  ☐ Uses ONLY var(--deck-*) colour and font references, never raw hex
+    or fixed font names.
+  ☐ If it's a data slide, the numbers came from a tool call (and
+    \`_citation_sig\` is set to that call's signature).
+
+For the DECK as a whole, confirm:
+
+  ☐ Slide 1 (cover) and at least 2 other slides have an Unsplash
+    \`<img>\` background with the scrim + Ken-Burns or rise animation.
+  ☐ Closing slide includes ALL TEN placeholders:
+    [data-adviser="full_name"], [data-adviser="title"],
+    [data-adviser="phone"], [data-adviser="email"],
+    [data-adviser="whatsapp"], [data-adviser="calendar_url"],
+    [data-adviser="rera_number"], [data-adviser="avatar_url"],
+    [data-deck="agency_logo"], [data-deck="rera_qr"].
+  ☐ Layouts vary across slides (no two slides have the same
+    composition skeleton).
+  ☐ Cover headline ≤14 words, no single word >18 chars without a
+    word-break.
+
+If any check fails, FIX THE SLIDE before emitting.
 
 ==============================================================
 OUTPUT

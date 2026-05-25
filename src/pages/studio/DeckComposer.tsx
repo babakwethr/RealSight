@@ -52,6 +52,7 @@ const STEP_PANE_VARIANTS = {
 export function DeckComposer() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deckIdParam = searchParams.get('deck');
+  const stepParam = searchParams.get('step');
   const [draft, setDraft] = useState<DraftDeck>(() => EMPTY_DRAFT);
   const [step, setStep] = useState(0);
   const [loadingDraft, setLoadingDraft] = useState<boolean>(Boolean(deckIdParam));
@@ -107,13 +108,20 @@ export function DeckComposer() {
         visuals: (data.visuals ?? {}) as Record<string, string>,
       };
       setDraft(loaded);
-      // Jump the wizard to the most-relevant step based on draft progress.
+      // Resume the wizard at the step the user was last on. Priority:
+      //   1. explicit ?step= URL param (set by DeckPreview's "Back"
+      //      link so the user lands where they came from).
+      //   2. computed default: 'outline' if any slides exist, else 'brief'.
       const hasHtml = Array.isArray(loaded.html_slides) && loaded.html_slides.length > 0;
       const hasOutline = Array.isArray(loaded.outline) && loaded.outline.length > 0;
-      const resumeStep = (hasHtml || hasOutline)
-        ? WIZARD_STEPS.findIndex((s) => s.id === 'outline')
-        : 0;
-      setStep(resumeStep >= 0 ? resumeStep : 0);
+      let resumeIdx = 0;
+      if (stepParam) {
+        const idx = WIZARD_STEPS.findIndex((s) => s.id === stepParam);
+        if (idx >= 0) resumeIdx = idx;
+      } else if (hasHtml || hasOutline) {
+        resumeIdx = WIZARD_STEPS.findIndex((s) => s.id === 'outline');
+      }
+      setStep(resumeIdx >= 0 ? resumeIdx : 0);
       setLoadingDraft(false);
     })();
     return () => {
@@ -121,13 +129,16 @@ export function DeckComposer() {
     };
   }, [deckIdParam, setSearchParams]);
 
-  // Whenever the deck gets persisted (first Generate sets draft.id),
-  // mirror that into the URL so refresh + Back-button keep state.
+  // Mirror deck id + current step into the URL so refresh + the
+  // browser back button + "Back to composer" from preview all
+  // resume at the right spot.
   useEffect(() => {
-    if (draft.id && draft.id !== deckIdParam) {
-      setSearchParams({ deck: draft.id }, { replace: true });
+    if (!draft.id) return;
+    const targetStepId = WIZARD_STEPS[step]?.id ?? 'brief';
+    if (draft.id !== deckIdParam || targetStepId !== stepParam) {
+      setSearchParams({ deck: draft.id, step: targetStepId }, { replace: true });
     }
-  }, [draft.id, deckIdParam, setSearchParams]);
+  }, [draft.id, step, deckIdParam, stepParam, setSearchParams]);
 
   const startFresh = () => {
     void lightTap();

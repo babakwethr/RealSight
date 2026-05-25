@@ -107,6 +107,13 @@ interface SlideMountProps {
  * Renders one HTML slide and post-processes its DOM to substitute
  * adviser placeholders, agency logo, RERA QR, and per-slide image
  * overrides.
+ *
+ * Empty-field policy: when an adviser/tenant field is missing, the
+ * placeholder is NOT hidden. Instead we show a low-contrast hint
+ * (e.g. "Your RERA BRN") and add `data-adviser-empty="true"` so the
+ * adviser sees exactly where their profile data will land. Hiding
+ * them previously made the closing slide look broken when the adviser
+ * hadn't finished onboarding.
  */
 function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -117,40 +124,70 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
     const root = ref.current;
     if (!root) return;
 
-    // Adviser text placeholders
-    const adviserMap: Record<string, string | undefined> = {
-      full_name:    adviser?.full_name,
-      title:        adviser?.title,
-      phone:        adviser?.phone,
-      email:        adviser?.email,
-      whatsapp:     adviser?.whatsapp,
-      calendar_url: adviser?.calendar_url,
-      rera_number:  adviser?.rera_number,
+    // Adviser text placeholders. Each field has a hint shown when the
+    // adviser hasn't filled it in yet — keeps the closing slide visible.
+    const adviserMap: Record<string, { value?: string; hint: string }> = {
+      full_name:    { value: adviser?.full_name,    hint: 'Your name' },
+      title:        { value: adviser?.title,        hint: 'Your title' },
+      phone:        { value: adviser?.phone,        hint: 'Add your phone' },
+      email:        { value: adviser?.email,        hint: 'Add your email' },
+      whatsapp:     { value: adviser?.whatsapp,     hint: 'Add WhatsApp' },
+      calendar_url: { value: adviser?.calendar_url, hint: 'Book a call' },
+      rera_number:  { value: adviser?.rera_number,  hint: 'Add your RERA BRN' },
     };
     root.querySelectorAll<HTMLElement>('[data-adviser]').forEach((el) => {
       const key = el.getAttribute('data-adviser') ?? '';
-      const value = adviserMap[key];
+      const slot = adviserMap[key];
+      if (!slot) return;
+      const { value, hint } = slot;
+
       if (el.tagName === 'A' && key === 'calendar_url') {
+        const a = el as HTMLAnchorElement;
         if (value) {
-          (el as HTMLAnchorElement).href = value;
-          el.style.display = '';
+          a.href = value;
+          a.removeAttribute('data-adviser-empty');
+          a.style.opacity = '';
+          a.style.pointerEvents = '';
         } else {
-          el.style.display = 'none';
+          a.href = '#';
+          a.setAttribute('data-adviser-empty', 'true');
+          a.style.opacity = '0.55';
+          a.style.pointerEvents = 'none';
+          if (!a.textContent?.trim()) a.textContent = hint;
         }
+        a.style.display = '';
       } else if (el.tagName === 'IMG' && key === 'avatar_url') {
+        const img = el as HTMLImageElement;
         if (adviser?.avatar_url) {
-          (el as HTMLImageElement).src = adviser.avatar_url;
-          el.style.display = '';
+          img.src = adviser.avatar_url;
+          img.removeAttribute('data-adviser-empty');
+          img.style.opacity = '';
         } else {
-          el.style.display = 'none';
+          // 1x1 transparent so layout reserves the space.
+          img.src =
+            'data:image/svg+xml;utf8,' +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
+                '<rect width="120" height="120" rx="60" fill="rgba(255,255,255,0.04)"/>' +
+                '<circle cx="60" cy="48" r="20" fill="rgba(255,255,255,0.20)"/>' +
+                '<path d="M20 110c0-22 18-36 40-36s40 14 40 36" fill="rgba(255,255,255,0.20)"/>' +
+              '</svg>',
+            );
+          img.setAttribute('data-adviser-empty', 'true');
+          img.style.opacity = '0.85';
         }
+        img.style.display = '';
       } else {
         if (value) {
           el.textContent = value;
-          el.style.display = '';
+          el.removeAttribute('data-adviser-empty');
+          el.style.opacity = '';
         } else {
-          el.style.display = 'none';
+          el.textContent = hint;
+          el.setAttribute('data-adviser-empty', 'true');
+          el.style.opacity = '0.55';
         }
+        el.style.display = '';
       }
     });
 
@@ -158,18 +195,73 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
     root.querySelectorAll<HTMLImageElement>('[data-deck="agency_logo"]').forEach((img) => {
       if (branding.logo_url) {
         img.src = branding.logo_url;
-        img.style.display = '';
+        img.removeAttribute('data-deck-empty');
+        img.style.opacity = '';
       } else {
-        img.style.display = 'none';
+        img.src =
+          'data:image/svg+xml;utf8,' +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">' +
+              '<rect width="220" height="60" rx="8" fill="rgba(255,255,255,0.05)"/>' +
+              '<text x="110" y="36" font-family="Inter, sans-serif" font-size="13" font-weight="700" ' +
+              'fill="rgba(255,255,255,0.45)" text-anchor="middle">YOUR AGENCY LOGO</text>' +
+            '</svg>',
+          );
+        img.setAttribute('data-deck-empty', 'true');
+        img.style.opacity = '0.85';
       }
+      img.style.display = '';
     });
     root.querySelectorAll<HTMLImageElement>('[data-deck="rera_qr"]').forEach((img) => {
       if (adviser?.rera_qr_url) {
         img.src = adviser.rera_qr_url;
-        img.style.display = '';
+        img.removeAttribute('data-deck-empty');
+        img.style.opacity = '';
       } else {
-        img.style.display = 'none';
+        // Stylised QR placeholder so the closing slide still shows a
+        // QR-shaped block where the adviser's real one will land.
+        img.src =
+          'data:image/svg+xml;utf8,' +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+              '<rect width="100" height="100" rx="6" fill="white"/>' +
+              '<g fill="#0a0a0b">' +
+                '<rect x="8" y="8" width="22" height="22"/>' +
+                '<rect x="13" y="13" width="12" height="12" fill="white"/>' +
+                '<rect x="17" y="17" width="4" height="4" fill="#0a0a0b"/>' +
+                '<rect x="70" y="8" width="22" height="22"/>' +
+                '<rect x="75" y="13" width="12" height="12" fill="white"/>' +
+                '<rect x="79" y="17" width="4" height="4" fill="#0a0a0b"/>' +
+                '<rect x="8" y="70" width="22" height="22"/>' +
+                '<rect x="13" y="75" width="12" height="12" fill="white"/>' +
+                '<rect x="17" y="79" width="4" height="4" fill="#0a0a0b"/>' +
+                '<rect x="40" y="14" width="4" height="4"/>' +
+                '<rect x="50" y="14" width="4" height="4"/>' +
+                '<rect x="44" y="22" width="4" height="4"/>' +
+                '<rect x="56" y="22" width="4" height="4"/>' +
+                '<rect x="40" y="30" width="4" height="4"/>' +
+                '<rect x="50" y="30" width="4" height="4"/>' +
+                '<rect x="40" y="40" width="4" height="4"/>' +
+                '<rect x="48" y="40" width="4" height="4"/>' +
+                '<rect x="56" y="40" width="4" height="4"/>' +
+                '<rect x="44" y="48" width="4" height="4"/>' +
+                '<rect x="52" y="48" width="4" height="4"/>' +
+                '<rect x="40" y="56" width="4" height="4"/>' +
+                '<rect x="48" y="56" width="4" height="4"/>' +
+                '<rect x="56" y="56" width="4" height="4"/>' +
+                '<rect x="40" y="70" width="4" height="4"/>' +
+                '<rect x="48" y="70" width="4" height="4"/>' +
+                '<rect x="56" y="70" width="4" height="4"/>' +
+                '<rect x="44" y="78" width="4" height="4"/>' +
+                '<rect x="52" y="78" width="4" height="4"/>' +
+                '<rect x="60" y="78" width="4" height="4"/>' +
+              '</g>' +
+            '</svg>',
+          );
+        img.setAttribute('data-deck-empty', 'true');
+        img.style.opacity = '0.9';
       }
+      img.style.display = '';
     });
 
     // Per-slide user-uploaded image overrides

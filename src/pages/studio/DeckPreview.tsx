@@ -233,7 +233,7 @@ export default function DeckPreview() {
       <header className="z-20 flex items-center justify-between gap-3 border-b border-white/[0.06] bg-[#07040F]/90 px-4 py-3 backdrop-blur-xl sm:px-6">
         <button
           type="button"
-          onClick={() => navigate(`/studio/presentation?deck=${deck.id}`)}
+          onClick={() => navigate(`/studio/presentation?deck=${deck.id}&step=publish`)}
           className="inline-flex items-center gap-1.5 rounded-full text-xs font-bold text-white/55 transition-colors hover:text-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

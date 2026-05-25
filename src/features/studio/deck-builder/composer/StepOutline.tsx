@@ -39,6 +39,9 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
   const [generating, setGenerating] = useState(false);
   const [refining, setRefining] = useState(false);
   const [refineText, setRefineText] = useState('');
+  /** index of the slide currently being re-written (so only its
+   *  button shows the rotating gradient halo — like Google "AI loading"). */
+  const [rewriteIndex, setRewriteIndex] = useState<number | null>(null);
   const slides = draft.html_slides;
 
   const callPlan = async (mode: 'plan' | 'refine', refineInstruction?: string) => {
@@ -113,6 +116,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
 
   const onRePromptSlide = async (slideIdx: number, slide: HtmlSlide) => {
     setRefining(true);
+    setRewriteIndex(slideIdx);
     try {
       const instruction = `Re-write slide ${slideIdx + 1} (id "${slide.id}", type "${slide.type_hint}") ONLY. Preserve the rest of the deck. Invent a new layout for this slide that's more visually striking and punchier than the previous version.`;
       const { deckId, html_slides, theme } = await callPlan('refine', instruction);
@@ -123,6 +127,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       toast.error('Re-write failed', { description: (err as Error).message });
     } finally {
       setRefining(false);
+      setRewriteIndex(null);
     }
   };
 
@@ -211,10 +216,70 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             index={i}
             slide={slide}
             disabled={refining || generating}
+            isRewriting={rewriteIndex === i}
             onRePrompt={() => onRePromptSlide(i, slide)}
           />
         ))}
       </div>
+
+      {/* Scoped glow animation used by the "Re-write" button on the
+          slide that's currently rewriting. Mirrors the Google "AI
+          loading" gradient halo — only the clicked button animates. */}
+      <style>{`
+        @property --rs-glow-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes rs-glow-rotate {
+          to { --rs-glow-angle: 360deg; }
+        }
+        .rs-glow-btn {
+          position: relative;
+          z-index: 0;
+          isolation: isolate;
+          --rs-glow-angle: 0deg;
+          animation: rs-glow-rotate 1.8s linear infinite;
+        }
+        .rs-glow-btn::before {
+          content: '';
+          position: absolute;
+          inset: -2px;
+          border-radius: 9999px;
+          padding: 2px;
+          background: conic-gradient(
+            from var(--rs-glow-angle),
+            #2effc0, #18d6a4, #6a5cff, #ff6ad9, #ffb86b, #2effc0
+          );
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+          z-index: -1;
+        }
+        .rs-glow-btn::after {
+          content: '';
+          position: absolute;
+          inset: -10px;
+          border-radius: 9999px;
+          background: conic-gradient(
+            from var(--rs-glow-angle),
+            #2effc0, #18d6a4, #6a5cff, #ff6ad9, #ffb86b, #2effc0
+          );
+          filter: blur(14px);
+          opacity: 0.55;
+          z-index: -2;
+        }
+        @supports not (background: conic-gradient(from var(--rs-glow-angle), #000, #fff)) {
+          .rs-glow-btn {
+            box-shadow:
+              0 0 0 2px rgba(46, 255, 192, 0.7),
+              0 0 18px 4px rgba(46, 255, 192, 0.55),
+              0 0 32px 8px rgba(106, 92, 255, 0.45);
+          }
+        }
+      `}</style>
 
       <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-md">
         <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
@@ -262,10 +327,11 @@ interface SlideTileProps {
   index: number;
   slide: HtmlSlide;
   disabled: boolean;
+  isRewriting: boolean;
   onRePrompt: () => void;
 }
 
-function SlideTile({ index, slide, disabled, onRePrompt }: SlideTileProps) {
+function SlideTile({ index, slide, disabled, isRewriting, onRePrompt }: SlideTileProps) {
   const label = SLIDE_LABELS[slide.type_hint] ?? slide.type_hint;
   const headingPreview = extractFirstHeading(slide.html);
   const hasCitation = Boolean(slide.citation);
@@ -301,10 +367,24 @@ function SlideTile({ index, slide, disabled, onRePrompt }: SlideTileProps) {
             onRePrompt();
           }}
           disabled={disabled}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/75 transition hover:border-[#18d6a4]/35 hover:text-white disabled:opacity-40"
+          className={cn(
+            'relative inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] transition',
+            isRewriting
+              ? 'rs-glow-btn border-transparent bg-[#07040F] text-white'
+              : 'border-white/[0.12] bg-white/[0.04] text-white/75 hover:border-[#18d6a4]/35 hover:text-white disabled:opacity-40',
+          )}
         >
-          <Sparkles className="h-3 w-3" />
-          Re-write
+          {isRewriting ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Re-writing
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3 w-3" />
+              Re-write
+            </>
+          )}
         </button>
       </div>
     </article>

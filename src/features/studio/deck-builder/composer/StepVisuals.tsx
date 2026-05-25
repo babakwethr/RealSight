@@ -14,6 +14,37 @@ function extractFirstHeading(html: string): string {
     .slice(0, 120);
 }
 
+/**
+ * Pull the first usable image src out of a slide's raw HTML.
+ * The AI is told to put Unsplash CDN URLs on the cover + key slides;
+ * this surfaces them as the "current" preview thumbnail so the
+ * adviser sees what the slide actually uses, not a generic gradient.
+ */
+function extractFirstImage(html: string): string | null {
+  if (!html) return null;
+  const matches = html.matchAll(/<img[^>]+src\s*=\s*["']([^"']+)["']/gi);
+  for (const m of matches) {
+    const src = m[1];
+    if (!src) continue;
+    if (src.startsWith('data:') || src.startsWith('blob:') || src === '') continue;
+    return src;
+  }
+  return null;
+}
+
+/**
+ * Pull a CSS gradient out of a slide's inline styles so we can show
+ * something representative when the slide uses CSS bg rather than an
+ * <img>. Conservatively limited to background / background-image
+ * declarations on the root <section>.
+ */
+function extractFirstGradient(html: string): string | null {
+  if (!html) return null;
+  const m = html.match(/background(?:-image)?\s*:\s*((?:linear|radial|conic)-gradient\([^;"]+\))/i);
+  if (!m) return null;
+  return m[1];
+}
+
 const SLIDE_LABELS: Record<string, string> = {
   cover:          'Cover',
   why_now:        'Why now',
@@ -69,9 +100,14 @@ export function StepVisuals({ draft }: ComposerContext) {
           const slideId = entry.id ?? String(i);
           const label = SLIDE_LABELS[typeKey] ?? typeKey;
           const overrideUrl = draft.visuals[slideId] ?? draft.visuals[String(i)] ?? draft.visuals[typeKey];
+          // 1) user override → 2) image the AI baked into the HTML →
+          // 3) curated default → 4) gradient from the slide's <style>.
+          const extractedImage = extractFirstImage(entry.html ?? '');
+          const extractedGradient = extractFirstGradient(entry.html ?? '');
           const defaultUrl =
             CINEMATIC_GOLD_DEFAULT_PHOTOS[typeKey as SlideType] ?? null;
-          const photo = overrideUrl ?? defaultUrl;
+          const photo = overrideUrl ?? extractedImage ?? defaultUrl;
+          const gradient = !photo && extractedGradient ? extractedGradient : null;
           const headlinePreview =
             entry.headline ?? extractFirstHeading(entry.html ?? '');
 
@@ -102,6 +138,12 @@ export function StepVisuals({ draft }: ComposerContext) {
                         className="h-full w-full object-cover"
                         loading="lazy"
                       />
+                    ) : gradient ? (
+                      <div
+                        className="h-full w-full"
+                        style={{ background: gradient }}
+                        aria-label={`${label} gradient background`}
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-white/35">
                         <ImageIcon className="h-6 w-6" />
@@ -110,7 +152,7 @@ export function StepVisuals({ draft }: ComposerContext) {
                   </div>
                   <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#18d6a4]/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#0a0814]">
                     <Check className="h-2.5 w-2.5" />
-                    Selected
+                    {photo ? 'Selected' : gradient ? 'Gradient' : 'No image'}
                   </span>
                 </div>
 
