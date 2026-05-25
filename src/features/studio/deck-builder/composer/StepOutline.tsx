@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Loader2, MessageSquare, Send, RotateCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import { Sparkles, Loader2, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -11,24 +9,25 @@ import type { ComposerContext } from './types';
 import type { OutlineEntry } from '../runtime/types';
 
 /**
- * Step 4 — Outline. The interactive review surface where the AI
- * brings back a 5–10 slide deck.
+ * Step 3 — Review script. The interactive outline review surface.
  *
- * Empty state: big "Generate the outline" CTA. Pressing it calls
- * `studio-deck-plan` (loading state ~20-60s).
+ * Empty state: gold-accent CTA "Draft the outline" → calls
+ * studio-deck-plan, then populates the tiles.
  *
  * Populated state:
- *   - List of OutlineTile (collapsed by default, expand to edit).
- *   - Bottom-anchored "Refine with AI" chat input (mobile = sticky
- *     above the wizard footer; desktop = inline below the list).
+ *   - Title row with global "Refresh data" + "Re-prompt all" buttons,
+ *     matching the userflow.html reference.
+ *   - Vertical list of OutlineTile (each tappable to expand-edit).
+ *   - Bottom-of-page Refine-with-AI input (single-line, can extend
+ *     to chat later).
  *
- * Mobile UX: full-screen scroll, refinement input as a sticky bar.
+ * Cinematic Gold aesthetic throughout — ink + bone + gold, sharp
+ * corners, serif headlines.
  */
 export function StepOutline({ draft, setDraft }: ComposerContext) {
   const [generating, setGenerating] = useState(false);
   const [refining, setRefining] = useState(false);
   const [refineText, setRefineText] = useState('');
-  const refineRef = useRef<HTMLTextAreaElement>(null);
   const outline = draft.outline;
 
   const callPlan = async (mode: 'plan' | 'refine', refineInstruction?: string) => {
@@ -56,15 +55,15 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       const { deckId, outline } = await callPlan('plan');
       setDraft((d) => ({ ...d, id: deckId ?? d.id, outline }));
       void mediumTap();
-      toast.success('Outline ready', { description: `${outline.length} slides drafted.` });
+      toast.success(`Outline ready · ${outline.length} slides`);
     } catch (err) {
-      toast.error('Could not generate outline', { description: (err as Error).message });
+      toast.error('Could not draft outline', { description: (err as Error).message });
     } finally {
       setGenerating(false);
     }
   };
 
-  const onRefine = async () => {
+  const onRefineAll = async () => {
     const instruction = refineText.trim();
     if (!instruction || refining) return;
     setRefining(true);
@@ -81,55 +80,52 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     }
   };
 
-  const updateEntry = (index: number, next: OutlineEntry) => {
+  const updateEntry = (i: number, next: OutlineEntry) => {
     setDraft((d) => {
       if (!d.outline) return d;
       const copy = [...d.outline];
-      copy[index] = next;
+      copy[i] = next;
       return { ...d, outline: copy };
     });
   };
 
-  // Empty state — big CTA, helpful framing.
+  // ── Empty state ──
   if (!outline || outline.length === 0) {
     return (
-      <div className="flex min-h-[340px] flex-col items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.03] p-6 text-center sm:p-10">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2effc0]/30 via-[#18d6a4]/20 to-transparent">
-          <Sparkles className="h-7 w-7 text-[#18d6a4]" />
+      <div className="flex min-h-[340px] flex-col items-center justify-center rounded-md border border-bone/10 bg-ink-900/40 p-10 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.06]">
+          <Sparkles className="h-6 w-6 text-gold" />
         </div>
-        <h2 className="mb-1.5 text-xl font-bold text-white sm:text-2xl">
-          Ready when you are.
-        </h2>
-        <p className="mb-6 max-w-[440px] text-sm leading-relaxed text-white/55">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-gold">03 — Review the script</div>
+        <h2 className="mt-2 font-serif text-3xl text-bone">Ready to draft.</h2>
+        <p className="mt-2 max-w-md text-sm text-bone/60">
           We'll write a 5–10 slide outline based on your brief and pull live
-          numbers from the Dubai Land Department + your references. Takes
-          about 30 seconds.
+          numbers from the Dubai Land Department + your references.
         </p>
-        <Button
+        <button
           type="button"
           onClick={onGenerate}
           disabled={generating || draft.topic.trim().length < 8}
           className={cn(
-            'h-12 rounded-full px-6 text-sm font-black transition-all min-w-[200px]',
-            'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-            'disabled:opacity-40 disabled:translate-y-0',
+            'mt-7 inline-flex h-11 items-center gap-2 rounded-sm border border-gold bg-gold px-5 text-xs uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light',
+            'disabled:opacity-40 disabled:hover:bg-gold',
           )}
         >
           {generating ? (
-            <span className="inline-flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Drafting your deck…
-            </span>
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Drafting…
+            </>
           ) : (
-            <span className="inline-flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Generate outline
-            </span>
+            <>
+              <Sparkles className="h-3.5 w-3.5" />
+              Draft the outline
+            </>
           )}
-        </Button>
+        </button>
         {generating ? (
-          <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-white/40">
-            Calling the data tools · this can take 20–60 seconds
+          <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-bone/40">
+            Calling the data tools · 20–60 seconds
           </p>
         ) : null}
       </div>
@@ -137,86 +133,94 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
   }
 
   return (
-    <div className="space-y-5 pb-44 sm:pb-32">
-      <header className="flex items-start justify-between gap-3">
+    <div>
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-bold text-white sm:text-xl">
-            Your outline · {outline.length} slides
+          <div className="text-[10px] uppercase tracking-[0.3em] text-gold">03 — Review the script</div>
+          <h2 className="mt-2 font-serif text-4xl leading-tight text-bone">
+            {outline.length} slides, ready to tweak.
           </h2>
-          <p className="mt-1 text-xs text-white/55">
-            Tap a slide to edit its headline and body. Numbers are backed by
-            the data tag inside each tile.
+          <p className="mt-2 max-w-xl text-sm text-bone/60">
+            Every number is grounded in a live DLD query — hover the chip to see
+            the source. Tap a slide to edit its headline + body.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onGenerate}
-          disabled={generating}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 text-xs font-bold text-white/75 transition-colors hover:border-white/[0.24] hover:text-white disabled:opacity-50"
-          title="Discard outline and re-generate from the brief"
-        >
-          {generating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RotateCw className="h-3.5 w-3.5" />
-          )}
-          Re-do
-        </button>
-      </header>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 rounded-sm border border-bone/15 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RotateCw className="h-3 w-3" />
+            )}
+            Refresh data
+          </button>
+        </div>
+      </div>
 
-      {/* Outline tiles */}
-      <div className="space-y-2.5">
+      {/* Tile list */}
+      <div className="mt-6 space-y-3">
         {outline.map((entry, i) => (
           <OutlineTile
             key={`${entry.slide_type}-${i}`}
             index={i}
             entry={entry}
             onUpdate={(next) => updateEntry(i, next)}
+            onRePrompt={async () => {
+              try {
+                const { outline: newOutline } = await callPlan(
+                  'refine',
+                  `Re-write slide ${i + 1} (${entry.slide_type}) only. Keep the data citation if any. Make it punchier.`,
+                );
+                setDraft((d) => ({ ...d, outline: newOutline }));
+                toast.success('Slide rewritten');
+              } catch (err) {
+                toast.error('Re-write failed', { description: (err as Error).message });
+              }
+            }}
             isFirst={i === 0}
             isLast={i === outline.length - 1}
           />
         ))}
       </div>
 
-      {/* Refine-chat bar — sticky above the wizard footer on mobile */}
-      <div className="fixed inset-x-0 bottom-[72px] z-30 border-t border-white/[0.08] bg-[#0B1120]/95 px-4 py-3 backdrop-blur-xl sm:relative sm:bottom-auto sm:inset-x-auto sm:mt-6 sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-white/[0.03] sm:px-4 sm:py-3.5 sm:backdrop-blur-none">
-        <label className="mb-1.5 hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white/55 sm:inline-flex sm:items-center sm:gap-1.5">
-          <MessageSquare className="h-3 w-3 text-[#18d6a4]/80" />
-          Refine with AI
+      {/* Refine-all input */}
+      <div className="mt-6 rounded-md border border-bone/10 bg-ink-900/40 p-4">
+        <label className="text-[10px] uppercase tracking-[0.18em] text-bone/55">
+          Refine the whole deck
         </label>
-        <div className="flex items-end gap-2">
-          <Textarea
-            ref={refineRef}
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="text"
             value={refineText}
             onChange={(e) => setRefineText(e.target.value)}
-            placeholder="e.g. Make slide 3 more punchy. Remove every mention of off-plan."
-            rows={1}
+            placeholder="e.g. Make slide 3 punchier. Remove every mention of off-plan."
             disabled={refining}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                onRefine();
+                onRefineAll();
               }
             }}
-            className="min-h-[44px] resize-none rounded-2xl border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus-visible:border-[#18d6a4]/45 focus-visible:ring-[#18d6a4]/25"
+            className="flex-1 rounded-sm border border-bone/15 bg-ink-800/60 px-3 py-2 text-sm text-bone placeholder:text-bone/35 outline-none transition focus:border-gold/55"
           />
-          <Button
+          <button
             type="button"
-            onClick={onRefine}
+            onClick={onRefineAll}
             disabled={!refineText.trim() || refining}
-            className={cn(
-              'h-11 w-11 shrink-0 rounded-full p-0',
-              'bg-gradient-to-br from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814]',
-              'disabled:opacity-40',
-            )}
-            aria-label="Send refine instruction"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-gold bg-gold px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light disabled:opacity-40"
           >
             {refining ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Sparkles className="h-3 w-3" />
             )}
-          </Button>
+            Refine
+          </button>
         </div>
       </div>
     </div>

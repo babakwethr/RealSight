@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles, RotateCw, Info } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
+import { ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { lightTap } from '@/lib/capacitor';
 import type { OutlineEntry } from '../runtime/types';
@@ -9,165 +8,185 @@ interface OutlineTileProps {
   index: number;
   entry: OutlineEntry;
   onUpdate: (next: OutlineEntry) => void;
-  onRegenerate?: () => void;
+  onRePrompt?: () => Promise<void> | void;
   isFirst: boolean;
   isLast: boolean;
 }
 
 const SLIDE_LABELS: Record<string, string> = {
-  cover: 'Cover',
-  why_now: 'Why now',
-  market_trend: 'Market trend',
-  signal: 'Signal',
-  offplan_split: 'Off-plan vs Secondary',
-  buyer: 'Know your buyer',
-  top_volume: 'Top sale areas',
-  top_yield: 'Top rental areas',
-  strategy: 'Strategy',
-  closing: 'Closing',
+  cover:          'Cover',
+  why_now:        'Why now',
+  market_trend:   'Market trend',
+  signal:         'Signal',
+  offplan_split:  'Off-plan vs Secondary',
+  buyer:          'Know your buyer',
+  top_volume:     'Top sale areas',
+  top_yield:      'Top rental areas',
+  strategy:       'Strategy',
+  closing:        'Closing',
 };
 
 /**
- * Single outline tile shown on the StepOutline review surface.
+ * Outline tile — Cinematic Gold reference design.
  *
- * Collapsed by default to keep the list scannable on mobile.
- * Tap the tile head to expand → reveals editable headline + body
- * textareas, the citation chip detail, and per-slide actions
- * (Re-prompt this slide).
+ * Collapsed by default. Tap the head to expand → reveals editable
+ * headline + body fields and a Re-prompt button.
+ * Citation chip renders as a gold rounded-sm pill (NOT rounded-full
+ * — sharp corners match the reference look).
  *
- * Mobile-first: large tap area on the head row, full-width inline
- * edit; no hover-dependent affordances.
+ * Inline-edit: any text change calls onUpdate so the wizard state
+ * stays the source of truth.
  */
 export function OutlineTile({
   index,
   entry,
   onUpdate,
-  onRegenerate,
+  onRePrompt,
   isFirst,
   isLast,
 }: OutlineTileProps) {
-  // First + last (cover + closing) auto-expand so the adviser sees
-  // their full content immediately; middle slides start collapsed.
   const [open, setOpen] = useState(isFirst || isLast);
+  const [reprompting, setReprompting] = useState(false);
 
   const label = SLIDE_LABELS[entry.slide_type] ?? entry.slide_type;
 
+  const handleRePrompt = async () => {
+    if (!onRePrompt) return;
+    setReprompting(true);
+    try {
+      void lightTap();
+      await onRePrompt();
+    } finally {
+      setReprompting(false);
+    }
+  };
+
   return (
-    <div
+    <article
       className={cn(
-        'group overflow-hidden rounded-2xl border transition-colors',
-        open
-          ? 'border-white/[0.12] bg-white/[0.05]'
-          : 'border-white/[0.06] bg-white/[0.025] hover:border-white/[0.12]',
+        'group rounded-md border bg-ink-900/40 transition-colors',
+        open ? 'border-bone/25' : 'border-bone/10 hover:border-bone/20',
       )}
     >
-      {/* Head row — always visible, tappable to toggle */}
+      {/* Head row — always visible, tappable */}
       <button
         type="button"
         onClick={() => {
           void lightTap();
           setOpen((v) => !v);
         }}
-        className="flex w-full items-center gap-3 p-4 text-left min-h-[64px]"
+        className="flex w-full items-start gap-4 p-4 text-left"
         aria-expanded={open}
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-xs font-bold text-white/65">
-          {String(index + 1).padStart(2, '0')}
-        </span>
-
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-bone/15 text-gold">
+          <span className="font-serif text-xl">{String(index + 1).padStart(2, '0')}</span>
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#18d6a4]/70">
-              {label}
-            </span>
+          <div className="font-serif text-2xl leading-snug text-bone">
+            {renderHeadline(entry.headline ?? '(headline pending)')}
+          </div>
+          {entry.body ? (
+            <div className="mt-1 text-sm text-bone/65 line-clamp-2">
+              {entry.body}
+            </div>
+          ) : null}
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-bone/40">
+            <span>{label}</span>
             {entry.citation ? (
-              <span
-                title={`Sourced via ${entry.citation.tool}`}
-                className="inline-flex items-center gap-1 rounded-full border border-[#18d6a4]/25 bg-[#18d6a4]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#18d6a4]/85"
-              >
-                <Info className="h-2.5 w-2.5" />
-                Data-backed
+              <span className="rounded-sm border border-gold/30 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold">
+                {entry.citation.source} · {entry.citation.rows.toLocaleString()} rows
+                {entry.citation.window ? ` · ${entry.citation.window}` : ''}
               </span>
             ) : null}
           </div>
-          <div className="mt-1 truncate text-sm font-semibold text-white/95">
-            {entry.headline ?? '(headline pending)'}
-          </div>
         </div>
-
-        {open ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-white/50" />
-        ) : (
-          <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
-        )}
+        <div className="shrink-0">
+          {open ? (
+            <ChevronUp className="h-4 w-4 text-bone/50" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-bone/50" />
+          )}
+        </div>
       </button>
 
-      {/* Expanded body */}
+      {/* Expanded edit panel */}
       {open ? (
-        <div className="space-y-3.5 border-t border-white/[0.06] px-4 pb-4 pt-3.5">
+        <div className="space-y-4 border-t border-bone/10 px-4 pb-4 pt-3.5">
           <div>
-            <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+            <label className="text-[10px] uppercase tracking-[0.18em] text-bone/45">
               Headline
             </label>
-            <Textarea
+            <textarea
               value={entry.headline ?? ''}
               onChange={(e) => onUpdate({ ...entry, headline: e.target.value })}
               rows={2}
-              maxLength={200}
-              className="mt-1.5 resize-none rounded-xl border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:border-[#18d6a4]/45 focus-visible:ring-[#18d6a4]/25"
+              maxLength={240}
+              className="mt-1.5 w-full resize-none rounded-sm border border-bone/15 bg-ink-900/60 px-3 py-2 font-serif text-base text-bone outline-none transition focus:border-gold/55"
             />
           </div>
 
           {entry.body !== undefined ? (
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+              <label className="text-[10px] uppercase tracking-[0.18em] text-bone/45">
                 Body
               </label>
-              <Textarea
+              <textarea
                 value={entry.body ?? ''}
                 onChange={(e) => onUpdate({ ...entry, body: e.target.value })}
                 rows={3}
                 maxLength={600}
-                className="mt-1.5 resize-none rounded-xl border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/30 focus-visible:border-[#18d6a4]/45 focus-visible:ring-[#18d6a4]/25"
+                className="mt-1.5 w-full resize-none rounded-sm border border-bone/15 bg-ink-900/60 px-3 py-2 text-sm text-bone/85 outline-none transition focus:border-gold/55"
               />
             </div>
           ) : null}
 
           {entry.citation ? (
-            <div className="rounded-xl border border-[#18d6a4]/20 bg-[#18d6a4]/[0.05] px-3 py-2.5 text-[11px] text-white/75">
-              <div className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#18d6a4]/85">
-                <Info className="h-2.5 w-2.5" />
+            <div className="rounded-sm border border-gold/25 bg-gold/[0.04] px-3 py-2 text-[11px] text-bone/75">
+              <div className="mb-0.5 text-[10px] uppercase tracking-[0.18em] text-gold">
                 Source · {entry.citation.source}
               </div>
-              <div className="font-mono text-[11px] text-white/75">
-                {entry.citation.tool}
+              <div className="font-mono text-[10.5px] text-bone/85">{entry.citation.tool}</div>
+              <div className="mt-0.5 text-[10px] text-bone/45">
+                {entry.citation.rows.toLocaleString()} rows
+                {entry.citation.window ? ` · ${entry.citation.window}` : ''}
               </div>
-              {entry.citation.rows ? (
-                <div className="mt-0.5 text-[10px] text-white/45">
-                  {entry.citation.rows.toLocaleString()} rows
-                  {entry.citation.window ? ` · ${entry.citation.window}` : ''}
-                </div>
-              ) : null}
             </div>
           ) : null}
 
-          {onRegenerate ? (
+          {onRePrompt ? (
             <button
               type="button"
-              onClick={() => {
-                void lightTap();
-                onRegenerate();
-              }}
-              className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-3.5 py-2 text-xs font-bold text-white/75 transition-colors hover:border-[#18d6a4]/35 hover:text-white"
+              onClick={handleRePrompt}
+              disabled={reprompting}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-bone/15 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold disabled:opacity-50"
             >
-              <RotateCw className="h-3.5 w-3.5" />
+              {reprompting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
               Re-write this slide
             </button>
           ) : null}
         </div>
       ) : null}
-    </div>
+    </article>
   );
 }
 
-export { SLIDE_LABELS };
+/**
+ * Best-effort split of "Headline — accent" into two parts so the
+ * "accent" half renders italic gold, matching how the reference
+ * deck's Cover slide reads. If no delimiter, just renders as-is.
+ */
+function renderHeadline(headline: string) {
+  const m = headline.match(/^(.+?)\s*[—\-:·]\s*(.+)$/);
+  if (m && m[1].length >= 4 && m[2].length >= 4) {
+    return (
+      <>
+        {m[1]} <span className="italic text-gold-light">{m[2]}</span>
+      </>
+    );
+  }
+  return headline;
+}

@@ -1,12 +1,5 @@
 /**
  * Composer-side types — shared across the wizard steps.
- *
- * `DraftDeck` is the canonical state the wizard carries; it's also
- * what gets persisted to `studio_decks` row + reloaded on resume.
- *
- * `OutlineEntry` and `Citation` are imported from the RUNTIME types
- * — the composer is just an editing surface for the same shape the
- * runtime renders.
  */
 
 import type { OutlineEntry, Branding, AdviserContact } from '../runtime/types';
@@ -28,7 +21,6 @@ export interface ReferenceAsset {
 }
 
 export interface DraftDeck {
-  /** Persisted deck id once the first generate call returns. */
   id: string | null;
   topic: string;
   audience: ComposerAudience;
@@ -37,7 +29,6 @@ export interface DraftDeck {
   reference_assets: ReferenceAsset[];
   template_slug: string;
   outline: OutlineEntry[] | null;
-  /** Per-slide image overrides keyed by slide index or slide_type. */
   visuals: Record<string, string>;
 }
 
@@ -60,12 +51,20 @@ export const EMPTY_DRAFT: DraftDeck = {
   visuals: {},
 };
 
+/**
+ * Wizard steps — order matches the userflow.html reference:
+ *   1. Chat brief         (topic + audience + tone + source material + chat rail)
+ *   2. Pick template      (2×2 design system cards)
+ *   3. Review script      (outline tiles, edit + re-prompt)
+ *   4. Choose visuals     (per-slide image picker — Upload / Stock V1)
+ *   5. Publish            (preview + share link + downloads)
+ */
 export const WIZARD_STEPS = [
-  { id: 'brief',      label: 'Brief' },
-  { id: 'references', label: 'Sources' },
-  { id: 'template',   label: 'Style' },
-  { id: 'outline',    label: 'Slides' },
-  { id: 'publish',    label: 'Publish' },
+  { id: 'brief',    label: 'Chat brief' },
+  { id: 'template', label: 'Pick template' },
+  { id: 'outline',  label: 'Review script' },
+  { id: 'visuals',  label: 'Choose visuals' },
+  { id: 'publish',  label: 'Publish' },
 ] as const;
 
 export type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];

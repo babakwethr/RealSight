@@ -1,66 +1,108 @@
-import { Sparkles, ExternalLink, ArrowRight, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowRight, Eye, ExternalLink, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CoverPreviewCard } from './CoverPreviewCard';
 import { cn } from '@/lib/utils';
 import type { ComposerContext } from './types';
 
 /**
- * Step 5 — Publish. Last step of the wizard. In V1 this is a
- * gateway: shows a "Preview your deck" CTA that routes to
- * `/studio/decks/:id` where the full fullscreen preview + actual
- * publish flow lives. (Pulling the publish action into the wizard
- * itself would push the wizard's bottom CTA bar into ambiguous
- * territory — the standalone preview surface is the right home
- * for Publish + PDF + Share-link actions.)
- *
- * Mobile-first: single big CTA centred in the viewport. No
- * surprises, no extra options to scroll past.
+ * Step 5 — Publish. Reference layout: big deck preview on the left,
+ * share + download sidebar on the right. The real publish action
+ * lives on the DeckPreview route (/studio/decks/:id) where there's
+ * room for the full Stage canvas; this step is the gateway with a
+ * compelling preview + an "Open deck preview" CTA.
  */
 export function StepPublish({ draft }: ComposerContext) {
   const slideCount = draft.outline?.length ?? 0;
   const hasDeckId = Boolean(draft.id);
+  const canPublish = hasDeckId && slideCount > 0;
 
   return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.03] p-6 text-center sm:p-10">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2effc0]/30 via-[#18d6a4]/20 to-transparent">
-        <Sparkles className="h-7 w-7 text-[#18d6a4]" />
-      </div>
-      <h2 className="mb-1.5 text-xl font-bold text-white sm:text-2xl">
-        Your deck is ready.
-      </h2>
-      <p className="mb-7 max-w-[460px] text-sm leading-relaxed text-white/55">
-        {slideCount > 0
-          ? `${slideCount} slides, every number backed by a citation. Open the preview to pick your photos, look it over, then publish a share link.`
-          : 'Generate an outline first, then come back to publish.'}
-      </p>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_1fr]">
+      {/* Big preview */}
+      <div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-gold">
+          05 — Ready to publish
+        </div>
+        <h2 className="mt-2 font-serif text-4xl leading-tight text-bone">
+          Your deck is ready.
+        </h2>
+        <p className="mt-2 max-w-md text-sm text-bone/60">
+          Fullscreen on the first tap. Looks the same on a laptop, an iPad, or
+          a phone. The share link opens straight into a presentation experience.
+        </p>
 
-      {hasDeckId && slideCount > 0 ? (
-        <div className="flex w-full max-w-[380px] flex-col gap-2.5">
-          <Link
-            to={`/studio/decks/${draft.id}`}
-            className={cn(
-              'inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition-all',
-              'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-            )}
-          >
-            <Eye className="h-4 w-4" />
-            Open the deck preview
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-white/40">
-            Pick photos, then publish a public share link
+        <div className="mt-6 overflow-hidden rounded-md border border-bone/10 shadow-2xl">
+          <CoverPreviewCard draft={draft} />
+        </div>
+      </div>
+
+      {/* Actions sidebar */}
+      <aside className="flex flex-col gap-4 rounded-md border border-bone/10 bg-ink-900/60 p-6">
+        <div className="text-[11px] uppercase tracking-[0.18em] text-bone/55">
+          Share &amp; download
+        </div>
+
+        {canPublish ? (
+          <>
+            {/* Live link CTA */}
+            <Link
+              to={`/studio/decks/${draft.id}`}
+              className={cn(
+                'inline-flex items-center justify-between gap-2 rounded-sm border border-gold bg-gold px-4 py-3 text-xs uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light',
+              )}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Open deck preview
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <p className="text-xs text-bone/55">
+              Pick photos, hit Publish, and get a share link like{' '}
+              <span className="font-mono text-bone/75">realsight.app/r/XXX</span>.
+            </p>
+
+            {/* HTML download placeholder */}
+            <button
+              type="button"
+              disabled
+              className="flex items-center justify-between rounded-sm border border-bone/15 bg-ink-800/60 p-4 text-left opacity-55"
+            >
+              <div>
+                <div className="text-sm text-bone">Download HTML</div>
+                <div className="text-xs text-bone/55">Single offline file — next build</div>
+              </div>
+              <Download className="h-4 w-4 text-bone/45" />
+            </button>
+
+            {/* PDF download placeholder */}
+            <button
+              type="button"
+              disabled
+              className="flex items-center justify-between rounded-sm border border-bone/15 bg-ink-800/60 p-4 text-left opacity-55"
+            >
+              <div>
+                <div className="text-sm text-bone">Download PDF</div>
+                <div className="text-xs text-bone/55">{slideCount} pages · 1280×800 — next build</div>
+              </div>
+              <Download className="h-4 w-4 text-bone/45" />
+            </button>
+          </>
+        ) : (
+          <div className="rounded-sm border border-dashed border-bone/15 bg-ink-800/30 p-5 text-center text-sm text-bone/55">
+            <ExternalLink className="mx-auto mb-2 h-5 w-5 text-bone/45" />
+            Generate an outline in Step 3 first.
+          </div>
+        )}
+
+        <div className="mt-2 border-t border-bone/10 pt-4 text-xs text-bone/45">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-bone/55">Coming</div>
+          <p className="mt-2 leading-relaxed">
+            Deck analytics · presenter remote on phone · matching Instagram +
+            LinkedIn social pack from this same deck.
           </p>
         </div>
-      ) : (
-        <Button
-          type="button"
-          disabled
-          className="h-12 rounded-full px-6 text-sm font-black opacity-40"
-        >
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Generate an outline first
-        </Button>
-      )}
+      </aside>
     </div>
   );
 }

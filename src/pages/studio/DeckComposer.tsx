@@ -1,40 +1,42 @@
 /**
- * DeckComposer — the Studio Deck Builder wizard.
+ * DeckComposer — Studio Deck Builder wizard.
  *
- * 5-step composer that adapts shape per viewport:
- *   - Mobile (< lg): one full-screen step at a time, sticky bottom
- *     Back / Next bar with safe-area inset, single-column body.
- *   - Desktop (lg+): contained "tool card" up to max-w-7xl, inline
- *     header + body + footer (no fixed/sticky), multi-column body
- *     where the step benefits from it (Brief = form left + live
- *     cover preview right; Outline = list left + refinement chat
- *     right).
+ * Reference: /Users/babak/Projects/propsight/docs/studio-deck-builder/userflow.html
  *
- * Both layouts share the same step components and state — the
- * only differences are container width, footer position, and
- * whether the right-rail preview is mounted.
+ * Cinematic Gold aesthetic throughout — ink-900 bg, bone foreground,
+ * gold accents, Cormorant serif headlines, Inter body, sharp
+ * corners. The composer LOOKS like the thing it creates.
  *
- * Replaces the stub PresentationGenerator.tsx as the body of
- * route /studio/presentation.
+ * Layout (desktop):
+ *   - Page header with eyebrow + serif h1 + caption.
+ *   - Sticky pill stepper with numbered serif numerals + Back/Next
+ *     buttons on the right (gold-filled rectangle for Next).
+ *   - App-frame card hosting the current step's content.
+ *   - Each step uses its own grid (Brief = 2-col form+chat,
+ *     Outline = single column list, Publish = 1.3fr/1fr preview +
+ *     actions).
+ *
+ * Layout (mobile):
+ *   - Same vertical flow.
+ *   - Step pills scroll horizontally.
+ *   - Step content stacks into single column.
+ *   - Back/Next remain in the sticky top bar.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Sparkles, Layers } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { lightTap, mediumTap } from '@/lib/capacitor';
 
 import {
   StepBrief,
-  StepReferences,
   StepTemplate,
   StepOutline,
+  StepVisuals,
   StepPublish,
   StepIndicator,
 } from './deck-composer-imports';
-import { CoverPreviewCard } from '@/features/studio/deck-builder/composer/CoverPreviewCard';
 import {
   EMPTY_DRAFT,
   WIZARD_STEPS,
@@ -43,32 +45,28 @@ import {
 } from '@/features/studio/deck-builder/composer/types';
 
 const STEP_PANE_VARIANTS = {
-  enter:  { opacity: 0, y: 12 },
+  enter:  { opacity: 0, y: 8 },
   center: { opacity: 1, y: 0 },
-  exit:   { opacity: 0, y: -8 },
+  exit:   { opacity: 0, y: -6 },
 };
-
-/** Steps where the desktop layout shows a right-rail Cover preview. */
-const STEPS_WITH_COVER_RAIL = new Set(['brief', 'references', 'template']);
 
 export function DeckComposer() {
   const [draft, setDraft] = useState<DraftDeck>(() => EMPTY_DRAFT);
   const [step, setStep] = useState(0);
-  const contentScrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Scroll the body to top whenever the step changes — feels more
-  // app-like on mobile, also resets focus on desktop.
+  // Reset scroll-to-top on step change.
   useEffect(() => {
-    contentScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [step]);
 
   const canGoNext = (() => {
     switch (WIZARD_STEPS[step].id) {
-      case 'brief':      return draft.topic.trim().length >= 8;
-      case 'references': return true;
-      case 'template':   return Boolean(draft.template_slug);
-      case 'outline':    return Array.isArray(draft.outline) && draft.outline.length >= 5;
-      case 'publish':    return false;
+      case 'brief':    return draft.topic.trim().length >= 8;
+      case 'template': return Boolean(draft.template_slug);
+      case 'outline':  return Array.isArray(draft.outline) && draft.outline.length >= 5;
+      case 'visuals':  return Array.isArray(draft.outline) && draft.outline.length >= 5;
+      case 'publish':  return false;
     }
   })();
 
@@ -83,162 +81,154 @@ export function DeckComposer() {
     setStep((s) => Math.max(0, s - 1));
   };
 
+  // Keyboard arrows — desktop nicety, matches the reference behaviour.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Avoid swallowing typing in inputs / textareas.
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (e.key === 'ArrowRight' && canGoNext) {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowLeft' && step > 0) {
+        e.preventDefault();
+        goBack();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canGoNext, step]);
+
   const ctx: ComposerContext = { draft, setDraft, branding: {} };
   const currentId = WIZARD_STEPS[step].id;
-  const showCoverRail = STEPS_WITH_COVER_RAIL.has(currentId);
+  const isLast = step === WIZARD_STEPS.length - 1;
 
   return (
-    <div className="relative -mx-4 flex min-h-[calc(100dvh-2rem)] flex-col lg:mx-auto lg:my-0 lg:min-h-0 lg:max-w-7xl">
-      {/* ── Header ── */}
-      <header
-        className={cn(
-          // Mobile: sticky to viewport top, dark backdrop.
-          'sticky top-0 z-20 border-b border-white/[0.06] bg-[#07040F]/85 px-4 py-3 backdrop-blur-xl',
-          // Desktop: part of the card chrome, not sticky.
-          'lg:rounded-t-3xl lg:border lg:border-b-white/[0.06] lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-7 lg:py-5 lg:backdrop-blur-none',
-        )}
-      >
-        <div className="mb-3 flex items-center justify-between gap-3 lg:mb-4">
+    // The Cinematic Gold aesthetic — ink-900 surface, sharp corners,
+    // serif headlines. Break out of AppLayout's content-area padding
+    // so the composer card has full width to itself.
+    <div className="-mx-4 -my-4 min-h-[calc(100dvh-2rem)] bg-ink-900 text-bone sm:-mx-6 sm:-my-6">
+      {/* Page header */}
+      <header className="mx-auto max-w-7xl px-4 pb-5 pt-7 sm:px-8 sm:pb-6 sm:pt-10">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] uppercase tracking-[0.32em] text-gold">
+            RealSight · Studio
+          </div>
           <Link
             to="/studio"
-            className="inline-flex items-center gap-1.5 rounded-full text-xs font-bold text-white/55 transition-colors hover:text-white lg:text-sm"
+            className="rounded-sm border border-bone/15 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-bone/60 transition hover:border-gold/40 hover:text-gold"
           >
-            <ArrowLeft className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-            <span>Studio</span>
+            ← Studio
           </Link>
-          <div className="hidden text-base font-bold text-white lg:flex lg:items-center lg:gap-2">
-            <Layers className="h-4 w-4 text-[#18d6a4]/80" />
-            Deck Builder
-          </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-[#18d6a4]/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#18d6a4] lg:hidden">
-            <Sparkles className="h-3 w-3" />
-            Deck Builder
-          </div>
         </div>
-        <StepIndicator
-          steps={WIZARD_STEPS.map((s) => ({ id: s.id, label: s.label }))}
-          current={step}
-          onJump={(i) => {
-            void lightTap();
-            setStep(i);
-          }}
-        />
+        <h1 className="mt-2 font-serif text-3xl leading-tight sm:text-5xl">
+          Deck Builder
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm text-bone/65 sm:text-base">
+          From a topic to a published, fullscreen-ready, data-backed
+          presentation hosted on{' '}
+          <span className="text-gold">realsight.app</span>. Five steps.
+        </p>
       </header>
 
-      {/* ── Body: single-column on mobile, 2-col on desktop when rail is shown ── */}
-      <div
-        ref={contentScrollRef}
-        className={cn(
-          'flex-1 overflow-y-auto px-4 pb-[140px] pt-6',
-          // Desktop: card chrome edges + extra horizontal padding;
-          // no fixed-footer padding because the footer is in-flow.
-          'lg:rounded-none lg:border-x lg:border-white/[0.06] lg:bg-[#07040F]/55 lg:px-8 lg:pb-10 lg:pt-8 lg:backdrop-blur-sm',
-        )}
+      {/* Sticky step indicator + Back/Next */}
+      <nav
+        className="sticky top-0 z-30 border-b border-bone/10 bg-ink-900/85 backdrop-blur"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
-        <div
-          className={cn(
-            'mx-auto max-w-2xl',
-            // Desktop: when the rail is visible, switch to a 12-col grid.
-            showCoverRail && 'lg:grid lg:max-w-none lg:grid-cols-12 lg:gap-8',
-            // When no rail (outline / publish), still widen the column.
-            !showCoverRail && 'lg:max-w-4xl',
-          )}
-        >
-          <div className={cn(showCoverRail && 'lg:col-span-7 xl:col-span-7')}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentId}
-                variants={STEP_PANE_VARIANTS}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-              >
-                {currentId === 'brief' && <StepBrief {...ctx} />}
-                {currentId === 'references' && <StepReferences {...ctx} />}
-                {currentId === 'template' && <StepTemplate {...ctx} />}
-                {currentId === 'outline' && <StepOutline {...ctx} />}
-                {currentId === 'publish' && <StepPublish {...ctx} />}
-              </motion.div>
-            </AnimatePresence>
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-8 sm:py-4">
+          <div className="flex-1 min-w-0">
+            <StepIndicator
+              steps={WIZARD_STEPS.map((s) => ({ id: s.id, label: s.label }))}
+              current={step}
+              onJump={(i) => {
+                void lightTap();
+                setStep(i);
+              }}
+            />
           </div>
-
-          {/* Desktop right rail — live cover preview (only steps where it makes sense) */}
-          {showCoverRail ? (
-            <aside className="hidden lg:col-span-5 lg:block xl:col-span-5">
-              <div className="sticky top-6 space-y-3">
-                <div className="flex items-baseline justify-between">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">
-                    Live preview
-                  </div>
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">
-                    Cover · updates as you type
-                  </div>
-                </div>
-                <CoverPreviewCard draft={draft} />
-                <p className="px-1 text-[11px] leading-relaxed text-white/45">
-                  This is the first slide of your deck. The full {draft.outline?.length ?? '5–10'} slides
-                  render after you tap Generate.
-                </p>
-              </div>
-            </aside>
-          ) : null}
-        </div>
-      </div>
-
-      {/* ── Footer (Back + Next) ──
-          Mobile: fixed-bottom + safe-area inset.
-          Desktop: inline below body, part of the card chrome. */}
-      <footer
-        className={cn(
-          'fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.08] bg-[#07040F]/95 px-4 py-3 backdrop-blur-xl',
-          'lg:relative lg:inset-x-auto lg:bottom-auto lg:z-auto lg:rounded-b-3xl lg:border lg:border-t-white/[0.06] lg:border-white/[0.06] lg:bg-white/[0.02] lg:px-7 lg:py-5 lg:backdrop-blur-none',
-        )}
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)' }}
-      >
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 lg:max-w-none">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={goBack}
-            disabled={step === 0}
-            className="h-12 rounded-full px-5 text-sm font-bold text-white/75 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-30 lg:h-11"
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            Back
-          </Button>
-
-          {step < WIZARD_STEPS.length - 1 ? (
-            <Button
+          <div className="flex items-center gap-2 shrink-0">
+            <button
               type="button"
-              onClick={goNext}
-              disabled={!canGoNext}
+              onClick={goBack}
+              disabled={step === 0}
               className={cn(
-                'h-12 flex-1 max-w-[260px] rounded-full px-5 text-sm font-black transition-all lg:h-11 lg:flex-none lg:px-6',
-                'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-                'disabled:opacity-40 disabled:translate-y-0',
+                'rounded-sm border border-bone/15 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold sm:px-4',
+                step === 0 && 'opacity-40 cursor-not-allowed',
               )}
             >
-              {nextLabel(currentId)}
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          ) : (
-            <div className="h-12 w-12 lg:hidden" aria-hidden="true" />
-          )}
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!canGoNext || isLast}
+              className={cn(
+                'rounded-sm border border-gold bg-gold px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light sm:px-4',
+                (!canGoNext || isLast) && 'opacity-40 cursor-not-allowed hover:bg-gold',
+              )}
+            >
+              {isLast ? 'Done' : 'Next'}
+            </button>
+          </div>
         </div>
-      </footer>
+      </nav>
+
+      {/* App-frame card with current step */}
+      <main className="mx-auto mb-12 max-w-7xl px-4 sm:px-8" ref={contentRef}>
+        <div className="overflow-hidden rounded-md border border-bone/10 bg-ink-800/40 shadow-2xl">
+          <AnimatePresence mode="wait">
+            <motion.section
+              key={currentId}
+              variants={STEP_PANE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+              className="p-6 sm:p-8"
+            >
+              {currentId === 'brief'    && <StepBrief    {...ctx} />}
+              {currentId === 'template' && <StepTemplate {...ctx} />}
+              {currentId === 'outline'  && <StepOutline  {...ctx} />}
+              {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
+              {currentId === 'publish'  && <StepPublish  {...ctx} />}
+            </motion.section>
+          </AnimatePresence>
+        </div>
+
+        {/* Trust / Time / Reuse strip — matches reference */}
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <TrustCard
+            label="Trust"
+            body="Every number on the deck traces to a live DLD query. The AI has no freedom to invent figures — only to phrase them."
+          />
+          <TrustCard
+            label="Time"
+            body={
+              <>
+                From "I want a deck on X" to a published, branded presentation —{' '}
+                <span className="text-bone">under 5 minutes</span> for the pilot.
+              </>
+            }
+          />
+          <TrustCard
+            label="Reuse"
+            body="The rendering layer ports verbatim from the proven secondary-market deck — not a rewrite."
+          />
+        </div>
+      </main>
     </div>
   );
 }
 
-function nextLabel(currentStep: string): string {
-  switch (currentStep) {
-    case 'brief':      return 'Sources';
-    case 'references': return 'Pick style';
-    case 'template':   return 'Outline';
-    case 'outline':    return 'Publish';
-    default:           return 'Next';
-  }
+function TrustCard({ label, body }: { label: string; body: React.ReactNode }) {
+  return (
+    <div className="rounded-md border border-bone/10 bg-ink-800/40 p-5">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-gold">{label}</div>
+      <p className="mt-2 text-sm leading-relaxed text-bone/75">{body}</p>
+    </div>
+  );
 }
 
 export default DeckComposer;

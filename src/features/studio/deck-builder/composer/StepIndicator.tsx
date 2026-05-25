@@ -1,4 +1,3 @@
-import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StepIndicatorProps {
@@ -8,56 +7,57 @@ interface StepIndicatorProps {
 }
 
 /**
- * Top-of-composer step indicator. Mobile shows pill dots only
- * (compact); desktop shows the dots + step labels.
+ * Numbered step pills with serif numerals — the reference look
+ * from userflow.html. Active = gold bg + gold text + gold ring.
+ * Done = gold border tinted, bone text. Pending = bone/15 border,
+ * muted text.
  *
- * Tapping a completed step jumps back to it; future steps are
- * not tappable (must complete current first).
+ * Mobile: scrolls horizontally; the active pill scrolls itself
+ * into view via scrollIntoView.
  */
 export function StepIndicator({ steps, current, onJump }: StepIndicatorProps) {
   return (
     <nav
       aria-label="Composer steps"
-      className="flex items-center justify-center gap-1 sm:gap-2"
+      className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible"
     >
-      {steps.map((step, i) => {
-        const isDone = i < current;
-        const isCurrent = i === current;
-        const canJump = isDone && onJump !== undefined;
-        return (
-          <button
-            key={step.id}
-            type="button"
-            disabled={!canJump}
-            onClick={canJump ? () => onJump?.(i) : undefined}
-            className={cn(
-              'group flex items-center gap-2 rounded-full transition-all',
-              canJump ? 'cursor-pointer' : 'cursor-default',
-            )}
-            aria-current={isCurrent ? 'step' : undefined}
-            aria-label={`Step ${i + 1}: ${step.label}${isDone ? ' (done)' : ''}`}
-          >
-            <span
-              className={cn(
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors',
-                isDone && 'bg-[#18d6a4] text-[#07040F]',
-                isCurrent && 'bg-white/10 text-white ring-2 ring-[#18d6a4]/60',
-                !isDone && !isCurrent && 'bg-white/[0.04] text-white/40',
-              )}
-            >
-              {isDone ? <Check className="h-3.5 w-3.5" /> : i + 1}
-            </span>
-            <span
-              className={cn(
-                'hidden text-xs font-semibold sm:inline',
-                isCurrent ? 'text-white' : isDone ? 'text-white/70' : 'text-white/40',
-              )}
-            >
-              {step.label}
-            </span>
-          </button>
-        );
-      })}
+      <ol className="flex flex-1 min-w-0 items-center gap-2">
+        {steps.map((step, i) => {
+          const isDone = i < current;
+          const isCurrent = i === current;
+          const canJump = isDone && onJump !== undefined;
+          return (
+            <li key={step.id} className="shrink-0">
+              <button
+                type="button"
+                disabled={!canJump}
+                onClick={canJump ? () => onJump?.(i) : undefined}
+                aria-current={isCurrent ? 'step' : undefined}
+                aria-label={`Step ${i + 1}: ${step.label}${isDone ? ' (done)' : ''}`}
+                className={cn(
+                  'group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] transition-colors whitespace-nowrap',
+                  canJump ? 'cursor-pointer' : 'cursor-default',
+                  isCurrent && 'border-gold bg-gold/[0.08] text-gold-light',
+                  isDone && !isCurrent && 'border-gold/35 text-bone/70 hover:border-gold hover:text-gold-light',
+                  !isDone && !isCurrent && 'border-bone/15 text-bone/55',
+                )}
+              >
+                <span
+                  className={cn(
+                    'font-serif text-[15px] leading-none',
+                    isCurrent && 'text-gold',
+                    isDone && !isCurrent && 'text-gold/70',
+                    !isDone && !isCurrent && 'text-bone/45',
+                  )}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="hidden font-sans sm:inline">{step.label}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

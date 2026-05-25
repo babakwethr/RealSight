@@ -5,7 +5,7 @@
  */
 export { StepIndicator } from '@/features/studio/deck-builder/composer/StepIndicator';
 export { StepBrief } from '@/features/studio/deck-builder/composer/StepBrief';
-export { StepReferences } from '@/features/studio/deck-builder/composer/StepReferences';
 export { StepTemplate } from '@/features/studio/deck-builder/composer/StepTemplate';
 export { StepOutline } from '@/features/studio/deck-builder/composer/StepOutline';
+export { StepVisuals } from '@/features/studio/deck-builder/composer/StepVisuals';
 export { StepPublish } from '@/features/studio/deck-builder/composer/StepPublish';
