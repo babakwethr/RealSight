@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Loader2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { lightTap } from '@/lib/capacitor';
 import type { OutlineEntry } from '../runtime/types';
@@ -27,15 +27,10 @@ const SLIDE_LABELS: Record<string, string> = {
 };
 
 /**
- * Outline tile — Cinematic Gold reference design.
- *
- * Collapsed by default. Tap the head to expand → reveals editable
- * headline + body fields and a Re-prompt button.
- * Citation chip renders as a gold rounded-sm pill (NOT rounded-full
- * — sharp corners match the reference look).
- *
- * Inline-edit: any text change calls onUpdate so the wizard state
- * stays the source of truth.
+ * Outline tile — RealSight V3 CI (glass card, mint accent, Inter
+ * type, rounded-2xl). Same UX as the reference (collapsed by default,
+ * tap to expand-edit, citation chip per data-bearing tile) but the
+ * brand language matches the rest of the composer.
  */
 export function OutlineTile({
   index,
@@ -47,7 +42,6 @@ export function OutlineTile({
 }: OutlineTileProps) {
   const [open, setOpen] = useState(isFirst || isLast);
   const [reprompting, setReprompting] = useState(false);
-
   const label = SLIDE_LABELS[entry.slide_type] ?? entry.slide_type;
 
   const handleRePrompt = async () => {
@@ -64,56 +58,65 @@ export function OutlineTile({
   return (
     <article
       className={cn(
-        'group rounded-md border bg-ink-900/40 transition-colors',
-        open ? 'border-bone/25' : 'border-bone/10 hover:border-bone/20',
+        'overflow-hidden rounded-2xl border backdrop-blur-md transition-colors',
+        open
+          ? 'border-white/[0.16] bg-white/[0.05]'
+          : 'border-white/[0.08] bg-white/[0.03] hover:border-white/[0.16]',
       )}
     >
-      {/* Head row — always visible, tappable */}
+      {/* Head row */}
       <button
         type="button"
         onClick={() => {
           void lightTap();
           setOpen((v) => !v);
         }}
-        className="flex w-full items-start gap-4 p-4 text-left"
+        className="flex w-full items-start gap-3 p-4 text-left min-h-[68px] sm:gap-4"
         aria-expanded={open}
       >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-bone/15 text-gold">
-          <span className="font-serif text-xl">{String(index + 1).padStart(2, '0')}</span>
-        </div>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-bold text-[#18d6a4]">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+
         <div className="min-w-0 flex-1">
-          <div className="font-serif text-2xl leading-snug text-bone">
-            {renderHeadline(entry.headline ?? '(headline pending)')}
-          </div>
-          {entry.body ? (
-            <div className="mt-1 text-sm text-bone/65 line-clamp-2">
-              {entry.body}
-            </div>
-          ) : null}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-bone/40">
-            <span>{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#18d6a4]">
+              {label}
+            </span>
             {entry.citation ? (
-              <span className="rounded-sm border border-gold/30 bg-gold/[0.06] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-gold">
-                {entry.citation.source} · {entry.citation.rows.toLocaleString()} rows
-                {entry.citation.window ? ` · ${entry.citation.window}` : ''}
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-[#18d6a4]/35 bg-[#18d6a4]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#2effc0]"
+                title={`Sourced via ${entry.citation.tool}`}
+              >
+                <Info className="h-2.5 w-2.5" />
+                Data-backed
               </span>
             ) : null}
           </div>
+          <div className="mt-1 text-base font-bold leading-snug text-white sm:text-lg">
+            {entry.headline ?? '(headline pending)'}
+          </div>
+          {entry.body && !open ? (
+            <div className="mt-1 text-sm leading-snug text-white/55 line-clamp-2">
+              {entry.body}
+            </div>
+          ) : null}
         </div>
-        <div className="shrink-0">
+
+        <div className="shrink-0 pt-1">
           {open ? (
-            <ChevronUp className="h-4 w-4 text-bone/50" />
+            <ChevronUp className="h-4 w-4 text-white/50" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-bone/50" />
+            <ChevronDown className="h-4 w-4 text-white/50" />
           )}
         </div>
       </button>
 
       {/* Expanded edit panel */}
       {open ? (
-        <div className="space-y-4 border-t border-bone/10 px-4 pb-4 pt-3.5">
+        <div className="space-y-4 border-t border-white/[0.06] px-4 pb-4 pt-3.5">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.18em] text-bone/45">
+            <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
               Headline
             </label>
             <textarea
@@ -121,13 +124,13 @@ export function OutlineTile({
               onChange={(e) => onUpdate({ ...entry, headline: e.target.value })}
               rows={2}
               maxLength={240}
-              className="mt-1.5 w-full resize-none rounded-sm border border-bone/15 bg-ink-900/60 px-3 py-2 font-serif text-base text-bone outline-none transition focus:border-gold/55"
+              className="mt-1.5 w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-base text-white outline-none transition focus:border-[#18d6a4]/45 focus:ring-2 focus:ring-[#18d6a4]/20"
             />
           </div>
 
           {entry.body !== undefined ? (
             <div>
-              <label className="text-[10px] uppercase tracking-[0.18em] text-bone/45">
+              <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
                 Body
               </label>
               <textarea
@@ -135,18 +138,19 @@ export function OutlineTile({
                 onChange={(e) => onUpdate({ ...entry, body: e.target.value })}
                 rows={3}
                 maxLength={600}
-                className="mt-1.5 w-full resize-none rounded-sm border border-bone/15 bg-ink-900/60 px-3 py-2 text-sm text-bone/85 outline-none transition focus:border-gold/55"
+                className="mt-1.5 w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white/85 outline-none transition focus:border-[#18d6a4]/45 focus:ring-2 focus:ring-[#18d6a4]/20"
               />
             </div>
           ) : null}
 
           {entry.citation ? (
-            <div className="rounded-sm border border-gold/25 bg-gold/[0.04] px-3 py-2 text-[11px] text-bone/75">
-              <div className="mb-0.5 text-[10px] uppercase tracking-[0.18em] text-gold">
+            <div className="rounded-xl border border-[#18d6a4]/25 bg-[#18d6a4]/[0.05] px-3 py-2 text-[11px] text-white/75">
+              <div className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#2effc0]">
+                <Info className="h-2.5 w-2.5" />
                 Source · {entry.citation.source}
               </div>
-              <div className="font-mono text-[10.5px] text-bone/85">{entry.citation.tool}</div>
-              <div className="mt-0.5 text-[10px] text-bone/45">
+              <div className="font-mono text-[10.5px] text-white/85">{entry.citation.tool}</div>
+              <div className="mt-0.5 text-[10px] text-white/45">
                 {entry.citation.rows.toLocaleString()} rows
                 {entry.citation.window ? ` · ${entry.citation.window}` : ''}
               </div>
@@ -158,7 +162,7 @@ export function OutlineTile({
               type="button"
               onClick={handleRePrompt}
               disabled={reprompting}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-bone/15 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white/75 transition hover:border-[#18d6a4]/35 hover:text-white disabled:opacity-50"
             >
               {reprompting ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -172,21 +176,4 @@ export function OutlineTile({
       ) : null}
     </article>
   );
-}
-
-/**
- * Best-effort split of "Headline — accent" into two parts so the
- * "accent" half renders italic gold, matching how the reference
- * deck's Cover slide reads. If no delimiter, just renders as-is.
- */
-function renderHeadline(headline: string) {
-  const m = headline.match(/^(.+?)\s*[—\-:·]\s*(.+)$/);
-  if (m && m[1].length >= 4 && m[2].length >= 4) {
-    return (
-      <>
-        {m[1]} <span className="italic text-gold-light">{m[2]}</span>
-      </>
-    );
-  }
-  return headline;
 }

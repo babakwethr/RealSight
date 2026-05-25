@@ -1,31 +1,26 @@
 /**
  * DeckComposer — Studio Deck Builder wizard.
  *
- * Reference: /Users/babak/Projects/propsight/docs/studio-deck-builder/userflow.html
+ * UX layout from the spec userflow.html reference (5-step wizard,
+ * sticky pill stepper, app-frame card hosting current step, Back +
+ * Next on the right, page header + Trust/Time/Reuse strip below).
  *
- * Cinematic Gold aesthetic throughout — ink-900 bg, bone foreground,
- * gold accents, Cormorant serif headlines, Inter body, sharp
- * corners. The composer LOOKS like the thing it creates.
+ * CI is RealSight V3 throughout — cinematic-bg navy, mint accent
+ * (#18d6a4 / #2effc0), Inter type, glass surfaces (rounded-2xl,
+ * backdrop-blur-md, border-white/[0.08]), mint-gradient primary CTAs.
  *
- * Layout (desktop):
- *   - Page header with eyebrow + serif h1 + caption.
- *   - Sticky pill stepper with numbered serif numerals + Back/Next
- *     buttons on the right (gold-filled rectangle for Next).
- *   - App-frame card hosting the current step's content.
- *   - Each step uses its own grid (Brief = 2-col form+chat,
- *     Outline = single column list, Publish = 1.3fr/1fr preview +
- *     actions).
+ * The only places the gold/cinematic-gold aesthetic appears are
+ * *inside the deck previews*: the template thumbnails in Step 2 and
+ * the cover preview in Step 5 — those are intentionally showing what
+ * the published deck will look like, not part of the composer chrome.
  *
- * Layout (mobile):
- *   - Same vertical flow.
- *   - Step pills scroll horizontally.
- *   - Step content stacks into single column.
- *   - Back/Next remain in the sticky top bar.
+ * Mobile: same vertical flow, pills horizontal-scroll, content stacks.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { lightTap, mediumTap } from '@/lib/capacitor';
 
@@ -55,7 +50,6 @@ export function DeckComposer() {
   const [step, setStep] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Reset scroll-to-top on step change.
   useEffect(() => {
     contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [step]);
@@ -81,10 +75,10 @@ export function DeckComposer() {
     setStep((s) => Math.max(0, s - 1));
   };
 
-  // Keyboard arrows — desktop nicety, matches the reference behaviour.
+  // Desktop keyboard arrows — matches reference nicety, doesn't
+  // interfere with typing inside inputs.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Avoid swallowing typing in inputs / textareas.
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       if (e.key === 'ArrowRight' && canGoNext) {
@@ -105,39 +99,40 @@ export function DeckComposer() {
   const isLast = step === WIZARD_STEPS.length - 1;
 
   return (
-    // The Cinematic Gold aesthetic — ink-900 surface, sharp corners,
-    // serif headlines. Break out of AppLayout's content-area padding
-    // so the composer card has full width to itself.
-    <div className="-mx-4 -my-4 min-h-[calc(100dvh-2rem)] bg-ink-900 text-bone sm:-mx-6 sm:-my-6">
-      {/* Page header */}
-      <header className="mx-auto max-w-7xl px-4 pb-5 pt-7 sm:px-8 sm:pb-6 sm:pt-10">
+    // Break out of AppLayout's content-area padding so the wizard
+    // can use its own outer chrome at full width.
+    <div className="-mx-4 -my-4 min-h-[calc(100dvh-2rem)] sm:-mx-6 sm:-my-6">
+      {/* Page header — RealSight V3 hero treatment. */}
+      <header className="mx-auto max-w-7xl px-4 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-10">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[11px] uppercase tracking-[0.32em] text-gold">
+          <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#18d6a4]">
+            <Sparkles className="h-3 w-3" />
             RealSight · Studio
           </div>
           <Link
             to="/studio"
-            className="rounded-sm border border-bone/15 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-bone/60 transition hover:border-gold/40 hover:text-gold"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-white/[0.20] hover:text-white"
           >
-            ← Studio
+            <ArrowLeft className="h-3 w-3" />
+            Studio
           </Link>
         </div>
-        <h1 className="mt-2 font-serif text-3xl leading-tight sm:text-5xl">
+        <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-5xl">
           Deck Builder
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-bone/65 sm:text-base">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65 sm:text-base">
           From a topic to a published, fullscreen-ready, data-backed
           presentation hosted on{' '}
-          <span className="text-gold">realsight.app</span>. Five steps.
+          <span className="font-bold text-[#2effc0]">realsight.app</span>. Five steps.
         </p>
       </header>
 
       {/* Sticky step indicator + Back/Next */}
       <nav
-        className="sticky top-0 z-30 border-b border-bone/10 bg-ink-900/85 backdrop-blur"
+        className="sticky top-0 z-30 border-y border-white/[0.06] bg-[#07040F]/85 backdrop-blur-xl"
         style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-8 sm:py-4">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-8 sm:py-3.5">
           <div className="flex-1 min-w-0">
             <StepIndicator
               steps={WIZARD_STEPS.map((s) => ({ id: s.id, label: s.label }))}
@@ -154,22 +149,25 @@ export function DeckComposer() {
               onClick={goBack}
               disabled={step === 0}
               className={cn(
-                'rounded-sm border border-bone/15 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold sm:px-4',
-                step === 0 && 'opacity-40 cursor-not-allowed',
+                'inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/70 transition hover:border-white/[0.24] hover:text-white sm:px-4',
+                step === 0 && 'opacity-30 cursor-not-allowed',
               )}
             >
-              Back
+              <ArrowLeft className="h-3 w-3" />
+              <span className="hidden sm:inline">Back</span>
             </button>
             <button
               type="button"
               onClick={goNext}
               disabled={!canGoNext || isLast}
               className={cn(
-                'rounded-sm border border-gold bg-gold px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light sm:px-4',
-                (!canGoNext || isLast) && 'opacity-40 cursor-not-allowed hover:bg-gold',
+                'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all sm:px-5',
+                'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
+                (!canGoNext || isLast) && 'opacity-40 cursor-not-allowed translate-y-0',
               )}
             >
               {isLast ? 'Done' : 'Next'}
+              <ArrowRight className="h-3 w-3" />
             </button>
           </div>
         </div>
@@ -177,7 +175,7 @@ export function DeckComposer() {
 
       {/* App-frame card with current step */}
       <main className="mx-auto mb-12 max-w-7xl px-4 sm:px-8" ref={contentRef}>
-        <div className="overflow-hidden rounded-md border border-bone/10 bg-ink-800/40 shadow-2xl">
+        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-md">
           <AnimatePresence mode="wait">
             <motion.section
               key={currentId}
@@ -186,7 +184,7 @@ export function DeckComposer() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-              className="p-6 sm:p-8"
+              className="p-5 sm:p-8"
             >
               {currentId === 'brief'    && <StepBrief    {...ctx} />}
               {currentId === 'template' && <StepTemplate {...ctx} />}
@@ -197,24 +195,27 @@ export function DeckComposer() {
           </AnimatePresence>
         </div>
 
-        {/* Trust / Time / Reuse strip — matches reference */}
+        {/* Trust / Time / Reuse strip */}
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           <TrustCard
+            icon={<Sparkles className="h-3.5 w-3.5" />}
             label="Trust"
             body="Every number on the deck traces to a live DLD query. The AI has no freedom to invent figures — only to phrase them."
           />
           <TrustCard
-            label="Time"
+            icon={<Layers className="h-3.5 w-3.5" />}
+            label="Speed"
             body={
               <>
-                From "I want a deck on X" to a published, branded presentation —{' '}
-                <span className="text-bone">under 5 minutes</span> for the pilot.
+                Topic → published, branded presentation in{' '}
+                <span className="font-bold text-white">under 5 minutes</span> for pilot agents.
               </>
             }
           />
           <TrustCard
+            icon={<Sparkles className="h-3.5 w-3.5" />}
             label="Reuse"
-            body="The rendering layer ports verbatim from the proven secondary-market deck — not a rewrite."
+            body="The deck rendering engine ports directly from a proven secondary-market deck — not a rewrite."
           />
         </div>
       </main>
@@ -222,11 +223,22 @@ export function DeckComposer() {
   );
 }
 
-function TrustCard({ label, body }: { label: string; body: React.ReactNode }) {
+function TrustCard({
+  icon,
+  label,
+  body,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  body: React.ReactNode;
+}) {
   return (
-    <div className="rounded-md border border-bone/10 bg-ink-800/40 p-5">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-gold">{label}</div>
-      <p className="mt-2 text-sm leading-relaxed text-bone/75">{body}</p>
+    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-md">
+      <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#18d6a4]">
+        <span className="text-[#2effc0]">{icon}</span>
+        {label}
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-white/75">{body}</p>
     </div>
   );
 }

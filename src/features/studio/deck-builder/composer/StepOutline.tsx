@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader2, RotateCw } from 'lucide-react';
+import { Sparkles, Loader2, RotateCw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -9,20 +9,11 @@ import type { ComposerContext } from './types';
 import type { OutlineEntry } from '../runtime/types';
 
 /**
- * Step 3 — Review script. The interactive outline review surface.
+ * Step 3 — Review script.
  *
- * Empty state: gold-accent CTA "Draft the outline" → calls
- * studio-deck-plan, then populates the tiles.
- *
- * Populated state:
- *   - Title row with global "Refresh data" + "Re-prompt all" buttons,
- *     matching the userflow.html reference.
- *   - Vertical list of OutlineTile (each tappable to expand-edit).
- *   - Bottom-of-page Refine-with-AI input (single-line, can extend
- *     to chat later).
- *
- * Cinematic Gold aesthetic throughout — ink + bone + gold, sharp
- * corners, serif headlines.
+ * UX matches reference (tile list + global refine input). CI is
+ * RealSight V3: glass cards, mint accent, Inter type, rounded-2xl,
+ * mint-gradient primary CTA.
  */
 export function StepOutline({ draft, setDraft }: ComposerContext) {
   const [generating, setGenerating] = useState(false);
@@ -89,16 +80,18 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     });
   };
 
-  // ── Empty state ──
+  // Empty state.
   if (!outline || outline.length === 0) {
     return (
-      <div className="flex min-h-[340px] flex-col items-center justify-center rounded-md border border-bone/10 bg-ink-900/40 p-10 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.06]">
-          <Sparkles className="h-6 w-6 text-gold" />
+      <div className="flex min-h-[340px] flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] p-10 text-center backdrop-blur-md">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2effc0]/30 via-[#18d6a4]/20 to-transparent">
+          <Sparkles className="h-7 w-7 text-[#18d6a4]" />
         </div>
-        <div className="text-[10px] uppercase tracking-[0.3em] text-gold">03 — Review the script</div>
-        <h2 className="mt-2 font-serif text-3xl text-bone">Ready to draft.</h2>
-        <p className="mt-2 max-w-md text-sm text-bone/60">
+        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#18d6a4]">
+          03 — Review the script
+        </div>
+        <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Ready to draft.</h2>
+        <p className="mt-2 max-w-md text-sm text-white/60">
           We'll write a 5–10 slide outline based on your brief and pull live
           numbers from the Dubai Land Department + your references.
         </p>
@@ -107,24 +100,25 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           onClick={onGenerate}
           disabled={generating || draft.topic.trim().length < 8}
           className={cn(
-            'mt-7 inline-flex h-11 items-center gap-2 rounded-sm border border-gold bg-gold px-5 text-xs uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light',
-            'disabled:opacity-40 disabled:hover:bg-gold',
+            'mt-7 inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-black transition-all min-w-[220px] justify-center',
+            'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
+            'disabled:opacity-40 disabled:translate-y-0',
           )}
         >
           {generating ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Drafting…
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Drafting your deck…
             </>
           ) : (
             <>
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles className="h-4 w-4" />
               Draft the outline
             </>
           )}
         </button>
         {generating ? (
-          <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-bone/40">
+          <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-white/40">
             Calling the data tools · 20–60 seconds
           </p>
         ) : null}
@@ -136,34 +130,34 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     <div>
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-gold">03 — Review the script</div>
-          <h2 className="mt-2 font-serif text-4xl leading-tight text-bone">
+          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#18d6a4]">
+            03 — Review the script
+          </div>
+          <h2 className="mt-2 text-3xl font-bold leading-tight text-white sm:text-4xl">
             {outline.length} slides, ready to tweak.
           </h2>
-          <p className="mt-2 max-w-xl text-sm text-bone/60">
-            Every number is grounded in a live DLD query — hover the chip to see
-            the source. Tap a slide to edit its headline + body.
+          <p className="mt-2 max-w-xl text-sm text-white/60">
+            Every number is grounded in a live DLD query — tap a slide to edit
+            its headline + body.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onGenerate}
-            disabled={generating}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-bone/15 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-bone/70 transition hover:border-gold/40 hover:text-gold disabled:opacity-50"
-          >
-            {generating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <RotateCw className="h-3 w-3" />
-            )}
-            Refresh data
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={generating}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 text-xs font-bold uppercase tracking-[0.14em] text-white/75 transition hover:border-white/[0.24] hover:text-white disabled:opacity-50"
+        >
+          {generating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RotateCw className="h-3.5 w-3.5" />
+          )}
+          Refresh data
+        </button>
       </div>
 
       {/* Tile list */}
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 space-y-2.5">
         {outline.map((entry, i) => (
           <OutlineTile
             key={`${entry.slide_type}-${i}`}
@@ -189,11 +183,11 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       </div>
 
       {/* Refine-all input */}
-      <div className="mt-6 rounded-md border border-bone/10 bg-ink-900/40 p-4">
-        <label className="text-[10px] uppercase tracking-[0.18em] text-bone/55">
-          Refine the whole deck
+      <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-md">
+        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
+          Refine the whole deck with AI
         </label>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex items-end gap-2">
           <input
             type="text"
             value={refineText}
@@ -206,20 +200,24 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
                 onRefineAll();
               }
             }}
-            className="flex-1 rounded-sm border border-bone/15 bg-ink-800/60 px-3 py-2 text-sm text-bone placeholder:text-bone/35 outline-none transition focus:border-gold/55"
+            className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none backdrop-blur-md transition focus:border-[#18d6a4]/45 focus:ring-2 focus:ring-[#18d6a4]/20"
           />
           <button
             type="button"
             onClick={onRefineAll}
             disabled={!refineText.trim() || refining}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-gold bg-gold px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-ink-900 transition hover:bg-gold-light disabled:opacity-40"
+            className={cn(
+              'inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[11px] font-bold uppercase tracking-[0.14em] transition-all',
+              'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
+              'disabled:opacity-40 disabled:translate-y-0',
+            )}
           >
             {refining ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <Sparkles className="h-3 w-3" />
+              <Send className="h-3 w-3" />
             )}
-            Refine
+            Send
           </button>
         </div>
       </div>
