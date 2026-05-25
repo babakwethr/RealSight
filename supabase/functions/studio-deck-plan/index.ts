@@ -64,7 +64,7 @@ const SLIDE_CATALOGUE = [
 ] as const;
 
 const MAX_TOOL_ITERATIONS = 8;
-const MIN_SLIDES = 5;
+const MIN_SLIDES = 4;
 const MAX_SLIDES = 10;
 
 interface PlanRequest {
@@ -316,14 +316,30 @@ Deno.serve(async (req) => {
 
     // ── Parse outline JSON from finalText ───────────────────────
     const outline = parseOutlineJson(finalText);
-    if (!outline || outline.length < MIN_SLIDES) {
+    if (!outline || outline.length === 0) {
+      // 200 with error-in-body — the frontend reads the body and
+      // shows a useful toast; supabase.functions.invoke turns 4xx
+      // into "Edge Function returned a non-2xx status code" which
+      // hides the actual reason.
       return jsonResponse(
         {
-          error: `Outline was malformed or too short (got ${outline?.length ?? 0} slides).`,
+          error: 'The AI could not produce a valid outline. Try again, or sharpen the topic.',
           raw: finalText.slice(0, 500),
         },
-        502,
+        200,
       );
+    }
+    if (outline.length < MIN_SLIDES) {
+      // Pad with a closing slide if the LLM forgot it.
+      const hasClosing = outline.some((e) => e.slide_type === 'closing');
+      if (!hasClosing) {
+        outline.push({
+          slide_type: 'closing',
+          headline: 'Let\'s talk.',
+          body: 'Get in touch to discuss next steps.',
+          data: {},
+        } as OutlineEntry);
+      }
     }
     if (outline.length > MAX_SLIDES) outline.length = MAX_SLIDES;
 
@@ -410,10 +426,12 @@ without specific figures land flat for these people.`
       : 'Team training and end-user briefs can lean narrative, but at least one slide MUST carry real DLD numbers so the deck has credibility.'
   }
 
-**HARD REQUIREMENT — minimum ${minCitations} data citations in this deck.**
+**Target — aim for at least ${minCitations} data citations in this deck.**
 A "data citation" = an outline entry whose \`_citation_sig\` points to
-a tool call that returned rows > 0. Decks under the threshold are
-rejected.
+a tool call that returned rows > 0. If you genuinely can't reach the
+target because the tools return rows=0, emit fewer data citations
+but write the deck anyway — never fabricate numbers, and never
+return an empty outline.
 
 **Before drafting any slide text, call data tools.** Recommended
 order for a Dubai-investor deck:

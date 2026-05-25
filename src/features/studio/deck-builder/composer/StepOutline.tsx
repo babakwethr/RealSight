@@ -34,7 +34,20 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       refine_instruction: refineInstruction,
     };
     const { data, error } = await supabase.functions.invoke('studio-deck-plan', { body });
-    if (error) throw new Error(error.message);
+    // supabase.functions.invoke turns any non-2xx into a generic
+    // "Edge Function returned a non-2xx status code" error. The real
+    // error message lives in the response body, which we sometimes
+    // need to dig out from error.context.
+    if (error) {
+      let detail = '';
+      try {
+        const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+        const raw = ctx?.json ? await ctx.json() : null;
+        const r = raw as { error?: string; details?: string } | null;
+        detail = r?.error || r?.details || '';
+      } catch { /* ignore */ }
+      throw new Error(detail || error.message || 'AI service error');
+    }
     const payload = data as { deck_id?: string; outline?: OutlineEntry[]; error?: string };
     if (payload.error || !payload.outline) throw new Error(payload.error || 'No outline returned');
     return { deckId: payload.deck_id ?? draft.id, outline: payload.outline };

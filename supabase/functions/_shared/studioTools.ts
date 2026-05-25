@@ -72,15 +72,20 @@ const query_dld_monthly: StudioTool = {
   },
   source: 'Dubai Land Department',
   fn: async (params, { supabase }) => {
-    const start = String(params.start);
-    const end = String(params.end);
+    // The dld_monthly_aggregates.month column is TEXT stored as
+    // 'YYYY-MM' (no day component). String comparison against
+    // 'YYYY-MM-01' would EXCLUDE all rows because the shorter
+    // string is lexicographically less than the longer one. So
+    // we filter against the raw 'YYYY-MM' bounds.
+    const start = String(params.start).slice(0, 7);
+    const end = String(params.end).slice(0, 7);
     const area = (params.area as string | undefined) || '__all__';
     const { data, error } = await supabase
       .from('dld_monthly_aggregates')
       .select('month, sales_count, total_aed, avg_psqft')
       .eq('area_name', area)
-      .gte('month', `${start}-01`)
-      .lte('month', `${end}-31`)
+      .gte('month', start)
+      .lte('month', end)
       .order('month', { ascending: true });
     if (error) throw new Error(`query_dld_monthly: ${error.message}`);
     const rows = (data ?? []).map((r) => ({
