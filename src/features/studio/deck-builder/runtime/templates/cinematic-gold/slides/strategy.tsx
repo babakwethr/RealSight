@@ -11,8 +11,8 @@ export function StrategySlide({
   branding,
   visual,
 }: SlideProps<StrategyData>) {
-  const data = entry.data ?? { tiers: [] };
-  const tiers = data.tiers.slice(0, 3);
+  const data = (entry.data ?? {}) as Partial<StrategyData>;
+  const tiers = Array.isArray(data.tiers) ? data.tiers.slice(0, 3) : [];
 
   return (
     <SlideShell

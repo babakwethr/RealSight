@@ -18,9 +18,10 @@ export function WhyNowSlide({
   branding,
   visual,
 }: SlideProps<WhyNowData>) {
-  const data = entry.data ?? { paragraphs: [] };
-  const paragraphs = data.paragraphs.length
-    ? data.paragraphs
+  const data = (entry.data ?? {}) as Partial<WhyNowData>;
+  const safeParagraphs = Array.isArray(data.paragraphs) ? data.paragraphs.filter(Boolean) : [];
+  const paragraphs = safeParagraphs.length
+    ? safeParagraphs
     : entry.body
       ? [entry.body]
       : [];

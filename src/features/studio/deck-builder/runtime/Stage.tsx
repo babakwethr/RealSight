@@ -28,6 +28,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { SlideCounter } from './components/SlideCounter';
 import { PrintButton } from './components/PrintButton';
 import { FullscreenButton } from './components/FullscreenButton';
+import { SlideErrorBoundary } from './components/SlideErrorBoundary';
 import type {
   OutlineEntry,
   Branding,
@@ -163,16 +164,18 @@ export function Stage({
         <main className="deck-runtime min-h-screen w-full bg-ink-900 text-bone">
           {outline.map((entry, i) => {
             const SlideComp = templateMap[entry.slide_type];
+            if (!SlideComp) return null;
             return (
-              <SlideComp
-                key={`m-${i}`}
-                index={i}
-                isMobile
-                entry={entry}
-                branding={branding}
-                adviser={adviser}
-                visual={resolveVisual(entry, i)}
-              />
+              <SlideErrorBoundary key={`m-${i}`} slideLabel={entry.slide_type}>
+                <SlideComp
+                  index={i}
+                  isMobile
+                  entry={entry}
+                  branding={branding}
+                  adviser={adviser}
+                  visual={resolveVisual(entry, i)}
+                />
+              </SlideErrorBoundary>
             );
           })}
           {showChrome ? <PrintButton /> : null}
@@ -182,7 +185,7 @@ export function Stage({
   }
 
   const ActiveEntry = outline[current];
-  const ActiveSlide = templateMap[ActiveEntry.slide_type];
+  const ActiveSlide = templateMap[ActiveEntry.slide_type] ?? null;
 
   return (
     <main className="deck-runtime bg-ink-900 text-bone">
@@ -211,13 +214,17 @@ export function Stage({
                 exit={{ opacity: 0, scale: 0.992 }}
                 transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
               >
-                <ActiveSlide
-                  index={current}
-                  entry={ActiveEntry}
-                  branding={branding}
-                  adviser={adviser}
-                  visual={resolveVisual(ActiveEntry, current)}
-                />
+                {ActiveSlide ? (
+                  <SlideErrorBoundary slideLabel={ActiveEntry.slide_type}>
+                    <ActiveSlide
+                      index={current}
+                      entry={ActiveEntry}
+                      branding={branding}
+                      adviser={adviser}
+                      visual={resolveVisual(ActiveEntry, current)}
+                    />
+                  </SlideErrorBoundary>
+                ) : null}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -229,16 +236,18 @@ export function Stage({
         <StaticModeProvider value={true}>
           {outline.map((entry, i) => {
             const SlideComp = templateMap[entry.slide_type];
+            if (!SlideComp) return null;
             return (
-              <SlideComp
-                key={`print-${i}`}
-                index={i}
-                isMobile
-                entry={entry}
-                branding={branding}
-                adviser={adviser}
-                visual={resolveVisual(entry, i)}
-              />
+              <SlideErrorBoundary key={`print-${i}`} slideLabel={entry.slide_type}>
+                <SlideComp
+                  index={i}
+                  isMobile
+                  entry={entry}
+                  branding={branding}
+                  adviser={adviser}
+                  visual={resolveVisual(entry, i)}
+                />
+              </SlideErrorBoundary>
             );
           })}
         </StaticModeProvider>

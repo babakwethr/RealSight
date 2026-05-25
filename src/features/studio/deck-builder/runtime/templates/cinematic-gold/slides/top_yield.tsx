@@ -19,9 +19,12 @@ export function TopYieldSlide({
   visual,
 }: SlideProps<TopYieldData>) {
   const isStatic = useStaticMode();
-  const data = entry.data ?? { rows: [] };
-  const rows = data.rows.slice(0, 5);
-  const max = rows.length ? Math.max(...rows.map((r) => r.primary)) : 1;
+  const data = (entry.data ?? {}) as Partial<TopYieldData>;
+  const safeRows = Array.isArray(data.rows) ? data.rows : [];
+  const rows = safeRows.slice(0, 5);
+  const max = rows.length
+    ? Math.max(...rows.map((r) => Number(r.primary) || 0))
+    : 1;
 
   return (
     <SlideShell

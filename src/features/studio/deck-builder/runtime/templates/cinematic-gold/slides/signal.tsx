@@ -17,8 +17,8 @@ export function SignalSlide({
   branding,
   visual,
 }: SlideProps<SignalData>) {
-  const data = entry.data ?? { bars: [] };
-  const bars = data.bars;
+  const data = (entry.data ?? {}) as Partial<SignalData>;
+  const bars = Array.isArray(data.bars) ? data.bars : [];
 
   return (
     <SlideShell

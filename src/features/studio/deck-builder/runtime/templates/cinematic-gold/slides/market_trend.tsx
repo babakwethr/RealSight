@@ -23,12 +23,13 @@ export function MarketTrendSlide({
   branding,
   visual,
 }: SlideProps<MarketTrendData>) {
-  const data = entry.data ?? { bars: [] };
-  const bars = data.bars.map((b, i) => ({
+  const data = (entry.data ?? {}) as Partial<MarketTrendData>;
+  const safeBars = Array.isArray(data.bars) ? data.bars : [];
+  const bars = safeBars.map((b, i) => ({
     ...b,
     highlight:
       b.highlight ??
-      (data.pivot_index !== undefined ? i > data.pivot_index : undefined),
+      (typeof data.pivot_index === 'number' ? i > data.pivot_index : undefined),
   }));
 
   return (

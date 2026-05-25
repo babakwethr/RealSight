@@ -69,6 +69,11 @@ function SplitBar({ caption, offPlanPct, secondaryPct }: SplitBarProps) {
  * the cut by deal count and by deal value. Lifted from
  * `05-OffPlan.tsx`. Data-bearing — citation chip renders in the
  * footer "DLD · N deals" line.
+ *
+ * Null-safe: when the underlying tool returns no rows (Phase 1
+ * stubs for the cached aggregate), the LLM may emit `data: { ...all
+ * nulls }`. In that case the slide renders the body text only,
+ * with no broken bar charts or NaN numbers.
  */
 export function OffplanSplitSlide({
   isMobile,
@@ -76,22 +81,19 @@ export function OffplanSplitSlide({
   branding,
   visual,
 }: SlideProps<OffplanSplitData>) {
-  const data = entry.data;
-  if (!data) {
-    return (
-      <SlideShell
-        isMobile={isMobile}
-        photo={visual}
-        scrim="heavy"
-        logo={branding.logo_url}
-        agencyName={branding.agency_name}
-      >
-        <div className="absolute inset-0 z-10 flex items-center justify-center text-bone/55">
-          Data pending — off-plan-vs-secondary cached aggregate lands in Phase 2.
-        </div>
-      </SlideShell>
-    );
-  }
+  const data = (entry.data ?? null) as OffplanSplitData | null;
+  // The LLM sometimes returns `data: { off_plan_pct_count: null, ... }`
+  // when the aggregate tool returned no rows. Treat any null
+  // percentage as "no chart data" so we don't try to render a bar
+  // with width=null%.
+  const hasBars =
+    data &&
+    typeof data.off_plan_pct_count === 'number' &&
+    typeof data.secondary_pct_count === 'number' &&
+    typeof data.off_plan_pct_value === 'number' &&
+    typeof data.secondary_pct_value === 'number';
+  const hasFooterNumbers =
+    data && typeof data.total_deals === 'number' && typeof data.total_value_bn === 'number';
 
   return (
     <SlideShell
@@ -111,21 +113,25 @@ export function OffplanSplitSlide({
         </h2>
       </div>
 
-      <div className="absolute inset-x-12 top-[200px] z-10 space-y-6">
-        <SplitBar
-          caption={`Every Dubai sale ${data.window_label} — by number of deals`}
-          offPlanPct={data.off_plan_pct_count}
-          secondaryPct={data.secondary_pct_count}
-        />
-        <SplitBar
-          caption="The same deals — by money spent (AED)"
-          offPlanPct={data.off_plan_pct_value}
-          secondaryPct={data.secondary_pct_value}
-        />
-      </div>
+      {hasBars && data ? (
+        <div className="absolute inset-x-12 top-[200px] z-10 space-y-6">
+          <SplitBar
+            caption={`Every Dubai sale ${data.window_label ?? ''} — by number of deals`}
+            offPlanPct={data.off_plan_pct_count}
+            secondaryPct={data.secondary_pct_count}
+          />
+          <SplitBar
+            caption="The same deals — by money spent (AED)"
+            offPlanPct={data.off_plan_pct_value}
+            secondaryPct={data.secondary_pct_value}
+          />
+        </div>
+      ) : null}
 
       {entry.body ? (
-        <div className="absolute inset-x-12 top-[400px] z-10">
+        <div
+          className={`absolute inset-x-12 z-10 ${hasBars ? 'top-[400px]' : 'top-[200px]'}`}
+        >
           <div className="rounded-sm border border-gold/35 bg-gold/[0.06] p-5 backdrop-blur-md">
             <p className="text-base leading-relaxed text-bone/85">{entry.body}</p>
           </div>
@@ -134,8 +140,9 @@ export function OffplanSplitSlide({
 
       <div className="absolute bottom-9 left-12 right-12 z-10 border-t border-bone/15 pt-4">
         <p className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-bone/45">
-          DLD · {data.total_deals.toLocaleString('en-US')} sale deals · AED{' '}
-          {data.total_value_bn}B · {data.window_label}
+          {hasFooterNumbers && data
+            ? `DLD · ${data.total_deals.toLocaleString('en-US')} sale deals · AED ${data.total_value_bn}B${data.window_label ? ` · ${data.window_label}` : ''}`
+            : 'Live DLD off-plan-vs-secondary aggregate · Phase 2'}
           <CitationChip citation={entry.citation} />
         </p>
       </div>

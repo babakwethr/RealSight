@@ -14,8 +14,8 @@ export function BuyerSlide({
   branding,
   visual,
 }: SlideProps<BuyerData>) {
-  const data = entry.data ?? { rows: [] };
-  const rows = data.rows.slice(0, 2);
+  const data = (entry.data ?? {}) as Partial<BuyerData>;
+  const rows = Array.isArray(data.rows) ? data.rows.slice(0, 2) : [];
 
   return (
     <SlideShell
