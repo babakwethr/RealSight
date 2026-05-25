@@ -3,6 +3,7 @@
  */
 
 import type { OutlineEntry, Branding, AdviserContact } from '../runtime/types';
+import type { HtmlSlide } from '../runtime/HtmlStage';
 
 export type ComposerAudience =
   | 'end_user'
@@ -20,6 +21,10 @@ export interface ReferenceAsset {
   char_count?: number;
 }
 
+export interface DeckTheme {
+  accent_variant?: string;
+}
+
 export interface DraftDeck {
   id: string | null;
   topic: string;
@@ -28,6 +33,12 @@ export interface DraftDeck {
   contact_bg_prompt: string;
   reference_assets: ReferenceAsset[];
   template_slug: string;
+  /** V2 — generative-HTML slides from the LLM. New decks use this. */
+  html_slides: HtmlSlide[] | null;
+  /** V2 — per-deck theme override emitted by the LLM. */
+  theme: DeckTheme | null;
+  /** Legacy V1 outline; kept so older decks still render but cleared
+   *  when an html_slides generation succeeds. */
   outline: OutlineEntry[] | null;
   visuals: Record<string, string>;
 }
@@ -47,6 +58,8 @@ export const EMPTY_DRAFT: DraftDeck = {
   contact_bg_prompt: '',
   reference_assets: [],
   template_slug: 'cinematic-gold',
+  html_slides: null,
+  theme: null,
   outline: null,
   visuals: {},
 };

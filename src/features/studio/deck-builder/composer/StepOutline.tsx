@@ -1,25 +1,45 @@
 import { useState } from 'react';
-import { Sparkles, Loader2, RotateCw, Send } from 'lucide-react';
+import { Sparkles, Loader2, RotateCw, Send, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { lightTap, mediumTap } from '@/lib/capacitor';
-import { OutlineTile } from './OutlineTile';
-import type { ComposerContext } from './types';
-import type { OutlineEntry } from '../runtime/types';
+import type { ComposerContext, DeckTheme } from './types';
+import type { HtmlSlide } from '../runtime/HtmlStage';
+
+const SLIDE_LABELS: Record<string, string> = {
+  cover:          'Cover',
+  why_now:        'Why now',
+  market_trend:   'Market trend',
+  signal:         'Signal',
+  offplan_split:  'Off-plan vs Secondary',
+  buyer:          'Know your buyer',
+  top_volume:     'Top sale areas',
+  top_yield:      'Top rental areas',
+  strategy:       'Strategy',
+  closing:        'Closing',
+  generic:        'Slide',
+};
 
 /**
- * Step 3 — Review script.
+ * Step 3 — Review script. V2 (generative HTML).
  *
- * UX matches reference (tile list + global refine input). CI is
- * RealSight V3: glass cards, mint accent, Inter type, rounded-2xl,
- * mint-gradient primary CTA.
+ * Empty state: mint CTA → calls studio-deck-plan which now emits
+ * full HTML+CSS for each slide.
+ *
+ * Populated state: vertical tile list. Each tile shows the slide
+ * number, type_hint, an extracted heading preview, and a citation
+ * badge if the slide had a data source. Inline edit isn't shown —
+ * the HTML is too rich to type into a textarea. Instead the bottom
+ * "Refine with AI" input lets the adviser say "make slide 3
+ * punchier" or "replace the cover background with a marina shot"
+ * and the AI rewrites that slide's HTML.
  */
 export function StepOutline({ draft, setDraft }: ComposerContext) {
   const [generating, setGenerating] = useState(false);
   const [refining, setRefining] = useState(false);
   const [refineText, setRefineText] = useState('');
-  const outline = draft.outline;
+  const slides = draft.html_slides;
 
   const callPlan = async (mode: 'plan' | 'refine', refineInstruction?: string) => {
     const body = {
@@ -34,10 +54,6 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       refine_instruction: refineInstruction,
     };
     const { data, error } = await supabase.functions.invoke('studio-deck-plan', { body });
-    // supabase.functions.invoke turns any non-2xx into a generic
-    // "Edge Function returned a non-2xx status code" error. The real
-    // error message lives in the response body, which we sometimes
-    // need to dig out from error.context.
     if (error) {
       let detail = '';
       try {
@@ -48,20 +64,31 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       } catch { /* ignore */ }
       throw new Error(detail || error.message || 'AI service error');
     }
-    const payload = data as { deck_id?: string; outline?: OutlineEntry[]; error?: string };
-    if (payload.error || !payload.outline) throw new Error(payload.error || 'No outline returned');
-    return { deckId: payload.deck_id ?? draft.id, outline: payload.outline };
+    const payload = data as {
+      deck_id?: string;
+      html_slides?: HtmlSlide[];
+      theme?: DeckTheme;
+      error?: string;
+    };
+    if (payload.error || !payload.html_slides) {
+      throw new Error(payload.error || 'No slides returned');
+    }
+    return {
+      deckId: payload.deck_id ?? draft.id,
+      html_slides: payload.html_slides,
+      theme: payload.theme ?? null,
+    };
   };
 
   const onGenerate = async () => {
     setGenerating(true);
     try {
-      const { deckId, outline } = await callPlan('plan');
-      setDraft((d) => ({ ...d, id: deckId ?? d.id, outline }));
+      const { deckId, html_slides, theme } = await callPlan('plan');
+      setDraft((d) => ({ ...d, id: deckId ?? d.id, html_slides, theme, outline: null }));
       void mediumTap();
-      toast.success(`Outline ready · ${outline.length} slides`);
+      toast.success(`Deck ready · ${html_slides.length} slides`);
     } catch (err) {
-      toast.error('Could not draft outline', { description: (err as Error).message });
+      toast.error('Could not draft the deck', { description: (err as Error).message });
     } finally {
       setGenerating(false);
     }
@@ -72,11 +99,11 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     if (!instruction || refining) return;
     setRefining(true);
     try {
-      const { deckId, outline } = await callPlan('refine', instruction);
-      setDraft((d) => ({ ...d, id: deckId ?? d.id, outline }));
+      const { deckId, html_slides, theme } = await callPlan('refine', instruction);
+      setDraft((d) => ({ ...d, id: deckId ?? d.id, html_slides, theme }));
       setRefineText('');
       void mediumTap();
-      toast.success('Outline refined');
+      toast.success('Deck refined');
     } catch (err) {
       toast.error('Could not refine', { description: (err as Error).message });
     } finally {
@@ -84,17 +111,23 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     }
   };
 
-  const updateEntry = (i: number, next: OutlineEntry) => {
-    setDraft((d) => {
-      if (!d.outline) return d;
-      const copy = [...d.outline];
-      copy[i] = next;
-      return { ...d, outline: copy };
-    });
+  const onRePromptSlide = async (slideIdx: number, slide: HtmlSlide) => {
+    setRefining(true);
+    try {
+      const instruction = `Re-write slide ${slideIdx + 1} (id "${slide.id}", type "${slide.type_hint}") ONLY. Preserve the rest of the deck. Invent a new layout for this slide that's more visually striking and punchier than the previous version.`;
+      const { deckId, html_slides, theme } = await callPlan('refine', instruction);
+      setDraft((d) => ({ ...d, id: deckId ?? d.id, html_slides, theme }));
+      void mediumTap();
+      toast.success('Slide rewritten');
+    } catch (err) {
+      toast.error('Re-write failed', { description: (err as Error).message });
+    } finally {
+      setRefining(false);
+    }
   };
 
-  // Empty state.
-  if (!outline || outline.length === 0) {
+  // Empty state
+  if (!slides || slides.length === 0) {
     return (
       <div className="flex min-h-[340px] flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] p-10 text-center backdrop-blur-md">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#2effc0]/30 via-[#18d6a4]/20 to-transparent">
@@ -105,8 +138,9 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
         </div>
         <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Ready to draft.</h2>
         <p className="mt-2 max-w-md text-sm text-white/60">
-          We'll write a 5–10 slide outline based on your brief and pull live
-          numbers from the Dubai Land Department + your references.
+          The AI will design and write a unique 4–10 slide HTML deck based on
+          your brief, pulling live numbers from the Dubai Land Department and
+          your references.
         </p>
         <button
           type="button"
@@ -126,13 +160,13 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Draft the outline
+              Draft the deck
             </>
           )}
         </button>
         {generating ? (
           <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-white/40">
-            Calling the data tools · 20–60 seconds
+            Designing layouts · calling DLD · 40–90 seconds
           </p>
         ) : null}
       </div>
@@ -141,17 +175,18 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#18d6a4]">
             03 — Review the script
           </div>
           <h2 className="mt-2 text-3xl font-bold leading-tight text-white sm:text-4xl">
-            {outline.length} slides, ready to tweak.
+            {slides.length} slides, ready to tweak.
           </h2>
           <p className="mt-2 max-w-xl text-sm text-white/60">
-            Every number is grounded in a live DLD query — tap a slide to edit
-            its headline + body.
+            The AI invented a unique layout per slide using your template's
+            palette. Tap "Re-write" to redesign a single slide, or use the
+            refine box below for global changes.
           </p>
         </div>
         <button
@@ -165,37 +200,22 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           ) : (
             <RotateCw className="h-3.5 w-3.5" />
           )}
-          Refresh data
+          Re-draft all
         </button>
       </div>
 
-      {/* Tile list */}
       <div className="mt-6 space-y-2.5">
-        {outline.map((entry, i) => (
-          <OutlineTile
-            key={`${entry.slide_type}-${i}`}
+        {slides.map((slide, i) => (
+          <SlideTile
+            key={slide.id}
             index={i}
-            entry={entry}
-            onUpdate={(next) => updateEntry(i, next)}
-            onRePrompt={async () => {
-              try {
-                const { outline: newOutline } = await callPlan(
-                  'refine',
-                  `Re-write slide ${i + 1} (${entry.slide_type}) only. Keep the data citation if any. Make it punchier.`,
-                );
-                setDraft((d) => ({ ...d, outline: newOutline }));
-                toast.success('Slide rewritten');
-              } catch (err) {
-                toast.error('Re-write failed', { description: (err as Error).message });
-              }
-            }}
-            isFirst={i === 0}
-            isLast={i === outline.length - 1}
+            slide={slide}
+            disabled={refining || generating}
+            onRePrompt={() => onRePromptSlide(i, slide)}
           />
         ))}
       </div>
 
-      {/* Refine-all input */}
       <div className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-md">
         <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
           Refine the whole deck with AI
@@ -205,7 +225,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             type="text"
             value={refineText}
             onChange={(e) => setRefineText(e.target.value)}
-            placeholder="e.g. Make slide 3 punchier. Remove every mention of off-plan."
+            placeholder="e.g. Make the cover more cinematic. Drop slide 4. Add a stat-grid slide."
             disabled={refining}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -236,4 +256,68 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       </div>
     </div>
   );
+}
+
+interface SlideTileProps {
+  index: number;
+  slide: HtmlSlide;
+  disabled: boolean;
+  onRePrompt: () => void;
+}
+
+function SlideTile({ index, slide, disabled, onRePrompt }: SlideTileProps) {
+  const label = SLIDE_LABELS[slide.type_hint] ?? slide.type_hint;
+  const headingPreview = extractFirstHeading(slide.html);
+  const hasCitation = Boolean(slide.citation);
+  return (
+    <article className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md transition-colors hover:border-white/[0.16]">
+      <div className="flex items-start gap-3 p-4 sm:gap-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-bold text-[#18d6a4]">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#18d6a4]">
+              {label}
+            </span>
+            {hasCitation ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-[#18d6a4]/35 bg-[#18d6a4]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#2effc0]"
+                title={`Sourced via ${slide.citation?.tool}`}
+              >
+                <Info className="h-2.5 w-2.5" />
+                Data-backed
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1 text-base font-bold leading-snug text-white sm:text-lg">
+            {headingPreview || '(visual layout — open the preview)'}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            void lightTap();
+            onRePrompt();
+          }}
+          disabled={disabled}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/75 transition hover:border-[#18d6a4]/35 hover:text-white disabled:opacity-40"
+        >
+          <Sparkles className="h-3 w-3" />
+          Re-write
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function extractFirstHeading(html: string): string {
+  if (!html) return '';
+  const m = html.match(/<(h1|h2|h3)[^>]*>([\s\S]*?)<\/\1>/i);
+  if (!m) return '';
+  return m[2]
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140);
 }

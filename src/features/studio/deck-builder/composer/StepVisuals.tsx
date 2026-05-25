@@ -3,6 +3,17 @@ import { CINEMATIC_GOLD_DEFAULT_PHOTOS } from '../runtime/templates/cinematic-go
 import type { ComposerContext } from './types';
 import type { SlideType } from '../runtime/types';
 
+function extractFirstHeading(html: string): string {
+  if (!html) return '';
+  const m = html.match(/<(h1|h2|h3)[^>]*>([\s\S]*?)<\/\1>/i);
+  if (!m) return '';
+  return m[2]
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
 const SLIDE_LABELS: Record<string, string> = {
   cover:          'Cover',
   why_now:        'Why now',
@@ -23,12 +34,17 @@ const SLIDE_LABELS: Record<string, string> = {
  * glass card chrome, mint accent on selection, Inter type, rounded-2xl.
  */
 export function StepVisuals({ draft }: ComposerContext) {
-  const outline = draft.outline ?? [];
+  // V2 — iterate over html_slides when present; fall back to legacy
+  // outline for decks generated before the HTML rewrite.
+  const slides: Array<{ id?: string; slide_type?: string; type_hint?: string; headline?: string; html?: string }> =
+    draft.html_slides && draft.html_slides.length > 0
+      ? draft.html_slides
+      : (draft.outline ?? []);
 
-  if (outline.length === 0) {
+  if (slides.length === 0) {
     return (
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-10 text-center text-white/55 backdrop-blur-md">
-        Generate an outline in Step 3 first.
+        Generate a deck in Step 3 first.
       </div>
     );
   }
@@ -48,16 +64,20 @@ export function StepVisuals({ draft }: ComposerContext) {
       </p>
 
       <div className="mt-6 space-y-3">
-        {outline.map((entry, i) => {
-          const label = SLIDE_LABELS[entry.slide_type] ?? entry.slide_type;
-          const overrideUrl = draft.visuals[String(i)] ?? draft.visuals[entry.slide_type];
+        {slides.map((entry, i) => {
+          const typeKey = entry.type_hint ?? entry.slide_type ?? 'generic';
+          const slideId = entry.id ?? String(i);
+          const label = SLIDE_LABELS[typeKey] ?? typeKey;
+          const overrideUrl = draft.visuals[slideId] ?? draft.visuals[String(i)] ?? draft.visuals[typeKey];
           const defaultUrl =
-            CINEMATIC_GOLD_DEFAULT_PHOTOS[entry.slide_type as SlideType] ?? null;
+            CINEMATIC_GOLD_DEFAULT_PHOTOS[typeKey as SlideType] ?? null;
           const photo = overrideUrl ?? defaultUrl;
+          const headlinePreview =
+            entry.headline ?? extractFirstHeading(entry.html ?? '');
 
           return (
             <article
-              key={`${entry.slide_type}-${i}`}
+              key={slideId}
               className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-md"
             >
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -66,7 +86,7 @@ export function StepVisuals({ draft }: ComposerContext) {
                     Slide {String(i + 1).padStart(2, '0')} · {label}
                   </div>
                   <div className="truncate text-base font-bold text-white">
-                    {entry.headline ?? '(headline pending)'}
+                    {headlinePreview || '(visual layout — open preview)'}
                   </div>
                 </div>
               </div>

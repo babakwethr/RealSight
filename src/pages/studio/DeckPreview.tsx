@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { Stage } from '@/features/studio/deck-builder/runtime/Stage';
+import { HtmlStage, type HtmlSlide } from '@/features/studio/deck-builder/runtime/HtmlStage';
 import { CINEMATIC_GOLD_DEFAULT_PHOTOS } from '@/features/studio/deck-builder/runtime/templates/cinematic-gold/stock';
 import type {
   OutlineEntry,
@@ -40,6 +41,8 @@ interface DeckRow {
   profile_id: string;
   template_slug: string;
   outline: OutlineEntry[] | null;
+  html_slides: HtmlSlide[] | null;
+  theme: { accent_variant?: string } | null;
   visuals: Record<string, string> | null;
   status: 'draft' | 'published' | 'archived';
   share_token: string | null;
@@ -68,7 +71,9 @@ export default function DeckPreview() {
       setLoading(true);
       const { data, error } = await supabase
         .from('studio_decks')
-        .select('id, tenant_id, profile_id, template_slug, outline, visuals, status, share_token, slug, topic')
+        .select(
+          'id, tenant_id, profile_id, template_slug, outline, html_slides, theme, visuals, status, share_token, slug, topic',
+        )
         .eq('id', id)
         .single();
       if (cancelled) return;
@@ -245,15 +250,28 @@ export default function DeckPreview() {
       {/* Stage — takes the remaining space. Hidden bottom padding so
           the floating action bar doesn't sit on top of the last slide. */}
       <div className="relative flex-1 overflow-hidden">
-        <Stage
-          templateSlug={deck.template_slug}
-          outline={deck.outline ?? []}
-          visuals={visuals}
-          branding={branding}
-          adviser={adviser ?? undefined}
-          enableFullscreenOnFirstTap={false}
-          showChrome={true}
-        />
+        {deck.html_slides && deck.html_slides.length > 0 ? (
+          <HtmlStage
+            templateSlug={deck.template_slug}
+            accentVariant={deck.theme?.accent_variant}
+            slides={deck.html_slides}
+            branding={branding}
+            adviser={adviser ?? undefined}
+            visuals={visuals}
+            enableFullscreenOnFirstTap={false}
+            showChrome={true}
+          />
+        ) : (
+          <Stage
+            templateSlug={deck.template_slug}
+            outline={deck.outline ?? []}
+            visuals={visuals}
+            branding={branding}
+            adviser={adviser ?? undefined}
+            enableFullscreenOnFirstTap={false}
+            showChrome={true}
+          />
+        )}
       </div>
 
       {/* Bottom action bar — fixed on mobile, sticky on desktop. */}

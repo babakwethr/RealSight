@@ -14,7 +14,8 @@ import type { ComposerContext } from './types';
  * that's what the deck will look like).
  */
 export function StepPublish({ draft }: ComposerContext) {
-  const slideCount = draft.outline?.length ?? 0;
+  const slideCount =
+    (draft.html_slides?.length ?? 0) || (draft.outline?.length ?? 0);
   const hasDeckId = Boolean(draft.id);
   const canPublish = hasDeckId && slideCount > 0;
 

@@ -71,7 +71,7 @@ export function DeckComposer() {
       const { data, error } = await supabase
         .from('studio_decks')
         .select(
-          'id, template_slug, topic, audience, brief, outline, visuals, reference_assets',
+          'id, template_slug, topic, audience, brief, outline, html_slides, theme, visuals, reference_assets',
         )
         .eq('id', deckIdParam)
         .maybeSingle();
@@ -101,13 +101,16 @@ export function DeckComposer() {
         contact_bg_prompt: brief.contact_bg_prompt ?? '',
         reference_assets: refs,
         template_slug: data.template_slug ?? 'cinematic-gold',
+        html_slides: (data.html_slides ?? null) as DraftDeck['html_slides'],
+        theme: (data.theme ?? null) as DraftDeck['theme'],
         outline: (data.outline ?? null) as OutlineEntry[] | null,
         visuals: (data.visuals ?? {}) as Record<string, string>,
       };
       setDraft(loaded);
       // Jump the wizard to the most-relevant step based on draft progress.
+      const hasHtml = Array.isArray(loaded.html_slides) && loaded.html_slides.length > 0;
       const hasOutline = Array.isArray(loaded.outline) && loaded.outline.length > 0;
-      const resumeStep = hasOutline
+      const resumeStep = (hasHtml || hasOutline)
         ? WIZARD_STEPS.findIndex((s) => s.id === 'outline')
         : 0;
       setStep(resumeStep >= 0 ? resumeStep : 0);
