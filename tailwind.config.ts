@@ -20,6 +20,12 @@ export default {
         display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
         // Preserved: Berkeley Mono for inline numbers, tables, code.
         mono: ['Berkeley Mono', 'SF Mono', 'ui-monospace', 'Menlo', 'monospace'],
+        // Studio Deck Builder — Cinematic Gold + Editorial Light templates
+        // use Cormorant Garamond as the display serif. Loaded from Google
+        // Fonts via index.html.
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        // Architectural Bold template uses Playfair Display.
+        'serif-bold': ['"Playfair Display"', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -94,6 +100,31 @@ export default {
         "blue-brand":   "var(--blue)",    // #4AA8FF info · yield · data viz
         "amber-brand":  "var(--amber)",   // #F5B433 warning · caution
         "red-brand":    "var(--red)",     // #FF5577 danger · sell
+
+        // ── Studio Deck Builder — Cinematic Gold template palette ─────
+        // These names match the lifted reference deck verbatim so the
+        // 10 slide layouts work without rewriting className strings.
+        // Other deck templates (Investor Brief, Architectural Bold,
+        // Editorial Light) ship in Phase 1 task #17 and bring their own
+        // namespaced colors as needed.
+        ink: {
+          DEFAULT: '#0A0A0B',
+          900:     '#0A0A0B',
+          800:     '#121214',
+          700:     '#1A1A1D',
+          600:     '#26262A',
+        },
+        bone: {
+          DEFAULT: '#F5F1E8',
+          muted:   '#A8A39B',
+          dim:     '#6B6B6B',
+        },
+        gold: {
+          DEFAULT: '#D4AF37',
+          light:   '#F4C97A',
+          deep:    '#8B6914',
+          glow:    'rgba(212, 175, 55, 0.18)',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
