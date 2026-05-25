@@ -60,7 +60,11 @@ import TopPicks from "./pages/TopPicks";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import Watchlist from "./pages/Watchlist";
 import Studio from "./pages/Studio";
-import PresentationGenerator from "./pages/studio/PresentationGenerator";
+// Studio Deck Builder (Chunk 1) — replaces the old PresentationGenerator
+// stub. Same route (/studio/presentation), new wizard UI + AI orchestrator.
+import PresentationGenerator from "./pages/studio/DeckComposer";
+import DeckPreview from "./pages/studio/DeckPreview";
+import DeckPublic from "./pages/public/DeckPublic";
 
 // Preview V3 (fresh mobile-first concept) — isolated, unauth, leaves V1/V2 untouched
 import V3Layout, { V3PhoneFrame } from "./pages/preview/v3/V3Layout";
@@ -212,6 +216,8 @@ const App = () => (
                   row (RLS allows public select) then window.location
                   .replaces to the underlying Supabase storage URL. */}
               <Route path="/r/:id" element={<ShareLinkRedirect />} />
+              {/* Studio Deck Builder — public no-auth share view. */}
+              <Route path="/p/:shareToken" element={<DeckPublic />} />
               <Route path="/request-access" element={<RequestAccess />} />
               {/* /login redirects to home + opens modal. Keep /login-page for email confirmation links */}
               <Route path="/login" element={<LoginRedirect />} />
@@ -302,6 +308,7 @@ const App = () => (
                     Matcher and future tool drops. */}
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/studio/presentation" element={<PresentationGenerator />} />
+                <Route path="/studio/decks/:id" element={<DeckPreview />} />
 
                 <Route element={<AdminShell />}>
                   <Route path="/admin"                          element={<AdminWorkspace />} />

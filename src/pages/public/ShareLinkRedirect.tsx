@@ -22,7 +22,7 @@
  *   • Expired (>90d) → same page.
  */
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,10 +30,12 @@ import { supabase } from '@/integrations/supabase/client';
 type State =
   | { kind: 'loading' }
   | { kind: 'redirecting'; url: string }
+  | { kind: 'spa_navigating'; path: string }
   | { kind: 'not_found' };
 
 export default function ShareLinkRedirect() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: 'loading' });
 
   useEffect(() => {
@@ -56,7 +58,16 @@ export default function ShareLinkRedirect() {
       }
       // Best-effort hit-counter — never blocks the redirect.
       supabase.rpc('increment_share_link_count' as any, { p_id: id }).catch(() => {});
-      setState({ kind: 'redirecting', url: data.target_url });
+
+      // `spa:` prefix = in-SPA navigation (no full reload). Used by
+      // Studio Deck Builder so /r/{id} can resolve to /p/{share_token}
+      // without an external redirect.
+      const target = data.target_url as string;
+      if (target.startsWith('spa:')) {
+        setState({ kind: 'spa_navigating', path: target.slice(4) });
+        return;
+      }
+      setState({ kind: 'redirecting', url: target });
     })();
     return () => { cancelled = true; };
   }, [id]);
@@ -66,8 +77,10 @@ export default function ShareLinkRedirect() {
   useEffect(() => {
     if (state.kind === 'redirecting') {
       window.location.replace(state.url);
+    } else if (state.kind === 'spa_navigating') {
+      navigate(state.path, { replace: true });
     }
-  }, [state]);
+  }, [state, navigate]);
 
   return (
     <div className="min-h-screen cinematic-bg flex items-center justify-center p-6">
