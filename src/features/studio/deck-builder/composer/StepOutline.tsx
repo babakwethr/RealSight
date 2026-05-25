@@ -72,9 +72,11 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       html_slides?: HtmlSlide[];
       theme?: DeckTheme;
       error?: string;
+      details?: string;
     };
     if (payload.error || !payload.html_slides) {
-      throw new Error(payload.error || 'No slides returned');
+      const tail = payload.details ? ` — ${payload.details.slice(0, 200)}` : '';
+      throw new Error(`${payload.error || 'No slides returned'}${tail}`);
     }
     return {
       deckId: payload.deck_id ?? draft.id,

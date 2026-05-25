@@ -176,26 +176,59 @@ Deno.serve(async (req) => {
     };
 
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
-      const upstream = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          tools,
-          generationConfig: {
-            temperature: 0.55,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 32768,
-            responseMimeType: 'text/plain',
+      const requestBody = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        tools,
+        generationConfig: {
+          temperature: 0.55,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 32768,
+          responseMimeType: 'text/plain',
+        },
+      };
+      console.log(
+        `[studio-deck-plan] iter=${iter} mode=${body.mode ?? 'plan'} ` +
+          `system_prompt_chars=${systemPrompt.length} ` +
+          `contents_count=${contents.length} ` +
+          `user_msg_chars=${userMessage.length}`,
+      );
+      let upstream: Response;
+      try {
+        upstream = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+      } catch (fetchErr) {
+        console.error('[studio-deck-plan] fetch threw', fetchErr);
+        return jsonResponse(
+          {
+            error: 'AI service unreachable',
+            details: String(fetchErr).slice(0, 300),
           },
-        }),
-      });
+          200,
+        );
+      }
       if (!upstream.ok) {
         const errText = await upstream.text();
-        console.error('[studio-deck-plan] Gemini error', upstream.status, errText.slice(0, 300));
-        return jsonResponse({ error: 'AI service temporarily unavailable' }, 200);
+        console.error(
+          '[studio-deck-plan] Gemini error',
+          upstream.status,
+          errText.slice(0, 800),
+        );
+        // Surface the actual upstream error so we can debug without
+        // crawling Supabase logs.
+        return jsonResponse(
+          {
+            error: `AI service error (HTTP ${upstream.status})`,
+            details: errText.slice(0, 600),
+            iter,
+            mode: body.mode ?? 'plan',
+          },
+          200,
+        );
       }
       const data = await upstream.json();
       const candidate = data.candidates?.[0];
