@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { lightTap, mediumTap } from '@/lib/capacitor';
+import { StarterGallery } from './StarterGallery';
 import type { ComposerContext, ComposerAudience, ReferenceAsset } from './types';
 
 const AUDIENCE_OPTIONS: Array<{ value: ComposerAudience; label: string }> = [
@@ -87,6 +88,25 @@ export function StepBrief({ draft, setDraft }: ComposerContext) {
         </p>
 
         <div className="mt-7 space-y-6">
+          {/* Sample topic starters */}
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/55">
+              Pick a starter — or write your own
+            </label>
+            <div className="mt-2">
+              <StarterGallery
+                selectedPrompt={draft.topic}
+                onPick={({ prompt, audience }) => {
+                  setDraft((d) => ({
+                    ...d,
+                    topic: prompt,
+                    audience: (audience as ComposerAudience | null) ?? d.audience,
+                  }));
+                }}
+              />
+            </div>
+          </div>
+
           {/* Topic */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/55">

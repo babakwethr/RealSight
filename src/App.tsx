@@ -301,6 +301,18 @@ const App = () => (
                 }
               />
 
+              {/* Deck preview — adviser-only but renders FULLSCREEN
+                  (outside AppLayout) so the sidebar / ticker / nav
+                  chrome don't cover the cinematic deck canvas. */}
+              <Route
+                path="/studio/decks/:id"
+                element={
+                  <AdminRoute>
+                    <DeckPreview />
+                  </AdminRoute>
+                }
+              />
+
               <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
                 {/* Studio — adviser tools workspace (no AdminShell tabs).
                     Per LAUNCH_PLAN Phase 2 (2 May 2026): houses
@@ -308,7 +320,6 @@ const App = () => (
                     Matcher and future tool drops. */}
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/studio/presentation" element={<PresentationGenerator />} />
-                <Route path="/studio/decks/:id" element={<DeckPreview />} />
 
                 <Route element={<AdminShell />}>
                   <Route path="/admin"                          element={<AdminWorkspace />} />

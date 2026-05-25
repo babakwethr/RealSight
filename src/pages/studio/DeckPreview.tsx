@@ -223,7 +223,7 @@ export default function DeckPreview() {
   if (!deck) return null;
 
   return (
-    <div className="-mx-4 -my-4 flex h-[calc(100vh-1rem)] flex-col sm:-mx-6 sm:-my-6">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#0a0a0b]">
       {/* Top bar */}
       <header className="z-20 flex items-center justify-between gap-3 border-b border-white/[0.06] bg-[#07040F]/90 px-4 py-3 backdrop-blur-xl sm:px-6">
         <button
