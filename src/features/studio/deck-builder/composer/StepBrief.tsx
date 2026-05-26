@@ -140,22 +140,22 @@ export function StepBrief({ draft, setDraft }: ComposerContext) {
         </p>
       </div>
 
-      {/* Hero input — Chronicle/Gamma pattern */}
+      {/* Hero input — Chronicle/Gamma pattern. Mint halo via a static
+          radial-gradient (no extra filter:blur layer — that pressures
+          GPU on low-power tabs without changing the look much). */}
       <div className="relative mx-auto mt-8">
-        {/* Soft mint halo behind the input — Chronicle's signature */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-12 -inset-y-8 -z-10 opacity-60"
+          className="pointer-events-none absolute -inset-x-12 -inset-y-8 -z-10 opacity-50"
           style={{
             background:
-              'radial-gradient(ellipse at center, rgba(46,255,192,0.10) 0%, rgba(24,214,164,0.04) 35%, transparent 70%)',
-            filter: 'blur(28px)',
+              'radial-gradient(ellipse 60% 60% at center, rgba(46,255,192,0.14) 0%, rgba(24,214,164,0.05) 40%, transparent 75%)',
           }}
         />
 
         <div
           className={cn(
-            'relative rounded-3xl border bg-white/[0.04] backdrop-blur-xl transition-all',
+            'relative rounded-3xl border bg-white/[0.04] backdrop-blur-md transition-all',
             topicReady
               ? 'border-[#18d6a4]/35 shadow-[0_0_0_4px_rgba(46,255,192,0.06)]'
               : 'border-white/[0.10]',

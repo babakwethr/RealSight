@@ -39,6 +39,7 @@ import {
   StepVisuals,
   StepPublish,
   StepIndicator,
+  WizardErrorBoundary,
 } from './deck-composer-imports';
 import {
   EMPTY_DRAFT,
@@ -315,11 +316,13 @@ export function DeckComposer() {
               exit="exit"
               transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
             >
-              {currentId === 'brief'    && <StepBrief    {...ctx} />}
-              {currentId === 'template' && <StepTemplate {...ctx} />}
-              {currentId === 'outline'  && <StepOutline  {...ctx} />}
-              {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
-              {currentId === 'publish'  && <StepPublish  {...ctx} />}
+              <WizardErrorBoundary resetKey={currentId}>
+                {currentId === 'brief'    && <StepBrief    {...ctx} />}
+                {currentId === 'template' && <StepTemplate {...ctx} />}
+                {currentId === 'outline'  && <StepOutline  {...ctx} />}
+                {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
+                {currentId === 'publish'  && <StepPublish  {...ctx} />}
+              </WizardErrorBoundary>
             </motion.section>
           </AnimatePresence>
         )}

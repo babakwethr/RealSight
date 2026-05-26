@@ -294,38 +294,88 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
       if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
     });
 
-    // RealSight watermark — bottom-right of every slide, tiny, dim,
-    // never blocks pointer events. Injected by the renderer so the
-    // LLM can't forget it.
+    // RealSight branding mark. Injected by the renderer so the LLM
+    // can't forget it. Two visual treatments:
+    //   - On every slide except the closing: a clean pill in the
+    //     bottom-right corner — mint R-glyph + "Made with RealSight".
+    //     ~12px, glass background, sits above any photo scrim with
+    //     its own contrast.
+    //   - On the closing slide: replaced with a more prominent
+    //     credit row (logo + 'Created on realsight.app') just above
+    //     the bottom edge.
     if (!root.querySelector('[data-rs-watermark]')) {
-      const watermark = document.createElement('div');
-      watermark.setAttribute('data-rs-watermark', 'true');
       const isClosing = slide.type_hint === 'closing';
-      watermark.style.cssText = [
-        'position:absolute',
-        'bottom:18px',
-        'right:24px',
-        'z-index:9999',
-        'pointer-events:none',
-        'display:inline-flex',
-        'align-items:center',
-        'gap:6px',
-        `opacity:${isClosing ? '0.55' : '0.35'}`,
-        'font-family:Inter, system-ui, sans-serif',
-        `font-size:${isClosing ? '11px' : '9.5px'}`,
-        'font-weight:700',
-        'letter-spacing:0.14em',
-        'text-transform:uppercase',
-        'color:rgba(255,255,255,0.85)',
-        'mix-blend-mode:difference',
-      ].join(';');
-      // Mint dot + label. Inline SVG keeps it weightless.
-      watermark.innerHTML =
-        '<svg width="9" height="9" viewBox="0 0 9 9" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-          '<circle cx="4.5" cy="4.5" r="4.5" fill="#18d6a4"/>' +
-        '</svg>' +
-        `<span>${isClosing ? 'Built on realsight.app' : 'realsight'}</span>`;
-      root.appendChild(watermark);
+      const mark = document.createElement('div');
+      mark.setAttribute('data-rs-watermark', 'true');
+
+      // Shared glyph + wordmark markup. Mint "R" inside a pill,
+      // followed by the "RealSight" wordmark + caption.
+      const glyphSvg =
+        '<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">' +
+          '<rect width="24" height="24" rx="6" fill="#18d6a4"/>' +
+          '<path d="M7.6 17V7h4.7c1.5 0 2.65.36 3.46 1.07.81.7 1.22 1.7 1.22 2.96 0 .9-.22 1.66-.65 2.27-.43.6-1.05 1.06-1.86 1.36L17.4 17h-2.6l-2.55-2.94H10V17H7.6Zm2.4-4.9h2.05c.74 0 1.3-.16 1.69-.49.38-.33.57-.79.57-1.4 0-.6-.19-1.06-.57-1.39-.39-.32-.95-.49-1.69-.49H10v3.77Z" fill="#07040F"/>' +
+        '</svg>';
+
+      if (isClosing) {
+        // Prominent credit row on the closing slide. Sits inside a
+        // contained pill so the eye reads it even on a busy photo.
+        mark.style.cssText = [
+          'position:absolute',
+          'left:50%',
+          'bottom:24px',
+          'transform:translateX(-50%)',
+          'z-index:9999',
+          'pointer-events:none',
+          'display:inline-flex',
+          'align-items:center',
+          'gap:10px',
+          'padding:8px 14px 8px 8px',
+          'border-radius:9999px',
+          'background:rgba(10,10,11,0.55)',
+          'backdrop-filter:blur(8px) saturate(1.4)',
+          '-webkit-backdrop-filter:blur(8px) saturate(1.4)',
+          'border:1px solid rgba(255,255,255,0.10)',
+          'font-family:Inter, system-ui, sans-serif',
+          'color:rgba(255,255,255,0.92)',
+          'box-shadow:0 8px 24px -4px rgba(0,0,0,0.45)',
+        ].join(';');
+        mark.innerHTML =
+          glyphSvg +
+          '<span style="display:inline-flex;flex-direction:column;gap:2px;line-height:1;">' +
+            '<span style="font-size:13px;font-weight:700;letter-spacing:0.02em;">RealSight</span>' +
+            '<span style="font-size:9.5px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.55);">Created on realsight.app</span>' +
+          '</span>';
+      } else {
+        // Compact pill on every other slide.
+        mark.style.cssText = [
+          'position:absolute',
+          'right:24px',
+          'bottom:20px',
+          'z-index:9999',
+          'pointer-events:none',
+          'display:inline-flex',
+          'align-items:center',
+          'gap:7px',
+          'padding:5px 10px 5px 5px',
+          'border-radius:9999px',
+          'background:rgba(10,10,11,0.45)',
+          'backdrop-filter:blur(6px) saturate(1.3)',
+          '-webkit-backdrop-filter:blur(6px) saturate(1.3)',
+          'border:1px solid rgba(255,255,255,0.08)',
+          'font-family:Inter, system-ui, sans-serif',
+          'color:rgba(255,255,255,0.85)',
+          'font-size:10.5px',
+          'font-weight:700',
+          'letter-spacing:0.06em',
+          'opacity:0.85',
+        ].join(';');
+        // Smaller glyph variant for the compact pill.
+        const smallGlyph = glyphSvg
+          .replace('width="20"', 'width="14"')
+          .replace('height="20"', 'height="14"');
+        mark.innerHTML = smallGlyph + '<span>Made with RealSight</span>';
+      }
+      root.appendChild(mark);
     }
   }, [slide.id, slide.html, slide.type_hint, adviser, branding.logo_url, visuals]);
 
