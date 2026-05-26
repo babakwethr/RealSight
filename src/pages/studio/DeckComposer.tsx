@@ -25,7 +25,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Loader2, PlusCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,12 +48,6 @@ import {
   type ComposerAudience,
 } from '@/features/studio/deck-builder/composer/types';
 import type { OutlineEntry } from '@/features/studio/deck-builder/runtime/types';
-
-const STEP_PANE_VARIANTS = {
-  enter:  { opacity: 0, y: 6 },
-  center: { opacity: 1, y: 0 },
-  exit:   { opacity: 0, y: -4 },
-};
 
 export function DeckComposer() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -196,12 +189,24 @@ export function DeckComposer() {
   const isLast = step === WIZARD_STEPS.length - 1;
 
   return (
-    <div className="-mx-4 -my-4 min-h-[calc(100dvh-2rem)] sm:-mx-6 sm:-my-6">
+    // Standalone fullscreen — no AppLayout chrome around this. The
+    // wizard owns its own background: a static solid navy gradient
+    // (no fixed pseudo-element aurora orbs, no backdrop-blur on the
+    // root, no sidebar / ticker / nav siblings). This is the
+    // architectural fix for the Edge Dev OOM crash advisers kept
+    // hitting on Step 4 / 5 — see App.tsx route comment.
+    <div
+      className="min-h-[100dvh] w-full text-white"
+      style={{
+        background:
+          'linear-gradient(180deg, #07040F 0%, #0a0a18 40%, #0a0814 100%)',
+      }}
+    >
       {/* Sticky header — Linear-style slim. One line:
             crumb (Studio › Deck Builder) — step rail — Back / Next.
           Mobile collapses to step counter + current label. */}
       <nav
-        className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#07040F]/90 backdrop-blur-xl"
+        className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#07040F]/95"
         style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-8 sm:py-3.5">
@@ -307,14 +312,15 @@ export function DeckComposer() {
             Loading your draft…
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.section
+          <>
+            {/* Single-step render with a CSS fade keyed off the step id.
+                Cheaper than framer-motion's AnimatePresence which keeps
+                both incoming and outgoing mounted during the transition
+                and was contributing to the renderer OOM on low-power
+                tabs. */}
+            <section
               key={currentId}
-              variants={STEP_PANE_VARIANTS}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+              className="animate-deck-step-in"
             >
               <WizardErrorBoundary resetKey={currentId}>
                 {currentId === 'brief'    && <StepBrief    {...ctx} />}
@@ -323,8 +329,20 @@ export function DeckComposer() {
                 {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
                 {currentId === 'publish'  && <StepPublish  {...ctx} />}
               </WizardErrorBoundary>
-            </motion.section>
-          </AnimatePresence>
+            </section>
+            <style>{`
+              @keyframes rs-deck-step-in {
+                from { opacity: 0; transform: translateY(4px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+              .animate-deck-step-in {
+                animation: rs-deck-step-in 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .animate-deck-step-in { animation: none; }
+              }
+            `}</style>
+          </>
         )}
       </main>
     </div>

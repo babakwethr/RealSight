@@ -313,13 +313,28 @@ const App = () => (
                 }
               />
 
+              {/* Deck Builder wizard — ALSO outside AppLayout. The
+                  wizard had been crashing on Edge Dev / low-power
+                  tabs because cinematic-bg + AppSidebar + MobileNav +
+                  ticker animation all rendering BEHIND the wizard
+                  pushed the renderer over its compositor memory cap.
+                  /studio/decks/:id (without AppLayout) never had this
+                  problem — same fix here. */}
+              <Route
+                path="/studio/presentation"
+                element={
+                  <AdminRoute>
+                    <PresentationGenerator />
+                  </AdminRoute>
+                }
+              />
+
               <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
                 {/* Studio — adviser tools workspace (no AdminShell tabs).
                     Per LAUNCH_PLAN Phase 2 (2 May 2026): houses
                     Presentation Generator, Social Pack, Video, Buyer
                     Matcher and future tool drops. */}
                 <Route path="/studio" element={<Studio />} />
-                <Route path="/studio/presentation" element={<PresentationGenerator />} />
 
                 <Route element={<AdminShell />}>
                   <Route path="/admin"                          element={<AdminWorkspace />} />

@@ -495,83 +495,99 @@ designing for a deck, not a webpage.
     inset:0 and \`object-fit:cover;\` so it can't push content out.
 
 ==============================================================
-READABILITY IS NON-NEGOTIABLE
+ONE STYLE PER DECK — CRITICAL
 ==============================================================
 
-The #1 audience complaint about AI-generated decks is "I can't read
-the text on the photo." Every slide MUST follow these rules:
+You are designing a coherent presentation, not a styleboard. Pick
+ONE visual treatment for text-on-photo and use it on EVERY slide
+that has a photo. NEVER mix patterns inside a single deck.
+
+The four allowed patterns:
+
+  (A) BOTTOM-PILLAR SCRIM — gradient at the bottom of the photo,
+      text inside it. Most cinematic.
+      <div style="position:absolute;left:0;right:0;bottom:0;
+                  height:55%;
+                  background:linear-gradient(180deg,
+                    transparent 0%,
+                    rgba(10,10,11,0.55) 30%,
+                    rgba(10,10,11,0.94) 100%);
+                  z-index:1;"></div>
+
+  (B) SIDE-PANEL SOLID — solid dark column on one half, photo on
+      the other.
+      <div style="position:absolute;left:0;top:0;bottom:0;
+                  width:54%;
+                  background:rgba(10,10,11,0.92);
+                  z-index:1;"></div>
+
+  (C) CONTAINED CARD — a single solid dark card floating over the
+      photo. NO backdrop-filter (mobile webviews lag).
+      <div style="position:absolute;left:80px;top:50%;
+                  transform:translateY(-50%);
+                  background:rgba(10,10,11,0.90);
+                  border-radius:18px;padding:48px;
+                  max-width:540px;z-index:2;
+                  border:1px solid rgba(255,255,255,0.06);"></div>
+
+  (D) FULL-BLEED NARRATIVE — no photo. Solid var(--deck-bg) + an
+      SVG illustration or stat-grid + text. Use for narrative,
+      "why now", and strategy slides.
+
+DECISION RULE (pick once, apply to every photo slide):
+  - Investor / data-heavy decks → Pattern (B) side-panel solid.
+    Numbers belong inside a clean dark frame.
+  - End-user / lifestyle decks → Pattern (A) bottom-pillar scrim.
+    The photo is the hero, text supports.
+  - Brief / advisory decks → Pattern (C) contained card.
+    Self-contained "callout" feel.
+  - Whatever you pick — STICK WITH IT for all photo slides in this
+    deck. Mixing patterns produces an incoherent presentation that
+    looks like the AI changed its mind mid-deck. Babak's exact
+    complaint: "some are black and some are liquid glass".
+
+==============================================================
+READABILITY (the non-negotiable rules)
+==============================================================
 
   1. NEVER place text directly on a photo without a SOLID dark
-     container behind it. A weak rgba(0,0,0,0.2) gradient is not
-     enough — photos have bright spots that destroy contrast.
-  2. Pick ONE of these proven text-container patterns for any slide
-     that uses a photo:
-
-     (A) BOTTOM-PILLAR SCRIM — covers the bottom 55% of the photo
-         with a solid dark gradient. Text lives inside it.
-         <div style="position:absolute;left:0;right:0;bottom:0;
-                    height:55%;
-                    background:linear-gradient(180deg,
-                      transparent 0%,
-                      rgba(10,10,11,0.55) 30%,
-                      rgba(10,10,11,0.92) 100%);
-                    z-index:1;"></div>
-
-     (B) SIDE-PANEL SOLID — a solid dark column on one side,
-         photo visible on the other half.
-         <div style="position:absolute;left:0;top:0;bottom:0;
-                    width:54%;
-                    background:rgba(10,10,11,0.88);
-                    backdrop-filter:blur(2px);
-                    z-index:1;"></div>
-
-     (C) CONTAINED TEXT CARD — a glass/dark card floating over the
-         photo, with hard backdrop-filter. Use for "buyer types",
-         "strategy tiers" etc.
-         <div style="position:absolute;left:80px;top:50%;
-                    transform:translateY(-50%);
-                    background:rgba(10,10,11,0.78);
-                    backdrop-filter:blur(8px);
-                    border-radius:16px;padding:42px;
-                    max-width:520px;z-index:2;"></div>
-
-     (D) FULL-BLEED NARRATIVE (no photo) — solid var(--deck-bg)
-         with text + maybe an SVG illustration. Use for "why now"
-         and strategy slides.
-
-  3. ALL TEXT (headlines, body, eyebrows, labels) must live inside
-     one of the containers above OR on a solid var(--deck-bg).
-     NEVER directly on a photo.
-
-  4. STAT / FACT CARDS — never use semi-transparent backgrounds on
-     photos. Use SOLID rgba(10,10,11,0.85) or higher. The
-     screenshots that went wrong had cards with rgba(0,0,0,0.5) on
-     a busy photo — half the cards became unreadable.
-
-  5. Cover slides: photo + Pattern (A) for the headline pillar.
-     The eyebrow goes top-left in its own pill (small solid dark
-     chip), not floating bare.
-
-  6. Bottom-right ~180×40px area is RESERVED for the auto-injected
-     RealSight watermark — leave it empty or push your content above
-     it.
+     container (Pattern A/B/C) behind it. Bare-text-on-photo is
+     forbidden.
+  2. ALL stat/fact cards within the deck use the SAME background
+     opacity ≥ 0.88. Never mix rgba(0,0,0,0.5) with rgba(0,0,0,0.9)
+     in the same deck.
+  3. NO frosted-glass / backdrop-filter blur on photo-overlay
+     containers. The mobile webview compositor can't handle it and
+     decks render with broken visuals. Use a SOLID rgba opacity
+     instead.
+  4. Headlines on photos always get text-shadow:0 2px 30px
+     rgba(0,0,0,0.55) for safety.
+  5. The bottom 32px of every slide is RESERVED for the auto-injected
+     RealSight footer strip. Push your content up so it doesn't
+     overlap that band.
 
 ==============================================================
-SAFE FONT SIZES (do not exceed these on a 1280×800 canvas)
+SAFE FONT SIZES (FIXED PIXELS — do NOT use vw/vh/clamp)
 ==============================================================
 
-  - Cover headline (h1):           60–100px, line-height 1.04
-  - Mid-deck headline (h1/h2):     46–72px,  line-height 1.06
-  - Section subhead (h3):          22–32px,  line-height 1.2
-  - Body paragraph (p):            16–22px,  line-height 1.55
-  - Eyebrow / label / kicker:      10–13px, letter-spacing 0.2em
-  - StatCard primary number:       42–72px depending on stat count
-  - Chart axis / bar label:        12–16px
+The canvas is a constant 1280×800. Use fixed pixel sizes. clamp()
+and vw units produced inconsistent decks where the cover headline
+was sometimes 56px and sometimes 96px on identical content.
 
-  Recommended formula for resilient cover headlines:
-    font-size: clamp(56px, 7.5vw, 96px);
-  (vw still works inside the 1280-wide canvas because the renderer
-  applies transform:scale().)
+  - Cover headline (h1):           72px, line-height 1.04
+  - Mid-deck headline (h1):        56px, line-height 1.06
+  - Sub-headline (h2):             36px, line-height 1.1
+  - Section subhead (h3):          22px, line-height 1.2
+  - Body paragraph (p):            18px, line-height 1.55
+  - Card title / stat label:       14px, font-weight 700
+  - Eyebrow / kicker:              11px, letter-spacing 0.24em,
+                                   text-transform: uppercase
+  - StatCard primary number:       52px, font-weight 700
+  - Chart axis / bar label:        13px
+
+Cover headlines must wrap within max-width:880px. Body text within
+max-width:640px. NEVER let text touch the slide edges — keep ≥80px
+horizontal padding and ≥80px from the bottom (above the footer strip).
 
 ==============================================================
 HTML CONSTRAINTS — HARD
@@ -822,21 +838,21 @@ HTML CONSTRAINTS — HARD
                      rgba(10,10,11,0.95) 100%);
                    z-index:1;"></div>
 
-       <main style="position:absolute;bottom:90px;left:80px;right:80px;
+       <main style="position:absolute;bottom:110px;left:80px;right:80px;
                     z-index:2;max-width:880px;">
          <h1 class="hero-title"
              style="font-family:var(--deck-font-serif);
-                    font-size:clamp(54px, 7vw, 92px);
+                    font-size:72px;
                     line-height:1.04;letter-spacing:-0.01em;
-                    margin:0 0 24px;color:#F5F1E8;
+                    margin:0 0 20px;color:#F5F1E8;
                     text-shadow:0 2px 30px rgba(0,0,0,0.55);
                     word-wrap:break-word;overflow-wrap:break-word;">
-           <!-- Cover headline derived from the topic. Keep ≤14 words. -->
+           <!-- Cover headline derived from the topic. ≤12 words. -->
          </h1>
          <p class="hero-sub"
             style="font-family:var(--deck-font-sans);
-                   font-size:20px;line-height:1.55;
-                   color:rgba(245,241,232,0.85);max-width:680px;
+                   font-size:18px;line-height:1.55;
+                   color:rgba(245,241,232,0.82);max-width:640px;
                    margin:0;text-shadow:0 1px 16px rgba(0,0,0,0.4);">
            <!-- One subtitle sentence describing the deck's angle. -->
          </p>
@@ -943,9 +959,15 @@ For the DECK as a whole, confirm:
     [data-adviser="whatsapp"], [data-adviser="calendar_url"],
     [data-adviser="rera_number"], [data-adviser="avatar_url"],
     [data-deck="agency_logo"], [data-deck="rera_qr"].
+  ☐ ONE TEXT-ON-PHOTO PATTERN — every photo slide uses the SAME
+    Pattern (A/B/C). If slide 2 uses bottom-pillar, slide 5 must
+    also use bottom-pillar. Mixing produces the "some are black,
+    some are frosted glass" inconsistency Babak called out.
+  ☐ NO backdrop-filter or filter:blur in slide HTML (mobile webview
+    will lag or crash). Use solid rgba opacity instead.
   ☐ Layouts vary across slides (no two slides have the same
-    composition skeleton).
-  ☐ Cover headline ≤14 words, no single word >18 chars without a
+    composition skeleton), but the STYLE TREATMENT is consistent.
+  ☐ Cover headline ≤12 words, no single word >18 chars without a
     word-break.
 
 If any check fails, FIX THE SLIDE before emitting.
