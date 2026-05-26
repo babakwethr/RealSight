@@ -294,11 +294,15 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
       if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
     });
 
-    // RealSight branding strip. Full-width footer 32px tall, sits at
-    // y = 768..800 on the 1280×800 canvas. Solid dark backdrop, no
-    // GPU-heavy blur (mobile webviews + Edge Dev battery tabs can't
-    // afford it). Closing slide gets a slightly more prominent badge.
-    if (!root.querySelector('[data-rs-watermark]')) {
+    // RealSight branding strip. Full-width SOLID footer ~36px tall
+    // at the bottom of every 1280×800 slide. Solid dark background
+    // (no gradient — must be plainly visible, not subtle). Top hairline
+    // border separates it from slide content. No backdrop-filter so
+    // mobile webview / Edge Dev / iOS WKWebView render it identically.
+    // Always cleared and re-injected so a slide HTML re-render can't
+    // leave a stale strip behind.
+    root.querySelectorAll('[data-rs-watermark]').forEach((el) => el.remove());
+    {
       const isClosing = slide.type_hint === 'closing';
       const strip = document.createElement('div');
       strip.setAttribute('data-rs-watermark', 'true');
@@ -307,35 +311,42 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
         'left:0',
         'right:0',
         'bottom:0',
-        'height:32px',
-        'z-index:9999',
+        'height:36px',
+        'z-index:2147483647', // max int — beat any LLM-emitted z-index
         'pointer-events:none',
         'display:flex',
         'align-items:center',
         'justify-content:space-between',
-        'padding:0 28px',
-        'background:linear-gradient(180deg, rgba(10,10,11,0.0) 0%, rgba(10,10,11,0.85) 100%)',
+        'padding:0 32px',
+        'background:rgba(7, 4, 15, 0.92)',
+        'border-top:1px solid rgba(255, 255, 255, 0.08)',
+        'box-shadow:0 -8px 16px -8px rgba(0, 0, 0, 0.45)',
         'font-family:Inter, system-ui, sans-serif',
-        'color:rgba(255,255,255,0.85)',
+        'color:rgba(255,255,255,0.92)',
         'font-size:11px',
         'font-weight:700',
         'letter-spacing:0.06em',
+        // Belt-and-braces: don't let any inherited CSS scale or
+        // translate the strip away from where we want it.
+        'transform:none',
+        'opacity:1',
+        'visibility:visible',
       ].join(';');
 
       const glyphSvg =
-        '<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;display:block;">' +
           '<rect width="24" height="24" rx="6" fill="#18d6a4"/>' +
           '<path d="M7.6 17V7h4.7c1.5 0 2.65.36 3.46 1.07.81.7 1.22 1.7 1.22 2.96 0 .9-.22 1.66-.65 2.27-.43.6-1.05 1.06-1.86 1.36L17.4 17h-2.6l-2.55-2.94H10V17H7.6Zm2.4-4.9h2.05c.74 0 1.3-.16 1.69-.49.38-.33.57-.79.57-1.4 0-.6-.19-1.06-.57-1.39-.39-.32-.95-.49-1.69-.49H10v3.77Z" fill="#07040F"/>' +
         '</svg>';
 
       strip.innerHTML =
         // Left side — brand mark
-        '<span style="display:inline-flex;align-items:center;gap:8px;">' +
+        '<span style="display:inline-flex;align-items:center;gap:10px;">' +
           glyphSvg +
-          `<span style="font-weight:700;">${isClosing ? 'Created with RealSight' : 'Made with RealSight'}</span>` +
+          `<span style="font-weight:700;color:#FFFFFF;">${isClosing ? 'Created with RealSight' : 'Made with RealSight'}</span>` +
         '</span>' +
         // Right side — URL
-        '<span style="font-size:10px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.55);">' +
+        '<span style="font-size:10.5px;font-weight:600;letter-spacing:0.20em;text-transform:uppercase;color:rgba(255,255,255,0.65);">' +
           'realsight.app' +
         '</span>';
       root.appendChild(strip);

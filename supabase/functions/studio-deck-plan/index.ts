@@ -567,23 +567,63 @@ READABILITY (the non-negotiable rules)
      overlap that band.
 
 ==============================================================
-SAFE FONT SIZES (FIXED PIXELS — do NOT use vw/vh/clamp)
+SAFE FONT SIZES — STRICT FIXED PIXELS
 ==============================================================
 
-The canvas is a constant 1280×800. Use fixed pixel sizes. clamp()
-and vw units produced inconsistent decks where the cover headline
-was sometimes 56px and sometimes 96px on identical content.
+The canvas is a constant 1280×800. Use fixed pixel sizes. Never use
+clamp(), vw, vh, em, rem, %. Always px.
 
-  - Cover headline (h1):           72px, line-height 1.04
-  - Mid-deck headline (h1):        56px, line-height 1.06
-  - Sub-headline (h2):             36px, line-height 1.1
-  - Section subhead (h3):          22px, line-height 1.2
-  - Body paragraph (p):            18px, line-height 1.55
-  - Card title / stat label:       14px, font-weight 700
-  - Eyebrow / kicker:              11px, letter-spacing 0.24em,
-                                   text-transform: uppercase
-  - StatCard primary number:       52px, font-weight 700
-  - Chart axis / bar label:        13px
+  - Cover headline (h1, serif):    56px MAX, line-height 1.05
+  - Mid-deck headline (h1, serif): 40px MAX, line-height 1.08
+  - Sub-headline (h2):             28px MAX, line-height 1.1
+  - Section subhead (h3):          20px,     line-height 1.25
+  - Body paragraph (p):            17px,     line-height 1.55
+  - Card title / stat label:       13px,     font-weight 700
+  - Eyebrow / kicker:              10px,     letter-spacing 0.28em,
+                                             text-transform: uppercase
+  - StatCard primary number:       44px MAX, font-weight 700,
+                                             font-family: var(--deck-font-sans) ← NOT SERIF
+  - Chart axis / bar label:        12px
+
+⚠️ CALIBRATION WARNING about Cormorant Garamond (the cinematic-gold
+serif): it RENDERS visually ~30% larger than the same size in Inter.
+A 56px Cormorant headline looks like an ~80px Inter headline. That's
+why we use 56px max, not 72px or 80px.
+
+⚠️ STAT NUMBERS MUST BE SANS-SERIF. Never put "19%" or "AED 1.09T"
+in a serif font — it looks like a typo and ages badly. Use
+font-family: var(--deck-font-sans). Only HEADLINES use the serif.
+
+==============================================================
+ELEGANT > LOUD — design philosophy
+==============================================================
+
+The decks must look like a Bloomberg-class briefing, not an Instagram
+ad. That means:
+
+  - SMALL beats LOUD. If a headline takes more than 3 lines or fills
+    half the slide, it's too big — drop one size.
+  - WHITESPACE > content density. Aim for 30–45% of the slide canvas
+    being empty negative space. Cluttered decks read amateurish.
+  - One focal element per slide. Not six.
+  - Cover headlines: ≤10 words. Hard cap.
+  - Mid-deck headlines: ≤8 words. Hard cap.
+  - Body paragraphs: ≤2 sentences, ≤35 words combined.
+  - Stat cards: number is the hero, label is small, NO body copy
+    inside the card.
+
+Specific failures to AVOID (these are real complaints from the
+last review):
+
+  ✗ Cover headline wrapping to 4+ lines and dominating the slide.
+  ✗ "Growth Pockets: Top Performing Areas Over 12 Months" — too
+    many words. Better: "Top Performers · 12 months".
+  ✗ Stat numbers (19%, 18.4%) rendered in Cormorant serif —
+    they look like a typo. ALWAYS use sans for numerics.
+  ✗ Eight stat cards crammed in a 2×4 grid. Cap stat grids at 6,
+    ideally 4. If there are more areas, use a horizontal bar chart.
+  ✗ Card title "Jumeirah Village Circle" wrapping to 2 lines inside
+    a tight card. Keep card titles ≤2 words OR use a shorter alias.
 
 Cover headlines must wrap within max-width:880px. Body text within
 max-width:640px. NEVER let text touch the slide edges — keep ≥80px
@@ -838,23 +878,23 @@ HTML CONSTRAINTS — HARD
                      rgba(10,10,11,0.95) 100%);
                    z-index:1;"></div>
 
-       <main style="position:absolute;bottom:110px;left:80px;right:80px;
-                    z-index:2;max-width:880px;">
+       <main style="position:absolute;bottom:120px;left:80px;right:80px;
+                    z-index:2;max-width:820px;">
          <h1 class="hero-title"
              style="font-family:var(--deck-font-serif);
-                    font-size:72px;
-                    line-height:1.04;letter-spacing:-0.01em;
-                    margin:0 0 20px;color:#F5F1E8;
+                    font-size:56px;
+                    line-height:1.05;letter-spacing:-0.01em;
+                    margin:0 0 18px;color:#F5F1E8;
                     text-shadow:0 2px 30px rgba(0,0,0,0.55);
                     word-wrap:break-word;overflow-wrap:break-word;">
-           <!-- Cover headline derived from the topic. ≤12 words. -->
+           <!-- Cover headline — ≤10 words. Short and dramatic. -->
          </h1>
          <p class="hero-sub"
             style="font-family:var(--deck-font-sans);
-                   font-size:18px;line-height:1.55;
-                   color:rgba(245,241,232,0.82);max-width:640px;
+                   font-size:17px;line-height:1.55;
+                   color:rgba(245,241,232,0.78);max-width:560px;
                    margin:0;text-shadow:0 1px 16px rgba(0,0,0,0.4);">
-           <!-- One subtitle sentence describing the deck's angle. -->
+           <!-- One short subtitle sentence (≤16 words). -->
          </p>
        </main>
 
@@ -939,13 +979,18 @@ For EVERY slide in your deck, confirm:
     safe font sizes from the guide above).
   ☐ Uses ONLY var(--deck-*) colour and font references, never raw hex
     or fixed font names.
+  ☐ SIZE CAPS — cover h1 ≤56px, mid-deck h1 ≤40px, h2 ≤28px.
+    If your headline visually dominates more than 40% of the slide,
+    it's too big — drop a size.
+  ☐ HEADLINE BREVITY — cover ≤10 words, mid-deck ≤8 words.
+  ☐ Stat-card numbers use var(--deck-font-sans), NEVER serif.
+  ☐ Stat grids cap at 6 cards. Card titles ≤2 words OR use an alias.
   ☐ READABILITY: every visible text element lives inside one of the
     four containers (bottom-pillar scrim, side-panel solid, contained
     text card, or solid bg). NO text sitting bare on a photo.
-  ☐ Data/stat cards use SOLID dark backgrounds (rgba ≥ 0.85), not
-    semi-transparent.
-  ☐ Bottom-right ~180×40px stays empty (reserved for RealSight
-    watermark — the renderer injects it).
+  ☐ Data/stat cards use SOLID dark backgrounds (rgba ≥ 0.88).
+  ☐ Bottom 36px of the slide is reserved for the RealSight footer
+    strip — content sits above y=760.
   ☐ If it's a data slide, the numbers came from a tool call (and
     \`_citation_sig\` is set to that call's signature).
 

@@ -10,3 +10,4 @@ export { StepOutline } from '@/features/studio/deck-builder/composer/StepOutline
 export { StepVisuals } from '@/features/studio/deck-builder/composer/StepVisuals';
 export { StepPublish } from '@/features/studio/deck-builder/composer/StepPublish';
 export { WizardErrorBoundary } from '@/features/studio/deck-builder/composer/WizardErrorBoundary';
+export { WizardNavRail } from '@/features/studio/deck-builder/composer/WizardNavRail';

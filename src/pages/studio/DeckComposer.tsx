@@ -39,6 +39,7 @@ import {
   StepPublish,
   StepIndicator,
   WizardErrorBoundary,
+  WizardNavRail,
 } from './deck-composer-imports';
 import {
   EMPTY_DRAFT,
@@ -195,13 +196,18 @@ export function DeckComposer() {
     // root, no sidebar / ticker / nav siblings). This is the
     // architectural fix for the Edge Dev OOM crash advisers kept
     // hitting on Step 4 / 5 — see App.tsx route comment.
+    //
+    // Lightweight WizardNavRail gives the adviser back their main
+    // app navigation without dragging in AppLayout's heavy chrome.
     <div
-      className="min-h-[100dvh] w-full text-white"
+      className="flex min-h-[100dvh] w-full text-white"
       style={{
         background:
           'linear-gradient(180deg, #07040F 0%, #0a0a18 40%, #0a0814 100%)',
       }}
     >
+      <WizardNavRail />
+      <div className="flex min-w-0 flex-1 flex-col">
       {/* Sticky header — Linear-style slim. One line:
             crumb (Studio › Deck Builder) — step rail — Back / Next.
           Mobile collapses to step counter + current label. */}
@@ -345,6 +351,7 @@ export function DeckComposer() {
           </>
         )}
       </main>
+      </div>
     </div>
   );
 }
