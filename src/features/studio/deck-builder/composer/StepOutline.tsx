@@ -190,7 +190,28 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     setRefining(true);
     setRewriteIndex(slideIdx);
     try {
-      const instruction = `Re-write slide ${slideIdx + 1} (id "${slide.id}", type "${slide.type_hint}") ONLY. Preserve the rest of the deck. Invent a new layout for this slide that's more visually striking and punchier than the previous version.`;
+      // CRITICAL: tell the LLM to keep the data. The previous wording
+      // ("invent a new layout") was getting interpreted as "make a
+      // stub with a new title" — refines came back with no body
+      // content. Be explicit about what to preserve.
+      const instruction = [
+        `Re-write slide ${slideIdx + 1} (id "${slide.id}", type "${slide.type_hint}") ONLY.`,
+        'Preserve every other slide in the deck verbatim.',
+        '',
+        'For THIS slide:',
+        '  - You MUST keep every number, percentage, area name, building',
+        '    name, and date that appears in the original HTML.',
+        '  - You MUST keep the original `_citation_sig` so the data',
+        "    citation chip still points at the right tool call.",
+        '  - You MAY rewrite the HEADLINE for a fresher angle.',
+        '  - You MAY change the LAYOUT and the visual treatment.',
+        '  - You MAY swap the photo or recolour.',
+        '  - If you cannot preserve the data, return the slide UNCHANGED',
+        '    rather than emitting a stub.',
+        '',
+        'The goal is a punchier presentation of the SAME information,',
+        'not a different slide.',
+      ].join('\n');
       const { html_slides, theme } = await callPlan('refine', instruction);
       setPending({
         slideId: slide.id,

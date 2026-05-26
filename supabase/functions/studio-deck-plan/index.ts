@@ -748,90 +748,135 @@ HTML CONSTRAINTS — HARD
      \`@media (prefers-reduced-motion: no-preference) { ... }\`
      so users with reduced-motion preferences still see static layouts.
 
-7. **Closing slide — REQUIRED placeholder shells (verbatim).** The
-   closing slide MUST include EVERY one of these elements (don't
-   skip any — the renderer fills the text/src after mount, so empty
-   placeholders are fine):
+7. **Closing slide — ELEGANT MINIMAL (no emoji icons, no bulky text).**
 
-     <section id="slide-N" ...>
-       <!-- optional background photo with scrim -->
+   Babak's exact feedback was: "text very minimal, nicer icons for
+   WhatsApp/email/booking, RERA in the corner — smaller and nicer."
+   Use this canonical layout. The renderer fills the text/src after
+   mount, so empty placeholders are fine. NO emoji — use the
+   provided inline SVG line icons.
 
-       <header style="position:absolute;top:60px;left:60px;right:60px;
+     <section id="slide-N" class="deck-slide"
+              style="position:relative;width:1280px;height:800px;
+                     overflow:hidden;background:var(--deck-bg);
+                     color:var(--deck-fg);
+                     font-family:var(--deck-font-sans);">
+
+       <!-- optional background photo with bottom-pillar scrim -->
+
+       <!-- Top row: agency logo + tagline -->
+       <header style="position:absolute;top:64px;left:80px;right:80px;
                       display:flex;align-items:center;justify-content:space-between;
                       z-index:3;">
          <img data-deck="agency_logo" src="" alt="Agency logo"
-              style="height:36px;opacity:0.9;">
+              style="height:30px;opacity:0.9;">
          <span style="font-family:var(--deck-font-sans);
-                      font-size:11px;letter-spacing:0.24em;
+                      font-size:10px;letter-spacing:0.28em;font-weight:700;
                       text-transform:uppercase;color:var(--deck-muted);">
            Let's keep talking
          </span>
        </header>
 
-       <main style="position:absolute;inset:0;display:grid;
-                    grid-template-columns:1fr 1fr;align-items:center;
-                    padding:120px 90px;gap:80px;z-index:3;">
-         <div>
-           <img data-adviser="avatar_url" src="" alt="Adviser portrait"
-                style="width:140px;height:140px;border-radius:50%;
-                       object-fit:cover;margin-bottom:32px;
-                       border:1px solid var(--deck-divider);">
-           <h1 style="font-family:var(--deck-font-serif);
-                      font-size:54px;line-height:1.06;margin:0;">
-             <span data-adviser="full_name">Adviser Name</span>
-           </h1>
-           <p style="font-family:var(--deck-font-sans);
-                     font-size:18px;color:var(--deck-muted);
-                     letter-spacing:0.06em;margin:14px 0 0;">
-             <span data-adviser="title">VP, Portfolio</span>
-           </p>
-           <ul style="list-style:none;padding:0;margin:32px 0 0;
-                      font-family:var(--deck-font-sans);font-size:16px;
-                      line-height:1.9;color:var(--deck-fg);">
-             <li>📞 <span data-adviser="phone">+971 …</span></li>
-             <li>✉️ <span data-adviser="email">name@agency.ae</span></li>
-             <li>💬 WhatsApp · <span data-adviser="whatsapp">…</span></li>
-             <li>📅 <a data-adviser="calendar_url" href="#"
-                       style="color:var(--deck-accent);
-                              border-bottom:1px solid var(--deck-divider);
-                              text-decoration:none;">Book a 30-min call</a></li>
-           </ul>
-         </div>
+       <!-- Adviser block (left), kept minimal -->
+       <main style="position:absolute;left:80px;top:50%;
+                    transform:translateY(-50%);max-width:560px;z-index:3;">
+         <img data-adviser="avatar_url" src="" alt="Adviser portrait"
+              style="width:96px;height:96px;border-radius:50%;
+                     object-fit:cover;margin-bottom:28px;
+                     border:1px solid var(--deck-divider);">
 
-         <aside style="display:flex;flex-direction:column;
-                       align-items:flex-end;gap:24px;">
-           <img data-deck="rera_qr" src="" alt="RERA QR code"
-                style="width:160px;height:160px;background:#fff;
-                       padding:10px;border-radius:8px;
-                       box-shadow:0 12px 32px rgba(0,0,0,0.4);">
-           <div style="text-align:right;
-                       font-family:var(--deck-font-sans);font-size:14px;
-                       color:var(--deck-muted);line-height:1.55;">
-             <div style="text-transform:uppercase;letter-spacing:0.18em;
-                         font-size:10px;font-weight:700;
-                         color:var(--deck-accent);margin-bottom:6px;">
-               RERA Verified
-             </div>
-             <div>BRN · <span data-adviser="rera_number">·····</span></div>
-             <div>Scan to verify · Dubai Land Department</div>
-           </div>
-         </aside>
+         <h1 style="font-family:var(--deck-font-serif);
+                    font-size:36px;line-height:1.1;margin:0;
+                    letter-spacing:-0.005em;">
+           <span data-adviser="full_name">Adviser Name</span>
+         </h1>
+         <p style="font-family:var(--deck-font-sans);
+                   font-size:14px;color:var(--deck-muted);
+                   letter-spacing:0.04em;margin:8px 0 0;">
+           <span data-adviser="title">VP, Portfolio</span>
+         </p>
+
+         <!-- Contact rows — inline SVG icons, 15px text, tight rhythm -->
+         <ul style="list-style:none;padding:0;margin:28px 0 0;
+                    display:flex;flex-direction:column;gap:11px;
+                    font-family:var(--deck-font-sans);font-size:15px;
+                    line-height:1.4;color:var(--deck-fg);">
+           <li style="display:inline-flex;align-items:center;gap:12px;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--deck-accent);flex-shrink:0;">
+               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.33 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+             </svg>
+             <span data-adviser="phone">+971 …</span>
+           </li>
+           <li style="display:inline-flex;align-items:center;gap:12px;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--deck-accent);flex-shrink:0;">
+               <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>
+             </svg>
+             <span data-adviser="email">name@agency.ae</span>
+           </li>
+           <li style="display:inline-flex;align-items:center;gap:12px;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--deck-accent);flex-shrink:0;">
+               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+             </svg>
+             <span data-adviser="whatsapp">WhatsApp</span>
+           </li>
+           <li style="display:inline-flex;align-items:center;gap:12px;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--deck-accent);flex-shrink:0;">
+               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+             </svg>
+             <a data-adviser="calendar_url" href="#"
+                style="color:var(--deck-accent);text-decoration:none;
+                       border-bottom:1px solid var(--deck-divider);">
+               Book a 30-min call
+             </a>
+           </li>
+         </ul>
        </main>
 
+       <!-- RERA verification — TUCKED in the BOTTOM-RIGHT corner.
+            QR shrunk from 160px to 96px, caption text shrunk to 9-10px.
+            Sits well above the footer strip at y=764. -->
+       <aside style="position:absolute;right:80px;bottom:80px;
+                     display:flex;align-items:flex-end;gap:14px;
+                     z-index:3;">
+         <div style="text-align:right;
+                     font-family:var(--deck-font-sans);
+                     color:var(--deck-muted);line-height:1.55;">
+           <div style="text-transform:uppercase;letter-spacing:0.22em;
+                       font-size:9px;font-weight:700;
+                       color:var(--deck-accent);margin-bottom:4px;">
+             RERA Verified
+           </div>
+           <div style="font-size:11px;">
+             BRN · <span data-adviser="rera_number">·····</span>
+           </div>
+           <div style="font-size:9.5px;letter-spacing:0.12em;
+                       text-transform:uppercase;opacity:0.7;
+                       margin-top:2px;">
+             Dubai Land Department
+           </div>
+         </div>
+         <img data-deck="rera_qr" src="" alt="RERA QR code"
+              style="width:96px;height:96px;background:#fff;
+                     padding:6px;border-radius:6px;
+                     box-shadow:0 8px 20px rgba(0,0,0,0.35);">
+       </aside>
+
        <style>
-         #slide-N .closing-rise { animation: rise 1s cubic-bezier(0.16,1,0.3,1) both; }
-         @keyframes rise { from { opacity:0; transform: translateY(20px) } to { opacity:1; transform: translateY(0) } }
+         #slide-N .closing-rise { animation: rise 0.9s cubic-bezier(0.16,1,0.3,1) both; }
+         @keyframes rise { from { opacity:0; transform: translateY(16px) } to { opacity:1; transform: translateY(0) } }
        </style>
      </section>
 
-   This layout, palette swapped via CSS vars, is the canonical
-   closing slide. You may reposition / restyle but you MUST emit
-   ALL EIGHT placeholders:
+   Required elements (ten placeholders, ALL must appear):
      [data-adviser="full_name"]      [data-adviser="title"]
      [data-adviser="phone"]          [data-adviser="email"]
      [data-adviser="whatsapp"]       [data-adviser="calendar_url"]
      [data-adviser="rera_number"]    [data-adviser="avatar_url"]
      [data-deck="agency_logo"]       [data-deck="rera_qr"]
+
+   ⚠️ NEVER use emoji (📞 ✉️ 💬 📅) — use the SVG icons exactly as
+   above. Emoji look amateurish next to a serif name. The colors all
+   come from var(--deck-accent) so each template gets the right tint.
 
 8. **Cover slide — REQUIRED shape (canonical layout you may riff on
    but never violate):**
@@ -1071,8 +1116,15 @@ Rules:
     ONLY THAT SLIDE's html. Copy the OTHER slides byte-for-byte
     from the existing version — same id, same type_hint, same
     html, same _citation_sig.
+  - When rewriting a slide, you MUST PRESERVE all the data inside
+    it: every number, percentage, area name, building name, AED
+    value, date, and the _citation_sig. The rewrite changes
+    LAYOUT / HEADLINE / VISUAL TREATMENT, never the underlying
+    facts. A rewrite that drops the data is a regression — return
+    the original UNCHANGED rather than emitting a stub.
   - If the instruction is global ("make all slides punchier"),
-    rewrite every slide.
+    rewrite every slide — but the data-preservation rule still
+    applies per slide.
   - NEVER return fewer html_slides entries than the existing deck
     has. NEVER return only the changed slide alone — that drops
     the rest of the deck.

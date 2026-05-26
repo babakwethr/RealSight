@@ -311,19 +311,22 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
         'left:0',
         'right:0',
         'bottom:0',
-        'height:36px',
+        'height:38px',
         'z-index:2147483647', // max int — beat any LLM-emitted z-index
         'pointer-events:none',
         'display:flex',
         'align-items:center',
         'justify-content:space-between',
         'padding:0 32px',
-        'background:rgba(7, 4, 15, 0.92)',
-        'border-top:1px solid rgba(255, 255, 255, 0.08)',
-        'box-shadow:0 -8px 16px -8px rgba(0, 0, 0, 0.45)',
+        'background:#07040F', // fully opaque navy — must always show
+        // Mint accent line at the top — this is what makes the strip
+        // distinguishable from the slide's own bottom edge even when
+        // the slide bg is dark.
+        'border-top:1.5px solid #18d6a4',
+        'box-shadow:0 -2px 18px -4px rgba(46, 255, 192, 0.30), 0 -8px 16px -8px rgba(0, 0, 0, 0.55)',
         'font-family:Inter, system-ui, sans-serif',
-        'color:rgba(255,255,255,0.92)',
-        'font-size:11px',
+        'color:#FFFFFF',
+        'font-size:11.5px',
         'font-weight:700',
         'letter-spacing:0.06em',
         // Belt-and-braces: don't let any inherited CSS scale or
