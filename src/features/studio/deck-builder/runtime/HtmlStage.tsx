@@ -311,46 +311,47 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
         'left:0',
         'right:0',
         'bottom:0',
-        'height:38px',
-        'z-index:2147483647', // max int — beat any LLM-emitted z-index
+        'height:52px', // bigger so it's genuinely visible at scaled-down sizes
+        'z-index:2147483647',
         'pointer-events:none',
         'display:flex',
         'align-items:center',
         'justify-content:space-between',
-        'padding:0 32px',
-        'background:#07040F', // fully opaque navy — must always show
-        // Mint accent line at the top — this is what makes the strip
-        // distinguishable from the slide's own bottom edge even when
-        // the slide bg is dark.
-        'border-top:1.5px solid #18d6a4',
-        'box-shadow:0 -2px 18px -4px rgba(46, 255, 192, 0.30), 0 -8px 16px -8px rgba(0, 0, 0, 0.55)',
+        'padding:0 36px',
+        'background:#07040F',
+        // 3px bright MINT top border — the visual signature that
+        // makes the strip read as branded chrome rather than slide bg.
+        'border-top:3px solid #18d6a4',
+        'box-shadow:0 -2px 22px -2px rgba(46, 255, 192, 0.45), 0 -10px 20px -8px rgba(0, 0, 0, 0.6)',
         'font-family:Inter, system-ui, sans-serif',
         'color:#FFFFFF',
-        'font-size:11.5px',
+        'font-size:13px',
         'font-weight:700',
-        'letter-spacing:0.06em',
-        // Belt-and-braces: don't let any inherited CSS scale or
-        // translate the strip away from where we want it.
+        'letter-spacing:0.04em',
         'transform:none',
         'opacity:1',
         'visibility:visible',
       ].join(';');
 
       const glyphSvg =
-        '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;display:block;">' +
+        '<svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;display:block;">' +
           '<rect width="24" height="24" rx="6" fill="#18d6a4"/>' +
           '<path d="M7.6 17V7h4.7c1.5 0 2.65.36 3.46 1.07.81.7 1.22 1.7 1.22 2.96 0 .9-.22 1.66-.65 2.27-.43.6-1.05 1.06-1.86 1.36L17.4 17h-2.6l-2.55-2.94H10V17H7.6Zm2.4-4.9h2.05c.74 0 1.3-.16 1.69-.49.38-.33.57-.79.57-1.4 0-.6-.19-1.06-.57-1.39-.39-.32-.95-.49-1.69-.49H10v3.77Z" fill="#07040F"/>' +
         '</svg>';
 
       strip.innerHTML =
-        // Left side — brand mark
-        '<span style="display:inline-flex;align-items:center;gap:10px;">' +
+        // Left side — bigger brand mark with two-line wordmark
+        '<span style="display:inline-flex;align-items:center;gap:12px;">' +
           glyphSvg +
-          `<span style="font-weight:700;color:#FFFFFF;">${isClosing ? 'Created with RealSight' : 'Made with RealSight'}</span>` +
+          `<span style="display:inline-flex;flex-direction:column;line-height:1.1;">` +
+            `<span style="font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:0.01em;">${isClosing ? 'Created with RealSight' : 'Made with RealSight'}</span>` +
+            `<span style="font-size:9.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:rgba(46,255,192,0.85);">AI-built · realsight.app</span>` +
+          '</span>' +
         '</span>' +
-        // Right side — URL
-        '<span style="font-size:10.5px;font-weight:600;letter-spacing:0.20em;text-transform:uppercase;color:rgba(255,255,255,0.65);">' +
-          'realsight.app' +
+        // Right side — slim live status pill
+        '<span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.65);">' +
+          '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#2effc0;box-shadow:0 0 8px #18d6a4;"></span>' +
+          'Live deck' +
         '</span>';
       root.appendChild(strip);
     }

@@ -266,9 +266,10 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             onClick={onGenerate}
             disabled={generating || draft.topic.trim().length < 8}
             className={cn(
-              'mt-7 inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-black uppercase tracking-[0.14em] transition-all',
-              'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-              'disabled:opacity-40 disabled:translate-y-0',
+              'mt-7 relative inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-black uppercase tracking-[0.14em] transition-all',
+              generating
+                ? 'rs-glow-btn bg-[#07040F] text-white'
+                : 'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px] disabled:opacity-40 disabled:translate-y-0',
             )}
           >
             {generating ? (
@@ -355,27 +356,35 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           </button>
         </div>
 
-        {/* Global refine bar — frosted glass, kept GPU-light so it
-            doesn't pressure low-power renderer tabs. One backdrop-blur
-            layer + a single top sheen line. */}
+        {/* Global refine bar — proper frosted glass (21st.dev Glass
+            Card pattern, adapted to V3 navy/mint). Translucent white
+            tint + strong backdrop-blur is what makes the effect read
+            as "glass" rather than just transparent. */}
         <div className="sticky bottom-3 z-20 mt-6 sm:bottom-6">
           <div
-            className="relative overflow-hidden rounded-2xl border border-white/[0.14] p-3 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)]"
+            className="rs-refine-bar relative overflow-hidden rounded-2xl border border-white/[0.18] p-3 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)]"
             style={{
-              background: 'rgba(15, 20, 40, 0.55)',
-              backdropFilter: 'blur(18px) saturate(1.35)',
-              WebkitBackdropFilter: 'blur(18px) saturate(1.35)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              backdropFilter: 'blur(28px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(28px) saturate(180%)',
             }}
           >
-            {/* Glass-edge sheen along the top */}
+            {/* Glass-edge sheen along the top — the highlight that
+                makes the bar read as a physical pane of glass. */}
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 top-0 h-px"
               style={{
                 background:
-                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.32) 50%, transparent 100%)',
+                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)',
               }}
             />
+            {/* Solid fallback for browsers without backdrop-filter */}
+            <style>{`
+              @supports not (backdrop-filter: blur(1px)) {
+                .rs-refine-bar { background: rgba(15, 18, 36, 0.95) !important; }
+              }
+            `}</style>
 
             <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/65">
               Refine the whole deck
@@ -400,9 +409,10 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
                 onClick={onGlobalRefine}
                 disabled={!refineText.trim() || refining}
                 className={cn(
-                  'inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition-all',
-                  'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-                  'disabled:opacity-40 disabled:translate-y-0',
+                  'relative inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition-all',
+                  refining
+                    ? 'rs-glow-btn bg-[#07040F] text-white'
+                    : 'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px] disabled:opacity-40 disabled:translate-y-0',
                 )}
               >
                 {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
@@ -413,62 +423,9 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
         </div>
       </div>
 
-      {/* Rotating glow keyframes for Re-write loader */}
-      <style>{`
-        @property --rs-glow-angle {
-          syntax: '<angle>';
-          initial-value: 0deg;
-          inherits: false;
-        }
-        @keyframes rs-glow-rotate {
-          to { --rs-glow-angle: 360deg; }
-        }
-        .rs-glow-btn {
-          position: relative;
-          z-index: 0;
-          isolation: isolate;
-          --rs-glow-angle: 0deg;
-          animation: rs-glow-rotate 1.8s linear infinite;
-        }
-        .rs-glow-btn::before {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          border-radius: 9999px;
-          padding: 2px;
-          background: conic-gradient(
-            from var(--rs-glow-angle),
-            #2effc0, #18d6a4, #6a5cff, #ff6ad9, #ffb86b, #2effc0
-          );
-          -webkit-mask:
-            linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-                  mask-composite: exclude;
-          z-index: -1;
-        }
-        .rs-glow-btn::after {
-          content: '';
-          position: absolute;
-          inset: -10px;
-          border-radius: 9999px;
-          background: conic-gradient(
-            from var(--rs-glow-angle),
-            #2effc0, #18d6a4, #6a5cff, #ff6ad9, #ffb86b, #2effc0
-          );
-          filter: blur(14px);
-          opacity: 0.55;
-          z-index: -2;
-        }
-        @supports not (background: conic-gradient(from var(--rs-glow-angle), #000, #fff)) {
-          .rs-glow-btn {
-            box-shadow:
-              0 0 0 2px rgba(46, 255, 192, 0.7),
-              0 0 18px 4px rgba(46, 255, 192, 0.55),
-              0 0 32px 8px rgba(106, 92, 255, 0.45);
-          }
-        }
-      `}</style>
+      {/* rs-glow-btn keyframes now live globally in src/index.css so
+          DeckPreview / DeckComposer / future pages can all share the
+          same loading halo without duplicating the rules. */}
 
       {/* ── Diff drawer — Original vs Rewritten ────────────────────── */}
       <AnimatePresence>

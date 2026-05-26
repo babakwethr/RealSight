@@ -550,19 +550,29 @@ DECISION RULE (pick once, apply to every photo slide):
 READABILITY (the non-negotiable rules)
 ==============================================================
 
-  1. NEVER place text directly on a photo without a SOLID dark
-     container (Pattern A/B/C) behind it. Bare-text-on-photo is
-     forbidden.
-  2. ALL stat/fact cards within the deck use the SAME background
-     opacity ≥ 0.88. Never mix rgba(0,0,0,0.5) with rgba(0,0,0,0.9)
-     in the same deck.
-  3. NO frosted-glass / backdrop-filter blur on photo-overlay
-     containers. The mobile webview compositor can't handle it and
-     decks render with broken visuals. Use a SOLID rgba opacity
-     instead.
+  1. NEVER place text directly on a photo without a SOLID or
+     FROSTED-GLASS container (Pattern A/B/C) behind it.
+     Bare-text-on-photo is forbidden.
+  2. STAT / FACT CARDS use ONE consistent style across the whole
+     deck. Pick ONE of:
+       (a) SOLID DARK: background: rgba(10, 10, 11, 0.92);
+                       border: 1px solid rgba(255,255,255,0.08);
+       (b) FROSTED GLASS: background: rgba(255,255,255,0.06);
+                          backdrop-filter: blur(20px) saturate(180%);
+                          -webkit-backdrop-filter: blur(20px) saturate(180%);
+                          border: 1px solid rgba(255,255,255,0.14);
+     ALWAYS include the @supports fallback for frosted glass:
+       @supports not (backdrop-filter: blur(1px)) {
+         .glass-card { background: rgba(10, 10, 11, 0.92); }
+       }
+     Whichever style you pick — STICK WITH IT for every card in the
+     deck. Babak's complaint: "some are black and some are liquid
+     glass". Don't mix.
+  3. Frosted-glass blur radius cap: 24px. Beyond that it pressures
+     low-power tabs and mobile webviews.
   4. Headlines on photos always get text-shadow:0 2px 30px
      rgba(0,0,0,0.55) for safety.
-  5. The bottom 32px of every slide is RESERVED for the auto-injected
+  5. The bottom 52px of every slide is RESERVED for the auto-injected
      RealSight footer strip. Push your content up so it doesn't
      overlap that band.
 
@@ -1033,9 +1043,11 @@ For EVERY slide in your deck, confirm:
   ☐ READABILITY: every visible text element lives inside one of the
     four containers (bottom-pillar scrim, side-panel solid, contained
     text card, or solid bg). NO text sitting bare on a photo.
-  ☐ Data/stat cards use SOLID dark backgrounds (rgba ≥ 0.88).
-  ☐ Bottom 36px of the slide is reserved for the RealSight footer
-    strip — content sits above y=760.
+  ☐ Stat / fact cards use ONE consistent style (solid OR frosted
+    glass) across the entire deck — never mixed.
+  ☐ Frosted-glass cards include the @supports fallback block.
+  ☐ Bottom 52px of the slide is reserved for the RealSight footer
+    strip — content sits above y=748.
   ☐ If it's a data slide, the numbers came from a tool call (and
     \`_citation_sig\` is set to that call's signature).
 

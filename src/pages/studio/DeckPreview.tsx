@@ -18,8 +18,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Share2, Image as ImageIcon, Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, Loader2, Share2, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
@@ -240,15 +239,14 @@ export default function DeckPreview() {
           Back to composer
         </button>
         <div className="hidden text-[11px] uppercase tracking-[0.18em] text-white/45 sm:block">
-          {deck.outline?.length ?? 0} slides · {deck.template_slug}
+          {(deck.html_slides?.length ?? deck.outline?.length ?? 0)} slides · {deck.template_slug}
         </div>
         <div className="rounded-full bg-[#18d6a4]/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#18d6a4]">
           {deck.status === 'published' ? 'Published' : 'Draft'}
         </div>
       </header>
 
-      {/* Stage — takes the remaining space. Hidden bottom padding so
-          the floating action bar doesn't sit on top of the last slide. */}
+      {/* Stage — takes the remaining space. */}
       <div className="relative flex-1 overflow-hidden">
         {deck.html_slides && deck.html_slides.length > 0 ? (
           <HtmlStage
@@ -272,38 +270,30 @@ export default function DeckPreview() {
             showChrome={true}
           />
         )}
-      </div>
 
-      {/* Bottom action bar — fixed on mobile, sticky on desktop. */}
-      <footer
-        className="z-30 border-t border-white/[0.08] bg-[#07040F]/95 px-4 py-3 backdrop-blur-xl sm:px-6"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)' }}
-      >
-        <div className="mx-auto flex max-w-3xl items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled
-            title="Photo picker arrives in the next build"
-            className="h-12 rounded-full px-4 text-sm font-bold text-white/45"
-          >
-            <ImageIcon className="mr-1.5 h-4 w-4" />
-            <span className="hidden sm:inline">Photos</span>
-          </Button>
-
+        {/* Floating publish — small circular share button in the
+            bottom-right corner. Once published, it expands into a
+            copy-link pill. Per Babak: no Photos button, no text
+            label on the publish CTA, just the icon. */}
+        <div
+          className="pointer-events-none absolute bottom-6 right-6 z-40 sm:bottom-8 sm:right-8"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
+        >
           {publishedUrl ? (
             <button
               type="button"
               onClick={onCopyLink}
+              title={copied ? 'Copied' : 'Copy share link'}
               className={cn(
-                'flex h-12 flex-1 items-center justify-between gap-2 rounded-full border px-4 text-sm font-bold transition-colors',
+                'pointer-events-auto group flex h-12 items-center gap-2 overflow-hidden rounded-full border pl-4 pr-4 text-sm font-bold transition-all',
+                'backdrop-blur-xl shadow-[0_12px_28px_-6px_rgba(0,0,0,0.55)]',
                 copied
-                  ? 'border-[#18d6a4]/45 bg-[#18d6a4]/12 text-[#18d6a4]'
-                  : 'border-white/[0.12] bg-white/[0.04] text-white/85 hover:border-white/[0.24]',
+                  ? 'border-[#18d6a4]/55 bg-[#18d6a4]/15 text-[#2effc0]'
+                  : 'border-white/[0.14] bg-[#07040F]/90 text-white hover:border-[#18d6a4]/45',
               )}
             >
-              <span className="truncate font-mono text-xs sm:text-[13px]">
-                {publishedUrl.replace(/^https?:\/\//, '')}
+              <span className="font-mono text-xs">
+                {publishedUrl.replace(/^https?:\/\//, '').replace(/^www\./, '')}
               </span>
               {copied ? (
                 <Check className="h-4 w-4 shrink-0" />
@@ -312,31 +302,29 @@ export default function DeckPreview() {
               )}
             </button>
           ) : (
-            <Button
+            <button
               type="button"
               onClick={onPublish}
               disabled={publishing}
+              title="Publish & get a share link"
+              aria-label="Publish and copy share link"
               className={cn(
-                'h-12 flex-1 max-w-[260px] rounded-full px-5 text-sm font-black transition-all',
-                'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-                'disabled:opacity-40 disabled:translate-y-0',
+                'pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-full transition-all',
+                'shadow-[0_18px_44px_-8px_rgba(46,255,192,0.55),0_4px_12px_-2px_rgba(0,0,0,0.5)]',
+                publishing
+                  ? 'rs-glow-btn bg-[#07040F] text-white'
+                  : 'bg-gradient-to-br from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:scale-105 hover:-translate-y-[1px] disabled:opacity-50',
               )}
             >
               {publishing ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Publishing…
-                </span>
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <span className="inline-flex items-center gap-2">
-                  <Share2 className="h-4 w-4" />
-                  Publish & share link
-                </span>
+                <Share2 className="h-5 w-5" strokeWidth={2.5} />
               )}
-            </Button>
+            </button>
           )}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
