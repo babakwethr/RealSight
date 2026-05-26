@@ -112,11 +112,11 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       code?: string;
     };
     if (payload.error || !payload.html_slides) {
-      // Quota-exhausted: keep it short — the message already explains
-      // what to do. Hiding the raw upstream JSON avoids a wall of text.
-      if (payload.code === 'quota_exhausted') {
-        const e = new Error(payload.error || 'Daily limit reached');
-        (e as Error & { code?: string }).code = 'quota_exhausted';
+      // Known error codes get a clean, code-tagged Error so the toast
+      // can render a focused action — no wall of raw upstream JSON.
+      if (payload.code === 'quota_exhausted' || payload.code === 'service_overloaded') {
+        const e = new Error(payload.error || 'AI service error');
+        (e as Error & { code?: string }).code = payload.code;
         throw e;
       }
       const tail = payload.details ? ` — ${payload.details.slice(0, 200)}` : '';
@@ -140,6 +140,13 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           onClick: () =>
             window.open('https://aistudio.google.com/app/apikey', '_blank', 'noopener,noreferrer'),
         },
+      });
+      return;
+    }
+    if (e?.code === 'service_overloaded') {
+      toast.error('Gemini is busy right now', {
+        description: e.message,
+        duration: 8000,
       });
       return;
     }

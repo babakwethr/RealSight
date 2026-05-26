@@ -220,46 +220,20 @@ Deno.serve(async (req) => {
           `user_msg_chars=${userMessage.length} ` +
           `tools=${tools ? 'on' : 'off'}`,
       );
-      let upstream: Response;
-      try {
-        upstream = await fetch(buildApiUrl(currentModel), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-      } catch (fetchErr) {
-        console.error('[studio-deck-plan] fetch threw', fetchErr);
-        return jsonResponse(
-          {
-            error: 'AI service unreachable',
-            details: String(fetchErr).slice(0, 300),
-          },
-          200,
-        );
-      }
-      // 429 = quota exhausted. Try the lite fallback once before giving up.
-      if (upstream.status === 429 && !usedFallback && fallbackModel && fallbackModel !== currentModel) {
-        const errText = await upstream.text();
-        console.warn(
-          `[studio-deck-plan] 429 on ${currentModel}, retrying with ${fallbackModel}`,
-          errText.slice(0, 200),
-        );
-        usedFallback = true;
-        currentModel = fallbackModel;
-        try {
-          upstream = await fetch(buildApiUrl(currentModel), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody),
-          });
-        } catch (fetchErr) {
-          console.error('[studio-deck-plan] fallback fetch threw', fetchErr);
-          return jsonResponse(
-            { error: 'AI service unreachable', details: String(fetchErr).slice(0, 300) },
-            200,
-          );
-        }
-      }
+      // Call with transient-failure retry — handles both 429 (quota
+      // exhausted, try fallback model) and 503 (Gemini service
+      // overloaded, retry same model with backoff). Up to 3 attempts
+      // total per orchestrator iteration.
+      const upstream = await callGeminiWithRetry({
+        primaryModel: currentModel,
+        fallbackModel,
+        body: requestBody,
+        buildApiUrl,
+        onFallback: () => {
+          usedFallback = true;
+          currentModel = fallbackModel;
+        },
+      });
       if (!upstream.ok) {
         const errText = await upstream.text();
         console.error(
@@ -267,7 +241,6 @@ Deno.serve(async (req) => {
           upstream.status,
           errText.slice(0, 800),
         );
-        // 429 → friendly, actionable message (separate from raw upstream).
         if (upstream.status === 429) {
           return jsonResponse(
             {
@@ -275,6 +248,17 @@ Deno.serve(async (req) => {
                 "You've hit today's free-tier limit on Gemini. Enable billing at aistudio.google.com/app/apikey (takes ~60 seconds, costs cents per deck) or wait until midnight UTC.",
               details: errText.slice(0, 300),
               code: 'quota_exhausted',
+            },
+            200,
+          );
+        }
+        if (upstream.status === 503 || upstream.status === 502 || upstream.status === 504) {
+          return jsonResponse(
+            {
+              error:
+                "Gemini is overloaded right now — Google's side, not yours. Try again in 30–60 seconds. This happens during US-hours spikes.",
+              details: errText.slice(0, 300),
+              code: 'service_overloaded',
             },
             200,
           );
@@ -1008,6 +992,95 @@ function parseDeckJson(text: string): { html_slides?: unknown; theme?: unknown }
   } catch {
     return null;
   }
+}
+
+/**
+ * Call Gemini with transient-failure retries:
+ *   - 429 (quota exhausted) → switch to fallback model once.
+ *   - 503 / 502 / 504 (service overloaded) → retry SAME model with
+ *     exponential backoff up to 2 times. If still overloaded, swap to
+ *     the fallback model and try once more.
+ *   - Network errors → retry with backoff.
+ * Always returns the last Response (caller inspects upstream.ok and
+ * the status code for friendly-error mapping).
+ */
+async function callGeminiWithRetry(args: {
+  primaryModel: string;
+  fallbackModel: string | undefined;
+  body: Record<string, unknown>;
+  buildApiUrl: (m: string) => string;
+  onFallback: () => void;
+}): Promise<Response> {
+  const { primaryModel, fallbackModel, body, buildApiUrl, onFallback } = args;
+  const transientStatuses = new Set([502, 503, 504]);
+  const maxAttempts = 4;
+  let currentModel = primaryModel;
+  let didFallback = false;
+  let lastResponse: Response | null = null;
+
+  const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(buildApiUrl(currentModel), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      lastResponse = resp;
+      if (resp.ok) return resp;
+
+      // 429 → fallback once, immediately.
+      if (resp.status === 429 && !didFallback && fallbackModel && fallbackModel !== currentModel) {
+        const errText = await resp.clone().text();
+        console.warn(
+          `[studio-deck-plan] 429 on ${currentModel}, retrying with ${fallbackModel}`,
+          errText.slice(0, 200),
+        );
+        didFallback = true;
+        currentModel = fallbackModel;
+        onFallback();
+        continue;
+      }
+
+      // 503/502/504 → backoff + retry. After 2 transient hits, try the
+      // fallback model. After that, surface the error.
+      if (transientStatuses.has(resp.status)) {
+        if (attempt < maxAttempts) {
+          if (attempt >= 2 && !didFallback && fallbackModel && fallbackModel !== currentModel) {
+            console.warn(
+              `[studio-deck-plan] ${resp.status} on ${currentModel}, switching to ${fallbackModel}`,
+            );
+            didFallback = true;
+            currentModel = fallbackModel;
+            onFallback();
+          }
+          const backoff = Math.min(2500 * attempt, 8000);
+          console.warn(`[studio-deck-plan] ${resp.status} attempt ${attempt}/${maxAttempts}; sleep ${backoff}ms`);
+          await sleep(backoff);
+          continue;
+        }
+      }
+
+      // Non-retryable → surface immediately.
+      return resp;
+    } catch (fetchErr) {
+      console.warn(`[studio-deck-plan] fetch threw on attempt ${attempt}`, fetchErr);
+      if (attempt < maxAttempts) {
+        await sleep(Math.min(1500 * attempt, 5000));
+        continue;
+      }
+      // Last attempt's network failure: synthesize a Response so the
+      // caller's error-mapping path can render something sensible.
+      return new Response(
+        JSON.stringify({ error: { code: 0, message: String(fetchErr) } }),
+        { status: 599, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+  }
+
+  // Loop guard — shouldn't be reachable but Deno's type system insists.
+  return lastResponse ?? new Response('exhausted', { status: 599 });
 }
 
 function extractFirstJsonObject(s: string): string | null {
