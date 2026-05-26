@@ -127,9 +127,18 @@ Deno.serve(async (req) => {
     if (!geminiKey) {
       return jsonResponse({ error: 'AI service not configured' }, 500);
     }
-    const model = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
-    const apiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+    const primaryModel = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+    // Fallback when the primary model returns 429 quota exhausted —
+    // gemini-2.5-flash-lite has separate per-minute throughput on the
+    // same Google AI Studio project, so it often succeeds when
+    // gemini-2.5-flash is rate-limited. Daily-quota exhaustion still
+    // blocks both, but per-minute spikes get rescued.
+    const fallbackModel =
+      Deno.env.get('GEMINI_FALLBACK_MODEL') ?? 'gemini-2.5-flash-lite';
+    const buildApiUrl = (m: string) =>
+      `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiKey}`;
+    let currentModel = primaryModel;
+    let usedFallback = false;
 
     // Refine mode: load the existing slides so the LLM has the prior
     // state to preserve. Without this it tends to emit only the slide
@@ -213,7 +222,7 @@ Deno.serve(async (req) => {
       );
       let upstream: Response;
       try {
-        upstream = await fetch(apiUrl, {
+        upstream = await fetch(buildApiUrl(currentModel), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
@@ -228,6 +237,29 @@ Deno.serve(async (req) => {
           200,
         );
       }
+      // 429 = quota exhausted. Try the lite fallback once before giving up.
+      if (upstream.status === 429 && !usedFallback && fallbackModel && fallbackModel !== currentModel) {
+        const errText = await upstream.text();
+        console.warn(
+          `[studio-deck-plan] 429 on ${currentModel}, retrying with ${fallbackModel}`,
+          errText.slice(0, 200),
+        );
+        usedFallback = true;
+        currentModel = fallbackModel;
+        try {
+          upstream = await fetch(buildApiUrl(currentModel), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+          });
+        } catch (fetchErr) {
+          console.error('[studio-deck-plan] fallback fetch threw', fetchErr);
+          return jsonResponse(
+            { error: 'AI service unreachable', details: String(fetchErr).slice(0, 300) },
+            200,
+          );
+        }
+      }
       if (!upstream.ok) {
         const errText = await upstream.text();
         console.error(
@@ -235,14 +267,25 @@ Deno.serve(async (req) => {
           upstream.status,
           errText.slice(0, 800),
         );
-        // Surface the actual upstream error so we can debug without
-        // crawling Supabase logs.
+        // 429 → friendly, actionable message (separate from raw upstream).
+        if (upstream.status === 429) {
+          return jsonResponse(
+            {
+              error:
+                "You've hit today's free-tier limit on Gemini. Enable billing at aistudio.google.com/app/apikey (takes ~60 seconds, costs cents per deck) or wait until midnight UTC.",
+              details: errText.slice(0, 300),
+              code: 'quota_exhausted',
+            },
+            200,
+          );
+        }
         return jsonResponse(
           {
             error: `AI service error (HTTP ${upstream.status})`,
             details: errText.slice(0, 600),
             iter,
             mode: body.mode ?? 'plan',
+            model: currentModel,
           },
           200,
         );

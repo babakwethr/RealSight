@@ -109,8 +109,16 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       theme?: DeckTheme;
       error?: string;
       details?: string;
+      code?: string;
     };
     if (payload.error || !payload.html_slides) {
+      // Quota-exhausted: keep it short — the message already explains
+      // what to do. Hiding the raw upstream JSON avoids a wall of text.
+      if (payload.code === 'quota_exhausted') {
+        const e = new Error(payload.error || 'Daily limit reached');
+        (e as Error & { code?: string }).code = 'quota_exhausted';
+        throw e;
+      }
       const tail = payload.details ? ` — ${payload.details.slice(0, 200)}` : '';
       throw new Error(`${payload.error || 'No slides returned'}${tail}`);
     }
@@ -121,6 +129,23 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
     };
   };
 
+  const handleAiError = (defaultTitle: string, err: unknown) => {
+    const e = err as Error & { code?: string };
+    if (e?.code === 'quota_exhausted') {
+      toast.error("Today's free Gemini quota is used up", {
+        description: e.message,
+        duration: 10000,
+        action: {
+          label: 'Enable billing',
+          onClick: () =>
+            window.open('https://aistudio.google.com/app/apikey', '_blank', 'noopener,noreferrer'),
+        },
+      });
+      return;
+    }
+    toast.error(defaultTitle, { description: (err as Error).message });
+  };
+
   const onGenerate = async () => {
     setGenerating(true);
     try {
@@ -129,7 +154,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       void mediumTap();
       toast.success(`Deck ready · ${html_slides.length} slides`);
     } catch (err) {
-      toast.error('Could not draft the deck', { description: (err as Error).message });
+      handleAiError('Could not draft the deck', err);
     } finally {
       setGenerating(false);
     }
@@ -146,7 +171,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       void mediumTap();
       toast.success('Deck refined');
     } catch (err) {
-      toast.error('Could not refine', { description: (err as Error).message });
+      handleAiError('Could not refine', err);
     } finally {
       setRefining(false);
     }
@@ -169,7 +194,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       });
       void mediumTap();
     } catch (err) {
-      toast.error('Re-write failed', { description: (err as Error).message });
+      handleAiError('Re-write failed', err);
     } finally {
       setRefining(false);
       setRewriteIndex(null);
