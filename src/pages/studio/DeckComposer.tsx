@@ -1,26 +1,32 @@
 /**
- * DeckComposer — Studio Deck Builder wizard.
+ * DeckComposer — Studio Deck Builder wizard. V3 redesign grounded in
+ * Mobbin references:
+ *   - Wizard chrome → Chronicle / Linear-style slim rail
+ *     https://mobbin.com/screens/65efebb0-b008-4210-9ff1-7d50a1575086
+ *   - Brief / topic → Gamma + Manus single-input hero
+ *     https://mobbin.com/screens/23a25ddc-5d71-44d3-af2b-ff2ea0ec1767
+ *   - Template gallery → Pitch left-rail categories
+ *     https://mobbin.com/screens/b7d71395-ad7b-430e-9eed-4c96c629148c
+ *   - Outline cards + diff → Gamma
+ *     https://mobbin.com/screens/9c722748-1af1-4cab-a352-c8706aad29d2
+ *     https://mobbin.com/screens/aa564aa8-83bc-44d0-9f54-f6df923c87be
+ *   - Visuals tabs + chips → Pitch
+ *     https://mobbin.com/screens/e0b2c3cf-921d-4b0c-bc78-41eea0399e37
+ *   - Publish focus state → Gamma
+ *     https://mobbin.com/screens/d31c151e-10c8-4f69-928a-4eea183f8d1d
  *
- * UX layout from the spec userflow.html reference (5-step wizard,
- * sticky pill stepper, app-frame card hosting current step, Back +
- * Next on the right, page header + Trust/Time/Reuse strip below).
+ * CI stays RealSight V3 — navy / mint / glass / Inter. The composer
+ * chrome is intentionally quieter than the old version: less ornament,
+ * more focus on the active step.
  *
- * CI is RealSight V3 throughout — cinematic-bg navy, mint accent
- * (#18d6a4 / #2effc0), Inter type, glass surfaces (rounded-2xl,
- * backdrop-blur-md, border-white/[0.08]), mint-gradient primary CTAs.
- *
- * The only places the gold/cinematic-gold aesthetic appears are
- * *inside the deck previews*: the template thumbnails in Step 2 and
- * the cover preview in Step 5 — those are intentionally showing what
- * the published deck will look like, not part of the composer chrome.
- *
- * Mobile: same vertical flow, pills horizontal-scroll, content stacks.
+ * Mobile-first: header collapses to step number + current label only,
+ * Back/Next condense to icon-only buttons, content stacks vertically.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Layers, Loader2, Sparkles, PlusCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, PlusCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -44,9 +50,9 @@ import {
 import type { OutlineEntry } from '@/features/studio/deck-builder/runtime/types';
 
 const STEP_PANE_VARIANTS = {
-  enter:  { opacity: 0, y: 8 },
+  enter:  { opacity: 0, y: 6 },
   center: { opacity: 1, y: 0 },
-  exit:   { opacity: 0, y: -6 },
+  exit:   { opacity: 0, y: -4 },
 };
 
 export function DeckComposer() {
@@ -58,9 +64,7 @@ export function DeckComposer() {
   const [loadingDraft, setLoadingDraft] = useState<boolean>(Boolean(deckIdParam));
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Load existing deck when ?deck=ID is in the URL (coming back from
-  // the preview, or a saved-state shareable link). Without this the
-  // composer used to reset to step 1 with an empty draft.
+  // Load existing deck when ?deck=ID is in the URL.
   useEffect(() => {
     let cancelled = false;
     if (!deckIdParam) {
@@ -79,7 +83,6 @@ export function DeckComposer() {
       if (cancelled) return;
       if (error || !data) {
         toast.error('Could not load that deck — starting fresh');
-        // Clear the bad ?deck= so refresh doesn't keep failing.
         setSearchParams({}, { replace: true });
         setLoadingDraft(false);
         return;
@@ -108,10 +111,6 @@ export function DeckComposer() {
         visuals: (data.visuals ?? {}) as Record<string, string>,
       };
       setDraft(loaded);
-      // Resume the wizard at the step the user was last on. Priority:
-      //   1. explicit ?step= URL param (set by DeckPreview's "Back"
-      //      link so the user lands where they came from).
-      //   2. computed default: 'outline' if any slides exist, else 'brief'.
       const hasHtml = Array.isArray(loaded.html_slides) && loaded.html_slides.length > 0;
       const hasOutline = Array.isArray(loaded.outline) && loaded.outline.length > 0;
       let resumeIdx = 0;
@@ -129,9 +128,7 @@ export function DeckComposer() {
     };
   }, [deckIdParam, setSearchParams]);
 
-  // Mirror deck id + current step into the URL so refresh + the
-  // browser back button + "Back to composer" from preview all
-  // resume at the right spot.
+  // Mirror deck id + current step into the URL.
   useEffect(() => {
     if (!draft.id) return;
     const targetStepId = WIZARD_STEPS[step]?.id ?? 'brief';
@@ -175,8 +172,6 @@ export function DeckComposer() {
     setStep((s) => Math.max(0, s - 1));
   };
 
-  // Desktop keyboard arrows — matches reference nicety, doesn't
-  // interfere with typing inside inputs.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -196,56 +191,32 @@ export function DeckComposer() {
 
   const ctx: ComposerContext = { draft, setDraft, branding: {} };
   const currentId = WIZARD_STEPS[step].id;
+  const currentLabel = WIZARD_STEPS[step].label;
   const isLast = step === WIZARD_STEPS.length - 1;
 
   return (
-    // Break out of AppLayout's content-area padding so the wizard
-    // can use its own outer chrome at full width.
     <div className="-mx-4 -my-4 min-h-[calc(100dvh-2rem)] sm:-mx-6 sm:-my-6">
-      {/* Page header — RealSight V3 hero treatment. */}
-      <header className="mx-auto max-w-7xl px-4 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-10">
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#18d6a4]">
-            <Sparkles className="h-3 w-3" />
-            RealSight · Studio
-          </div>
-          <div className="flex items-center gap-2">
-            {draft.id ? (
-              <button
-                type="button"
-                onClick={startFresh}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-[#18d6a4]/40 hover:text-[#2effc0]"
-              >
-                <PlusCircle className="h-3 w-3" />
-                Start new
-              </button>
-            ) : null}
-            <Link
-              to="/studio"
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65 backdrop-blur-md transition hover:border-white/[0.20] hover:text-white"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Studio
-            </Link>
-          </div>
-        </div>
-        <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-5xl">
-          Deck Builder
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/65 sm:text-base">
-          From a topic to a published, fullscreen-ready, data-backed
-          presentation hosted on{' '}
-          <span className="font-bold text-[#2effc0]">realsight.app</span>. Five steps.
-        </p>
-      </header>
-
-      {/* Sticky step indicator + Back/Next */}
+      {/* Sticky header — Linear-style slim. One line:
+            crumb (Studio › Deck Builder) — step rail — Back / Next.
+          Mobile collapses to step counter + current label. */}
       <nav
-        className="sticky top-0 z-30 border-y border-white/[0.06] bg-[#07040F]/85 backdrop-blur-xl"
+        className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#07040F]/90 backdrop-blur-xl"
         style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-8 sm:py-3.5">
-          <div className="flex-1 min-w-0">
+          {/* Brand crumb */}
+          <Link
+            to="/studio"
+            className="inline-flex items-center gap-1.5 rounded-full px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white/55 transition-colors hover:text-white"
+          >
+            <Sparkles className="h-3 w-3 text-[#18d6a4]" />
+            <span className="hidden sm:inline">Studio</span>
+            <span className="hidden text-white/30 sm:inline">/</span>
+            <span className="text-white">Deck</span>
+          </Link>
+
+          {/* Step rail */}
+          <div className="hidden flex-1 items-center justify-center md:flex">
             <StepIndicator
               steps={WIZARD_STEPS.map((s) => ({ id: s.id, label: s.label }))}
               current={step}
@@ -255,109 +226,104 @@ export function DeckComposer() {
               }}
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          {/* Mobile: current step counter */}
+          <div className="flex flex-1 items-center justify-center text-[11px] font-bold uppercase tracking-[0.18em] md:hidden">
+            <span className="text-[#2effc0]">{step + 1}</span>
+            <span className="mx-1 text-white/35">/</span>
+            <span className="text-white/55">{WIZARD_STEPS.length}</span>
+            <span className="mx-2 text-white/30">·</span>
+            <span className="truncate text-white/85">{currentLabel}</span>
+          </div>
+
+          {/* Right cluster */}
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {draft.id ? (
+              <button
+                type="button"
+                onClick={startFresh}
+                title="Start a new deck"
+                className="hidden items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/65 transition hover:border-[#18d6a4]/40 hover:text-[#2effc0] sm:inline-flex"
+              >
+                <PlusCircle className="h-3 w-3" />
+                New
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={goBack}
               disabled={step === 0}
+              aria-label="Back"
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/70 transition hover:border-white/[0.24] hover:text-white sm:px-4',
+                'inline-flex items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.04] text-white/75 transition hover:border-white/[0.24] hover:text-white',
+                'h-8 w-8 sm:h-9 sm:w-auto sm:gap-1.5 sm:px-3.5',
                 step === 0 && 'opacity-30 cursor-not-allowed',
               )}
             >
-              <ArrowLeft className="h-3 w-3" />
-              <span className="hidden sm:inline">Back</span>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-[0.14em]">Back</span>
             </button>
             <button
               type="button"
               onClick={goNext}
               disabled={!canGoNext || isLast}
+              aria-label="Next"
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all sm:px-5',
+                'inline-flex items-center justify-center gap-1.5 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition-all',
+                'h-8 sm:h-9 sm:px-5',
                 'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
                 (!canGoNext || isLast) && 'opacity-40 cursor-not-allowed translate-y-0',
               )}
             >
-              {isLast ? 'Done' : 'Next'}
+              <span>{isLast ? 'Done' : 'Next'}</span>
               <ArrowRight className="h-3 w-3" />
             </button>
           </div>
         </div>
+
+        {/* Mobile-only step rail — second row, scrollable */}
+        <div className="-mx-2 overflow-x-auto px-4 pb-2 md:hidden">
+          <StepIndicator
+            steps={WIZARD_STEPS.map((s) => ({ id: s.id, label: s.label }))}
+            current={step}
+            onJump={(i) => {
+              void lightTap();
+              setStep(i);
+            }}
+          />
+        </div>
       </nav>
 
-      {/* App-frame card with current step */}
-      <main className="mx-auto mb-12 max-w-7xl px-4 sm:px-8" ref={contentRef}>
-        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-md">
-          {loadingDraft ? (
-            <div className="flex min-h-[480px] items-center justify-center p-12 text-white/55">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#18d6a4]" />
-              Loading your draft…
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.section
-                key={currentId}
-                variants={STEP_PANE_VARIANTS}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-                className="p-5 sm:p-8"
-              >
-                {currentId === 'brief'    && <StepBrief    {...ctx} />}
-                {currentId === 'template' && <StepTemplate {...ctx} />}
-                {currentId === 'outline'  && <StepOutline  {...ctx} />}
-                {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
-                {currentId === 'publish'  && <StepPublish  {...ctx} />}
-              </motion.section>
-            </AnimatePresence>
-          )}
-        </div>
-
-        {/* Trust / Time / Reuse strip */}
-        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <TrustCard
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-            label="Trust"
-            body="Every number on the deck traces to a live DLD query. The AI has no freedom to invent figures — only to phrase them."
-          />
-          <TrustCard
-            icon={<Layers className="h-3.5 w-3.5" />}
-            label="Speed"
-            body={
-              <>
-                Topic → published, branded presentation in{' '}
-                <span className="font-bold text-white">under 5 minutes</span> for pilot agents.
-              </>
-            }
-          />
-          <TrustCard
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-            label="Reuse"
-            body="The deck rendering engine ports directly from a proven secondary-market deck — not a rewrite."
-          />
-        </div>
+      {/* Step content — no outer card chrome. Each step owns its own
+          surfaces so the canvas can be focused or split as needed. */}
+      <main
+        className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-8 sm:pt-10"
+        ref={contentRef}
+      >
+        {loadingDraft ? (
+          <div className="flex min-h-[60vh] items-center justify-center text-white/55">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin text-[#18d6a4]" />
+            Loading your draft…
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.section
+              key={currentId}
+              variants={STEP_PANE_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              {currentId === 'brief'    && <StepBrief    {...ctx} />}
+              {currentId === 'template' && <StepTemplate {...ctx} />}
+              {currentId === 'outline'  && <StepOutline  {...ctx} />}
+              {currentId === 'visuals'  && <StepVisuals  {...ctx} />}
+              {currentId === 'publish'  && <StepPublish  {...ctx} />}
+            </motion.section>
+          </AnimatePresence>
+        )}
       </main>
-    </div>
-  );
-}
-
-function TrustCard({
-  icon,
-  label,
-  body,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  body: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-md">
-      <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#18d6a4]">
-        <span className="text-[#2effc0]">{icon}</span>
-        {label}
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-white/75">{body}</p>
     </div>
   );
 }
