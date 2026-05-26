@@ -495,6 +495,68 @@ designing for a deck, not a webpage.
     inset:0 and \`object-fit:cover;\` so it can't push content out.
 
 ==============================================================
+READABILITY IS NON-NEGOTIABLE
+==============================================================
+
+The #1 audience complaint about AI-generated decks is "I can't read
+the text on the photo." Every slide MUST follow these rules:
+
+  1. NEVER place text directly on a photo without a SOLID dark
+     container behind it. A weak rgba(0,0,0,0.2) gradient is not
+     enough — photos have bright spots that destroy contrast.
+  2. Pick ONE of these proven text-container patterns for any slide
+     that uses a photo:
+
+     (A) BOTTOM-PILLAR SCRIM — covers the bottom 55% of the photo
+         with a solid dark gradient. Text lives inside it.
+         <div style="position:absolute;left:0;right:0;bottom:0;
+                    height:55%;
+                    background:linear-gradient(180deg,
+                      transparent 0%,
+                      rgba(10,10,11,0.55) 30%,
+                      rgba(10,10,11,0.92) 100%);
+                    z-index:1;"></div>
+
+     (B) SIDE-PANEL SOLID — a solid dark column on one side,
+         photo visible on the other half.
+         <div style="position:absolute;left:0;top:0;bottom:0;
+                    width:54%;
+                    background:rgba(10,10,11,0.88);
+                    backdrop-filter:blur(2px);
+                    z-index:1;"></div>
+
+     (C) CONTAINED TEXT CARD — a glass/dark card floating over the
+         photo, with hard backdrop-filter. Use for "buyer types",
+         "strategy tiers" etc.
+         <div style="position:absolute;left:80px;top:50%;
+                    transform:translateY(-50%);
+                    background:rgba(10,10,11,0.78);
+                    backdrop-filter:blur(8px);
+                    border-radius:16px;padding:42px;
+                    max-width:520px;z-index:2;"></div>
+
+     (D) FULL-BLEED NARRATIVE (no photo) — solid var(--deck-bg)
+         with text + maybe an SVG illustration. Use for "why now"
+         and strategy slides.
+
+  3. ALL TEXT (headlines, body, eyebrows, labels) must live inside
+     one of the containers above OR on a solid var(--deck-bg).
+     NEVER directly on a photo.
+
+  4. STAT / FACT CARDS — never use semi-transparent backgrounds on
+     photos. Use SOLID rgba(10,10,11,0.85) or higher. The
+     screenshots that went wrong had cards with rgba(0,0,0,0.5) on
+     a busy photo — half the cards became unreadable.
+
+  5. Cover slides: photo + Pattern (A) for the headline pillar.
+     The eyebrow goes top-left in its own pill (small solid dark
+     chip), not floating bare.
+
+  6. Bottom-right ~180×40px area is RESERVED for the auto-injected
+     RealSight watermark — leave it empty or push your content above
+     it.
+
+==============================================================
 SAFE FONT SIZES (do not exceed these on a 1280×800 canvas)
 ==============================================================
 
@@ -751,21 +813,31 @@ HTML CONSTRAINTS — HARD
          </span>
        </header>
 
+       <!-- Pattern (A) bottom-pillar scrim — guarantees text contrast -->
+       <div style="position:absolute;left:0;right:0;bottom:0;
+                   height:62%;
+                   background:linear-gradient(180deg,
+                     transparent 0%,
+                     rgba(10,10,11,0.55) 35%,
+                     rgba(10,10,11,0.95) 100%);
+                   z-index:1;"></div>
+
        <main style="position:absolute;bottom:90px;left:80px;right:80px;
                     z-index:2;max-width:880px;">
          <h1 class="hero-title"
              style="font-family:var(--deck-font-serif);
                     font-size:clamp(54px, 7vw, 92px);
                     line-height:1.04;letter-spacing:-0.01em;
-                    margin:0 0 24px;color:var(--deck-fg);
+                    margin:0 0 24px;color:#F5F1E8;
+                    text-shadow:0 2px 30px rgba(0,0,0,0.55);
                     word-wrap:break-word;overflow-wrap:break-word;">
            <!-- Cover headline derived from the topic. Keep ≤14 words. -->
          </h1>
          <p class="hero-sub"
             style="font-family:var(--deck-font-sans);
                    font-size:20px;line-height:1.55;
-                   color:var(--deck-muted);max-width:680px;
-                   margin:0;">
+                   color:rgba(245,241,232,0.85);max-width:680px;
+                   margin:0;text-shadow:0 1px 16px rgba(0,0,0,0.4);">
            <!-- One subtitle sentence describing the deck's angle. -->
          </p>
        </main>
@@ -851,6 +923,13 @@ For EVERY slide in your deck, confirm:
     safe font sizes from the guide above).
   ☐ Uses ONLY var(--deck-*) colour and font references, never raw hex
     or fixed font names.
+  ☐ READABILITY: every visible text element lives inside one of the
+    four containers (bottom-pillar scrim, side-panel solid, contained
+    text card, or solid bg). NO text sitting bare on a photo.
+  ☐ Data/stat cards use SOLID dark backgrounds (rgba ≥ 0.85), not
+    semi-transparent.
+  ☐ Bottom-right ~180×40px stays empty (reserved for RealSight
+    watermark — the renderer injects it).
   ☐ If it's a data slide, the numbers came from a tool call (and
     \`_citation_sig\` is set to that call's signature).
 

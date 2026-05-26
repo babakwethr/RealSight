@@ -273,7 +273,61 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
         });
       }
     }
-  }, [slide.id, slide.html, adviser, branding.logo_url, visuals]);
+
+    // Downscale Unsplash CDN URLs at runtime. The LLM almost always
+    // requests w=1920; we render at 1280×800 so anything wider is
+    // wasted bytes — and on low-power tabs (Edge Dev on battery)
+    // 10 full-res photos easily push the renderer to OOM. Cap at
+    // w=1280 q=82.
+    root.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+      const src = img.getAttribute('src');
+      if (!src || !src.includes('images.unsplash.com')) return;
+      try {
+        const u = new URL(src);
+        u.searchParams.set('w', '1280');
+        u.searchParams.set('q', '82');
+        u.searchParams.set('auto', 'format');
+        img.src = u.toString();
+      } catch { /* ignore */ }
+      // Defer image decoding off the main thread so first paint is fast.
+      img.setAttribute('decoding', 'async');
+      if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+    });
+
+    // RealSight watermark — bottom-right of every slide, tiny, dim,
+    // never blocks pointer events. Injected by the renderer so the
+    // LLM can't forget it.
+    if (!root.querySelector('[data-rs-watermark]')) {
+      const watermark = document.createElement('div');
+      watermark.setAttribute('data-rs-watermark', 'true');
+      const isClosing = slide.type_hint === 'closing';
+      watermark.style.cssText = [
+        'position:absolute',
+        'bottom:18px',
+        'right:24px',
+        'z-index:9999',
+        'pointer-events:none',
+        'display:inline-flex',
+        'align-items:center',
+        'gap:6px',
+        `opacity:${isClosing ? '0.55' : '0.35'}`,
+        'font-family:Inter, system-ui, sans-serif',
+        `font-size:${isClosing ? '11px' : '9.5px'}`,
+        'font-weight:700',
+        'letter-spacing:0.14em',
+        'text-transform:uppercase',
+        'color:rgba(255,255,255,0.85)',
+        'mix-blend-mode:difference',
+      ].join(';');
+      // Mint dot + label. Inline SVG keeps it weightless.
+      watermark.innerHTML =
+        '<svg width="9" height="9" viewBox="0 0 9 9" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<circle cx="4.5" cy="4.5" r="4.5" fill="#18d6a4"/>' +
+        '</svg>' +
+        `<span>${isClosing ? 'Built on realsight.app' : 'realsight'}</span>`;
+      root.appendChild(watermark);
+    }
+  }, [slide.id, slide.html, slide.type_hint, adviser, branding.logo_url, visuals]);
 
   return (
     <div
@@ -288,6 +342,41 @@ function SlideMount({ slide, adviser, branding, visuals }: SlideMountProps) {
       dangerouslySetInnerHTML={{ __html: slide.html }}
     />
   );
+}
+
+/**
+ * True while the browser is actually rendering for print (so the
+ * hidden 10-slide stack only mounts when it's about to be captured
+ * by the print dialog). Without this, every preview load mounts all
+ * N slides at once, fetches every photo, and OOMs the tab.
+ */
+function usePrintMode(): boolean {
+  const [isPrint, setIsPrint] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.matchMedia('print').matches;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('print');
+    const handler = (e: MediaQueryListEvent) => setIsPrint(e.matches);
+    const beforeprint = () => setIsPrint(true);
+    const afterprint = () => setIsPrint(false);
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else mq.addListener(handler);
+    window.addEventListener('beforeprint', beforeprint);
+    window.addEventListener('afterprint', afterprint);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', handler);
+      else mq.removeListener(handler);
+      window.removeEventListener('beforeprint', beforeprint);
+      window.removeEventListener('afterprint', afterprint);
+    };
+  }, []);
+  return isPrint;
 }
 
 export interface HtmlStageProps {
@@ -318,6 +407,7 @@ export function HtmlStage({
   const [current, setCurrent] = useState(0);
   const total = slides.length;
   const scale = useFitScale();
+  const isPrint = usePrintMode();
 
   // Resolve palette + apply via CSS variables. If the LLM picked an
   // accent variant inside the template family, the resolver layers
@@ -425,14 +515,20 @@ export function HtmlStage({
         </div>
       </div>
 
-      {/* Print: stack all slides for PDF capture. */}
-      <div className="hidden print:block">
-        {slides.map((s) => (
-          <div key={`print-${s.id}`} className="deck-html-slide-print" style={{ pageBreakAfter: 'always' }}>
-            <SlideMount slide={s} adviser={adviser} branding={branding} visuals={visuals} />
-          </div>
-        ))}
-      </div>
+      {/* Print: stack all slides for PDF capture. ONLY mount when the
+          browser is actually entering print mode — beforeprint fires
+          early enough to populate the DOM before paper layout starts.
+          Skipping this on normal page loads saves ~10× image fetches
+          and prevents low-power renderer OOM crashes. */}
+      {isPrint ? (
+        <div className="hidden print:block">
+          {slides.map((s) => (
+            <div key={`print-${s.id}`} className="deck-html-slide-print" style={{ pageBreakAfter: 'always' }}>
+              <SlideMount slide={s} adviser={adviser} branding={branding} visuals={visuals} />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </main>
   );
 }
