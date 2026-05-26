@@ -356,37 +356,100 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           </button>
         </div>
 
-        {/* Global refine bar — proper frosted glass (21st.dev Glass
-            Card pattern, adapted to V3 navy/mint). Translucent white
-            tint + strong backdrop-blur is what makes the effect read
-            as "glass" rather than just transparent. */}
+        {/* Global refine bar — LIQUID GLASS treatment (21st.dev
+            "Liquid Glass" pattern: stacked layers — backdrop-blur +
+            SVG turbulence distortion + tint + inset highlight). This
+            is what reads as a real pane of glass instead of just a
+            translucent rectangle. The SVG filter below is referenced
+            by the distortion layer's `filter: url(#rs-glass-distortion)`. */}
         <div className="sticky bottom-3 z-20 mt-6 sm:bottom-6">
+          {/* Inline SVG filter — sits in the DOM, display:none, no
+              layout impact. Provides the subtle liquid warping. */}
+          <svg
+            aria-hidden="true"
+            width="0"
+            height="0"
+            style={{ position: 'absolute', width: 0, height: 0 }}
+          >
+            <filter
+              id="rs-glass-distortion"
+              x="0%" y="0%" width="100%" height="100%"
+              filterUnits="objectBoundingBox"
+            >
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.008 0.012"
+                numOctaves="2"
+                seed="7"
+                result="turb"
+              />
+              <feGaussianBlur in="turb" stdDeviation="2" result="softTurb" />
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="softTurb"
+                scale="22"
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            </filter>
+          </svg>
+
           <div
-            className="rs-refine-bar relative overflow-hidden rounded-2xl border border-white/[0.18] p-3 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)]"
+            className="rs-refine-bar relative overflow-hidden rounded-2xl"
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(28px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+              boxShadow:
+                '0 24px 60px -12px rgba(0,0,0,0.55), 0 6px 18px -6px rgba(0,0,0,0.35)',
+              transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)',
             }}
           >
-            {/* Glass-edge sheen along the top — the highlight that
-                makes the bar read as a physical pane of glass. */}
-            <span
+            {/* Layer 1 — backdrop blur + SVG distortion. This is where
+                the liquid warp comes from. Sits BEHIND everything else. */}
+            <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-px"
+              className="pointer-events-none absolute inset-0 rounded-2xl"
               style={{
-                background:
-                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                filter: 'url(#rs-glass-distortion)',
+                isolation: 'isolate',
+                zIndex: 0,
               }}
             />
-            {/* Solid fallback for browsers without backdrop-filter */}
+            {/* Layer 2 — frosted tint. Slight white-on-dark for the
+                glass colour. Higher opacity than before so the effect
+                actually reads against dark page bg. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-2xl"
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 60%, rgba(46,255,192,0.06) 100%)',
+                zIndex: 1,
+              }}
+            />
+            {/* Layer 3 — inset highlight (the glass-edge reflection
+                that gives the pane its physical feel). */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-2xl"
+              style={{
+                boxShadow:
+                  'inset 1px 1px 0 rgba(255,255,255,0.30), inset -1px -1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.12)',
+                zIndex: 2,
+              }}
+            />
+            {/* Solid fallback when neither backdrop-filter NOR SVG
+                filter are supported (very old browsers, some print
+                contexts). */}
             <style>{`
               @supports not (backdrop-filter: blur(1px)) {
                 .rs-refine-bar { background: rgba(15, 18, 36, 0.95) !important; }
               }
             `}</style>
 
-            <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/65">
+            {/* Content sits on top of the three glass layers */}
+            <div className="relative p-3" style={{ zIndex: 3 }}>
+            <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75">
               Refine the whole deck
             </label>
             <div className="mt-1.5 flex items-end gap-2">
@@ -421,6 +484,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* rs-glow-btn keyframes now live globally in src/index.css so
