@@ -247,6 +247,26 @@ function Tab({
 
 // ── Panels ─────────────────────────────────────────────────────────
 
+/**
+ * Shrink Unsplash CDN URLs to a thumbnail size so the Step 4 grid
+ * doesn't OOM the browser tab. Slide HTML usually embeds the full
+ * w=1920 hero, which is 5× heavier than we need for a 260px preview.
+ * Other hosts pass through unchanged.
+ */
+function thumbify(url: string | null, width = 400): string | null {
+  if (!url) return null;
+  if (!url.includes('images.unsplash.com')) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set('w', String(width));
+    u.searchParams.set('q', '70');
+    u.searchParams.set('auto', 'format');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function CurrentPanel({
   photo,
   gradient,
@@ -264,10 +284,11 @@ function CurrentPanel({
         <div className="aspect-[16/10] w-full bg-[#0a0a0b]">
           {photo ? (
             <img
-              src={photo}
+              src={thumbify(photo, 520) ?? photo}
               alt={`${label} background`}
               className="h-full w-full object-cover"
               loading="lazy"
+              decoding="async"
             />
           ) : gradient ? (
             <div className="h-full w-full" style={{ background: gradient }} aria-hidden="true" />
