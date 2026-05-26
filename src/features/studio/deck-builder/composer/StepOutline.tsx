@@ -334,40 +334,83 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
           </button>
         </div>
 
-        {/* Global refine bar */}
+        {/* Global refine bar — true frosted-glass treatment.
+            Translucent navy base + heavy backdrop blur + saturation,
+            a hairline top highlight (the "glass edge"), and a soft
+            mint glow underneath so it feels like it's floating. */}
         <div className="sticky bottom-3 z-20 mt-6 sm:bottom-6">
-          <div className="rounded-2xl border border-white/[0.10] bg-[#07040F]/85 p-3 backdrop-blur-xl shadow-2xl">
-            <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-              Refine the whole deck
-            </label>
-            <div className="mt-1.5 flex items-end gap-2">
-              <input
-                type="text"
-                value={refineText}
-                onChange={(e) => setRefineText(e.target.value)}
-                placeholder='e.g. "Drop the word opportunity everywhere" or "Make slide 4 less salesy"'
-                disabled={refining}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    onGlobalRefine();
-                  }
-                }}
-                className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[#18d6a4]/45 focus:ring-2 focus:ring-[#18d6a4]/20"
-              />
-              <button
-                type="button"
-                onClick={onGlobalRefine}
-                disabled={!refineText.trim() || refining}
-                className={cn(
-                  'inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition-all',
-                  'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
-                  'disabled:opacity-40 disabled:translate-y-0',
-                )}
-              >
-                {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                Send
-              </button>
+          {/* Soft mint glow puddle */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-12 -bottom-8 -top-2 -z-10"
+            style={{
+              background:
+                'radial-gradient(60% 80% at 50% 100%, rgba(46,255,192,0.18) 0%, rgba(24,214,164,0.06) 35%, transparent 75%)',
+              filter: 'blur(20px)',
+            }}
+          />
+          <div
+            className="relative overflow-hidden rounded-2xl border p-3 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.55)]"
+            style={{
+              background: 'rgba(15, 20, 40, 0.42)',
+              backdropFilter: 'blur(30px) saturate(1.6)',
+              WebkitBackdropFilter: 'blur(30px) saturate(1.6)',
+              borderColor: 'rgba(255, 255, 255, 0.14)',
+            }}
+          >
+            {/* Top highlight — glass-edge sheen */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-px"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
+              }}
+            />
+            {/* Subtle inner gradient adds depth without losing the frost */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-2xl"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 35%, rgba(46,255,192,0.04) 100%)',
+              }}
+            />
+
+            <div className="relative">
+              <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/65">
+                Refine the whole deck
+              </label>
+              <div className="mt-1.5 flex items-end gap-2">
+                <input
+                  type="text"
+                  value={refineText}
+                  onChange={(e) => setRefineText(e.target.value)}
+                  placeholder='e.g. "Drop the word opportunity everywhere" or "Make slide 4 less salesy"'
+                  disabled={refining}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      onGlobalRefine();
+                    }
+                  }}
+                  className="flex-1 rounded-xl border border-white/[0.10] bg-white/[0.06] px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-[#18d6a4]/45 focus:ring-2 focus:ring-[#18d6a4]/20"
+                />
+                <button
+                  type="button"
+                  onClick={onGlobalRefine}
+                  disabled={!refineText.trim() || refining}
+                  className={cn(
+                    'inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition-all',
+                    'bg-gradient-to-r from-[#2effc0] via-[#18d6a4] to-[#059669] text-[#0a0814] hover:-translate-y-[1px]',
+                    'shadow-[0_10px_24px_-6px_rgba(46,255,192,0.45)]',
+                    'disabled:opacity-40 disabled:translate-y-0 disabled:shadow-none',
+                  )}
+                >
+                  {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         </div>
