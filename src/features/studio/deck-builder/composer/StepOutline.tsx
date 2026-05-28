@@ -379,12 +379,31 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             }}
           />
           <div
-            className="rs-refine-bar relative rounded-2xl border border-white/10 bg-black/20 p-3 shadow-2xl backdrop-blur-xl"
+            className="rs-refine-bar relative rounded-2xl border border-white/[0.14] p-3 shadow-2xl"
+            style={{
+              // True frosted glass: a heavy blur PLUS a substantial tint.
+              // backdrop-blur alone keeps sharp text legible — the tint is
+              // what dissolves the background into illegibility. ~68% navy
+              // tint + 32px blur + saturate gives a real frosted panel you
+              // cannot read through, while the slight translucency still
+              // lets colour bleed through so it reads as glass not a solid.
+              backgroundColor: 'rgba(10, 13, 28, 0.68)',
+              backdropFilter: 'blur(32px) saturate(1.7)',
+              WebkitBackdropFilter: 'blur(32px) saturate(1.7)',
+            }}
           >
-            {/* Solid fallback for browsers without backdrop-filter */}
+            {/* Top sheen + solid fallback for browsers without backdrop-filter */}
             <style>{`
-              @supports not (backdrop-filter: blur(1px)) {
-                .rs-refine-bar { background: rgba(15, 18, 36, 0.92) !important; }
+              .rs-refine-bar::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                pointer-events: none;
+                background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 38%);
+              }
+              @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+                .rs-refine-bar { background: rgba(12, 15, 30, 0.96) !important; }
               }
             `}</style>
 
