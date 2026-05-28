@@ -389,11 +389,11 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
               //  3. a mint corner glow that the colour-rich aurora bleeds into
               // backdrop-filter blurs the vivid aurora behind into a soft
               // frost. Bright inset top edge + 1px light border = the glass rim.
-              backgroundColor: 'rgba(11, 14, 28, 0.55)',
+              backgroundColor: 'rgba(10, 13, 26, 0.78)',
               backgroundImage:
                 'linear-gradient(125deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.07) 100%), radial-gradient(120% 140% at 0% 0%, rgba(46,255,192,0.16) 0%, transparent 48%)',
-              backdropFilter: 'blur(44px) saturate(1.9) brightness(1.05)',
-              WebkitBackdropFilter: 'blur(44px) saturate(1.9) brightness(1.05)',
+              backdropFilter: 'blur(64px) saturate(1.7) brightness(1.04)',
+              WebkitBackdropFilter: 'blur(64px) saturate(1.7) brightness(1.04)',
               border: '1px solid rgba(255,255,255,0.20)',
               boxShadow:
                 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 -20px 40px -24px rgba(46,255,192,0.25), 0 24px 60px -18px rgba(0,0,0,0.65)',
