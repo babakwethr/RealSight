@@ -387,9 +387,9 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
               // tint + 32px blur + saturate gives a real frosted panel you
               // cannot read through, while the slight translucency still
               // lets colour bleed through so it reads as glass not a solid.
-              backgroundColor: 'rgba(10, 13, 28, 0.68)',
-              backdropFilter: 'blur(32px) saturate(1.7)',
-              WebkitBackdropFilter: 'blur(32px) saturate(1.7)',
+              backgroundColor: 'rgba(9, 12, 26, 0.82)',
+              backdropFilter: 'blur(40px) saturate(1.8)',
+              WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
             }}
           >
             {/* Top sheen + solid fallback for browsers without backdrop-filter */}
