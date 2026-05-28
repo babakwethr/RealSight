@@ -366,33 +366,41 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             picks up and smears into the glass tint. Without that
             aurora the bar would just look "translucent over black". */}
         <div className="sticky bottom-3 z-20 mt-6 sm:bottom-6">
-          {/* Aurora glow behind the bar — gives the backdrop-blur
-              something to blur. Sits at -1 z-index, never blocks input. */}
+          {/* VIVID aurora glow behind the bar — this is what the blur
+              smears into a frosted, colourful wash (like the reference
+              card's orange orb on blue). Without bright colour here the
+              glass just looks like a dark translucent box. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-x-16 -inset-y-10 -z-10"
+            className="pointer-events-none absolute -inset-x-24 -inset-y-16 -z-10"
             style={{
               background:
-                'radial-gradient(60% 80% at 30% 50%, rgba(46,255,192,0.28) 0%, transparent 70%), radial-gradient(50% 70% at 75% 60%, rgba(106,92,255,0.24) 0%, transparent 70%)',
-              filter: 'blur(20px)',
-              opacity: 0.85,
+                'radial-gradient(55% 90% at 22% 60%, rgba(46,255,192,0.55) 0%, transparent 68%), radial-gradient(50% 85% at 70% 40%, rgba(106,92,255,0.50) 0%, transparent 68%), radial-gradient(45% 80% at 92% 75%, rgba(255,106,217,0.30) 0%, transparent 70%)',
+              filter: 'blur(28px)',
+              opacity: 0.95,
             }}
           />
           <div
-            className="rs-refine-bar relative rounded-2xl border border-white/[0.14] p-3 shadow-2xl"
+            className="rs-refine-bar relative overflow-hidden rounded-2xl p-3"
             style={{
-              // True frosted glass: a heavy blur PLUS a substantial tint.
-              // backdrop-blur alone keeps sharp text legible — the tint is
-              // what dissolves the background into illegibility. ~68% navy
-              // tint + 32px blur + saturate gives a real frosted panel you
-              // cannot read through, while the slight translucency still
-              // lets colour bleed through so it reads as glass not a solid.
-              backgroundColor: 'rgba(9, 12, 26, 0.82)',
-              backdropFilter: 'blur(40px) saturate(1.8)',
-              WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
+              // Layered frosted glass:
+              //  1. a near-opaque dark base so page text behind cannot be read
+              //  2. a diagonal white sheen so it reads as a lit glass surface
+              //  3. a mint corner glow that the colour-rich aurora bleeds into
+              // backdrop-filter blurs the vivid aurora behind into a soft
+              // frost. Bright inset top edge + 1px light border = the glass rim.
+              backgroundColor: 'rgba(11, 14, 28, 0.55)',
+              backgroundImage:
+                'linear-gradient(125deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.07) 100%), radial-gradient(120% 140% at 0% 0%, rgba(46,255,192,0.16) 0%, transparent 48%)',
+              backdropFilter: 'blur(44px) saturate(1.9) brightness(1.05)',
+              WebkitBackdropFilter: 'blur(44px) saturate(1.9) brightness(1.05)',
+              border: '1px solid rgba(255,255,255,0.20)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 -20px 40px -24px rgba(46,255,192,0.25), 0 24px 60px -18px rgba(0,0,0,0.65)',
             }}
           >
-            {/* Top sheen + solid fallback for browsers without backdrop-filter */}
+            {/* Diagonal frost streaks (like the reference) + solid fallback
+                for browsers without backdrop-filter. */}
             <style>{`
               .rs-refine-bar::before {
                 content: '';
@@ -400,13 +408,15 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
                 inset: 0;
                 border-radius: inherit;
                 pointer-events: none;
-                background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 38%);
+                opacity: 0.5;
+                background: repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 9px);
               }
               @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-                .rs-refine-bar { background: rgba(12, 15, 30, 0.96) !important; }
+                .rs-refine-bar { background: rgba(13, 16, 32, 0.97) !important; }
               }
             `}</style>
 
+            <div className="relative z-10">
             <label className="ml-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75">
               Refine the whole deck
             </label>
@@ -439,6 +449,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
                 {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                 Send
               </button>
+            </div>
             </div>
           </div>
         </div>
