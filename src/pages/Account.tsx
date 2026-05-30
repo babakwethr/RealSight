@@ -641,6 +641,31 @@ export default function Account() {
         )}
       </div>
 
+      {/* Legal — App Store requires the privacy policy to be reachable
+          from inside the app, not only on the public website. */}
+      <div className="glass-panel p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Shield className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold text-foreground">Legal</h2>
+        </div>
+        <div className="space-y-2">
+          <Link
+            to="/privacy"
+            className="flex items-center justify-between rounded-lg border border-border bg-input/30 px-4 py-3 text-sm text-foreground transition-colors hover:bg-input/50"
+          >
+            <span>Privacy Policy</span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link
+            to="/terms"
+            className="flex items-center justify-between rounded-lg border border-border bg-input/30 px-4 py-3 text-sm text-foreground transition-colors hover:bg-input/50"
+          >
+            <span>Terms of Service</span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      </div>
+
       {/* Danger Zone */}
       <div className="glass-panel p-6 border-destructive/30 space-y-3">
         <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>

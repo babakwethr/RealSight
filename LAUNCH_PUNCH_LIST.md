@@ -91,6 +91,82 @@ Babak hasn't published an Android app before. Needs hand-holding through:
 
 ---
 
+## Group C — App Store / Play Store review compliance (added 29 May 2026)
+
+Cross-checked the public "App Store Approval Checklist" + the latest
+2026 Apple/Google rules against our code. Below is only the **real
+gaps** — items we already pass are noted at the bottom.
+
+### C1. AI consent + disclosure screen  ❗ hard requirement (Guideline 5.1.2(i), enforced since Nov 2025)
+- **What:** First time a user triggers any AI feature (Deal Analyzer,
+  Concierge, Deck Builder), show a one-time consent popup that NAMES
+  the AI provider (Google Gemini) and says their data is sent there
+  for processing. No consent = automatic rejection.
+- **Note:** This is the ONE place we are *required* to name the
+  vendor (Google/Gemini). Our "no vendor names in UI" rule still holds
+  for media-gen tools (Higgsfield etc.) — this AI-processing
+  disclosure is the legal exception.
+- **Status:** ✅ DONE — `src/components/AiConsentDialog.tsx`, mounted in
+  `AppLayout`. One-time modal names Google Gemini, links the policy,
+  stores consent in localStorage (`rs_ai_consent_v1`).
+
+### C2. Privacy policy reachable inside the app + AI data clause
+- **What:** (a) Add a clickable Privacy Policy link inside the
+  authenticated app (Account / Settings) — today it's only on the
+  public footer/login. (b) Add a plain-language line to the policy
+  stating user data is transmitted to Google Gemini for AI processing.
+- **Status:** ✅ DONE — added a "Legal" section to `Account.tsx` with
+  Privacy Policy + Terms links. Policy already names Google Gemini
+  (sections 2, 3, 5), so the AI clause was already covered.
+
+### C3. iOS Privacy Manifest (PrivacyInfo.xcprivacy)  ❗ mandatory since May 2024
+- **What:** Add a privacy manifest for the app + verify every
+  Capacitor plugin ships one. Missing one = pre-rejected by bots.
+- **Status:** ✅ FILE CREATED — `ios/App/App/PrivacyInfo.xcprivacy`
+  (declares collected data types + required-reason APIs).
+  **Babak's one Xcode step:** open the iOS project in Xcode, drag this
+  file into the `App` group, and tick the **App** target under "Target
+  Membership" so it's bundled. Then reconcile the declared data types
+  with the App Privacy questionnaire in App Store Connect.
+
+### C4. Remove reviewer-visible "Coming soon"/placeholder bits
+- **What:** Apps with placeholder screens get first-pass rejections.
+  Audit: Studio "Social Pack — June 2026" tile, "Add a slide — Soon",
+  any other teaser/disabled features a reviewer can reach. Either hide
+  behind a flag for the reviewed build or make them functional.
+- **Status:** TODO.
+
+### C5. No-internet crash test
+- **What:** Turn off WiFi + data, open the app, trigger core features.
+  Must show a clean "Connection lost" message, not a white screen or
+  crash. Add network-error fallbacks where missing.
+- **Status:** TODO (verify).
+
+### C6. Build with Xcode 26 / iOS 26 SDK  ❗ mandatory since 28 Apr 2026
+- **What:** All new App Store submissions must be built with Xcode 26
+  + iOS 26 SDK or they're auto-rejected. (Our minimum *supported* OS
+  stays iOS 15 — that's fine; this is about the build SDK.)
+- **Status:** TODO — confirm Babak's Xcode is updated before next build.
+
+### C7. Submission-time operational items
+- **What:** (a) Pre-made demo/guest login pasted into App Review Notes
+  so the reviewer gets past our login wall. (b) A 30-sec unlisted
+  screen recording showing the AI feature working (AI calls take a few
+  seconds — without this a reviewer may think it's frozen).
+- **Status:** TODO (do at submission).
+
+### Already PASS (no work needed)
+- ✅ **Delete Account** — real in-app delete (`DeleteAccountSection` in
+  `Account.tsx` → `delete-user` edge fn). Compliant.
+- ✅ **Secrets not in the app bundle** — AI/DB keys live in Supabase
+  edge functions, not the client.
+- ✅ **No in-app code execution** — nothing like a terminal/compiler.
+- ✅ **Native in-app purchase code** — RevenueCat shipped (items 9/11),
+  just needs Babak's account + product config.
+- ✅ **Restore Purchases** — handled by RevenueCat.
+
+---
+
 ## Working agreement
 
 - We tackle these **in order**, top to bottom, unless Babak says otherwise.

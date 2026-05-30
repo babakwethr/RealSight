@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { MobileNav } from './MobileNav';
 import { MobileDrawer } from './MobileDrawer';
 import { MarketTickerSlot } from '@/components/ticker/MarketTickerSlot';
+import { AiConsentDialog } from '@/components/AiConsentDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -158,6 +159,10 @@ export function AppLayout() {
 
       <MobileNav onMenuClick={() => setIsDrawerOpen(true)} />
       <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+
+      {/* One-time AI data-sharing disclosure (App Store Guideline 5.1.2(i)).
+          Shown to authenticated users before they can use any AI feature. */}
+      <AiConsentDialog />
     </div>
   );
 }
