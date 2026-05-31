@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { TenantProvider } from "@/hooks/useTenant";
 import { MarketProvider } from "@/hooks/useMarket";
 import { supabase } from "@/integrations/supabase/client";
@@ -191,6 +192,7 @@ const App = () => (
           <CapacitorDeepLinkHandler />
           <RevenueCatBootstrap />
           <ReferralCapture />
+          <OfflineBanner />
           <Toaster />
           <Sonner />
           <BrowserRouter>

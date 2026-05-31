@@ -148,7 +148,19 @@ gaps** — items we already pass are noted at the bottom.
 - **What:** Turn off WiFi + data, open the app, trigger core features.
   Must show a clean "Connection lost" message, not a white screen or
   crash. Add network-error fallbacks where missing.
-- **Status:** TODO (verify).
+- **Audit findings:** App loads from bundled `dist/` (no `server.url`),
+  so the shell opens offline. Auth resolves offline (cached session).
+  Gaps were: (a) no global error boundary → a render crash showed a
+  white screen; (b) no "you're offline" signal.
+- **Status:** ✅ DONE (code) —
+  - `src/components/ErrorBoundary.tsx`: app-wide boundary wrapping
+    `<App/>` in `main.tsx`. Any crash now shows a branded "Something
+    went wrong / check your connection" screen with a Reload button
+    instead of white.
+  - `src/components/OfflineBanner.tsx`: slim top banner (mounted in
+    `App.tsx`) that appears live when the device goes offline.
+  - **Still verify on-device:** once the next TestFlight build is up,
+    do the real airplane-mode pass on the core flows.
 
 ### C6. Build with Xcode 26 / iOS 26 SDK  ❗ mandatory since 28 Apr 2026
 - **What:** All new App Store submissions must be built with Xcode 26
