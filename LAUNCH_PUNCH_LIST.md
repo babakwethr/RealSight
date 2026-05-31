@@ -134,7 +134,15 @@ gaps** — items we already pass are noted at the bottom.
   Audit: Studio "Social Pack — June 2026" tile, "Add a slide — Soon",
   any other teaser/disabled features a reviewer can reach. Either hide
   behind a flag for the reviewed build or make them functional.
-- **Status:** TODO.
+- **Status:** ✅ DONE — gated behind `isCapacitorNative()` so the native
+  store build hides them, web keeps the full roadmap:
+  - Studio: 3 "coming" tool tiles (Social Pack / Video Studio / Buyer
+    Matcher) hidden; only working tools show. Header badge + subheading
+    adjust too.
+  - Deck builder Step 2: 3 not-yet-live templates ("Coming soon") hidden;
+    only Cinematic Gold shows. Categories + "Four design styles" copy
+    adapt.
+  - Deck builder Step 3: "Add a slide — Soon" placeholder hidden.
 
 ### C5. No-internet crash test
 - **What:** Turn off WiFi + data, open the app, trigger core features.

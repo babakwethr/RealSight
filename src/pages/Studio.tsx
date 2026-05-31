@@ -12,6 +12,7 @@ import {
   TONE_PALETTE,
   type StudioTool,
 } from '@/data/studioTools';
+import { isCapacitorNative } from '@/lib/capacitor';
 import { StudioIllustration } from '@/components/studio/StudioIllustrations';
 
 /**
@@ -54,6 +55,14 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export default function Studio() {
   const navigate = useNavigate();
+  // App Store builds hide "coming soon" tool tiles — Apple rejects apps
+  // that surface non-functional placeholder features (Guideline 2.1).
+  // The web app keeps the full roadmap grid.
+  const native = useMemo(isCapacitorNative, []);
+  const tools = useMemo(
+    () => (native ? STUDIO_TOOLS.filter((t) => t.status !== 'coming') : STUDIO_TOOLS),
+    [native],
+  );
   const counts = useMemo(studioToolCounts, []);
   const [openTool, setOpenTool] = useState<StudioTool | null>(null);
   const [notified, setNotified] = useState<Record<string, number>>(loadNotifyMe);
@@ -118,7 +127,7 @@ export default function Studio() {
           </div>
           <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] border border-white/[0.08] px-2.5 py-1 text-[10.5px] shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2effc0] animate-pulse" />
-            <span className="font-semibold text-white/75 whitespace-nowrap">{counts.live} live · {counts.coming} coming</span>
+            <span className="font-semibold text-white/75 whitespace-nowrap">{counts.live} live{native ? '' : ` · ${counts.coming} coming`}</span>
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight leading-[1.1]">
@@ -131,13 +140,15 @@ export default function Studio() {
           </span>
         </h1>
         <p className="text-[13px] lg:text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
-          Branded presentations, social packs, cinematic video pitches and AI matchmaking — fresh tools added every month.
+          {native
+            ? 'Turn any topic into a branded, data-backed presentation — ready to send in minutes.'
+            : 'Branded presentations, social packs, cinematic video pitches and AI matchmaking — fresh tools added every month.'}
         </p>
       </div>
 
       {/* ── Card grid — 4 cards: 1-col mobile, 2-col tablet, 4-col wide desktop ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        {STUDIO_TOOLS.map((tool, i) => (
+        {tools.map((tool, i) => (
           <ToolCard
             key={tool.slug}
             tool={tool}

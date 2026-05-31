@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { lightTap, mediumTap } from '@/lib/capacitor';
+import { lightTap, mediumTap, isCapacitorNative } from '@/lib/capacitor';
 import type { ComposerContext, DeckTheme } from './types';
 import type { HtmlSlide } from '../runtime/HtmlStage';
 
@@ -341,19 +341,23 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
             />
           ))}
 
-          {/* "+ Add slide" floater — placeholder for next build */}
-          <button
-            type="button"
-            disabled
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.10] bg-white/[0.02] p-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white/45 transition hover:border-white/[0.18]"
-            title="Manual add coming next — use the refine box for now"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add a slide
-            <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-1.5 text-[9px] font-bold tracking-[0.14em] text-white/55">
-              Soon
-            </span>
-          </button>
+          {/* "+ Add slide" floater — placeholder for next build. Hidden in
+              the native store build (App Store rejects visible "Soon"
+              placeholders); stays on web as a roadmap hint. */}
+          {!isCapacitorNative() && (
+            <button
+              type="button"
+              disabled
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.10] bg-white/[0.02] p-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white/45 transition hover:border-white/[0.18]"
+              title="Manual add coming next — use the refine box for now"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add a slide
+              <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-1.5 text-[9px] font-bold tracking-[0.14em] text-white/55">
+                Soon
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Global refine bar — the EXACT 21st.dev liquid-glass recipe:

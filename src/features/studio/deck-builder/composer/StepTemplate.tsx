@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { lightTap } from '@/lib/capacitor';
+import { lightTap, isCapacitorNative } from '@/lib/capacitor';
 import type { ComposerContext } from './types';
 
 type CategoryId = 'all' | 'cinematic' | 'architectural' | 'editorial' | 'investor';
@@ -113,9 +113,21 @@ export function StepTemplate({ draft, setDraft }: ComposerContext) {
   const [category, setCategory] = useState<CategoryId>('all');
   const [drawerSlug, setDrawerSlug] = useState<string | null>(null);
 
+  // App Store builds hide not-yet-live templates (Apple rejects visible
+  // "Coming soon" placeholders); the web app shows the full roadmap.
+  const native = isCapacitorNative();
+  const baseTemplates = native ? TEMPLATES.filter((t) => t.live) : TEMPLATES;
+  const categories = CATEGORIES.map((c) => ({
+    ...c,
+    count:
+      c.id === 'all'
+        ? baseTemplates.length
+        : baseTemplates.filter((t) => t.category === c.id).length,
+  })).filter((c) => c.count > 0);
+
   const filtered =
-    category === 'all' ? TEMPLATES : TEMPLATES.filter((t) => t.category === category);
-  const drawerTemplate = TEMPLATES.find((t) => t.slug === drawerSlug) ?? null;
+    category === 'all' ? baseTemplates : baseTemplates.filter((t) => t.category === category);
+  const drawerTemplate = baseTemplates.find((t) => t.slug === drawerSlug) ?? null;
 
   const pick = (slug: string) => {
     void lightTap();
@@ -132,7 +144,7 @@ export function StepTemplate({ draft, setDraft }: ComposerContext) {
             Step 2 of 5 — Pick a look
           </div>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
-            Four design styles.
+            {baseTemplates.length === 1 ? 'Your deck style.' : 'Four design styles.'}
           </h1>
           <p className="mt-2 max-w-lg text-sm text-white/55">
             Each template is a full visual system — palette, typography, photo
@@ -148,7 +160,7 @@ export function StepTemplate({ draft, setDraft }: ComposerContext) {
         {/* Left rail — Pitch category list */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0">
-            {CATEGORIES.map((c) => {
+            {categories.map((c) => {
               const active = category === c.id;
               return (
                 <button
