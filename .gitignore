@@ -20,8 +20,9 @@ build/
 vite.config.ts.timestamp-*.mjs
 vite.config.js.timestamp-*.mjs
 
-# Claude Code worktrees
+# Claude Code worktrees + local launch config
 .claude/worktrees/
+.claude/launch.json
 
 # IDE
 .vscode/
