@@ -84,13 +84,15 @@ export function AiConsentDialog() {
             <div className="space-y-3 text-sm leading-relaxed text-white/70">
               <p>
                 Features like the Deal Analyzer, AI Concierge and Studio use{' '}
-                <span className="font-semibold text-white/90">Google Gemini</span> to
-                generate their analysis.
+                <span className="font-semibold text-white/90">AI</span> to generate
+                their analysis.
               </p>
               <p>
                 When you use these features, the text and files you provide are sent to
-                Google for processing. We don&apos;t sell your data or use it to train
-                public AI models.
+                a trusted third-party provider
+                {' '}(<span className="font-semibold text-white/90">Google</span>) for
+                processing. We don&apos;t sell your data or use it to train public AI
+                models.
               </p>
               <p className="text-white/55">
                 Full detail is in our{' '}

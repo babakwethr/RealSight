@@ -2,7 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { User, LogOut, X, Sparkles, ChevronRight, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersona } from '@/hooks/usePersona';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription, PLAN_LABELS } from '@/hooks/useSubscription';
 import { getUpsellTarget } from '@/lib/upsell';
 import { NAV_CONFIG } from '@/config/navConfig';
 import { cn } from '@/lib/utils';
@@ -141,6 +141,24 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Bottom — upgrade + account */}
         <div className="relative px-3 pt-3 pb-3 border-t border-white/[0.08] space-y-2">
+          {/* Current plan — so the user always knows which package they're on. */}
+          {navReady && plan && (
+            <div className="flex items-center justify-between px-2 py-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Your plan</span>
+              <span
+                className="text-[12px] font-black"
+                style={{
+                  color: plan === 'free'
+                    ? 'rgba(255,255,255,0.7)'
+                    : plan === 'investor_pro'
+                      ? '#2effc0'
+                      : '#FFB020',
+                }}
+              >
+                {PLAN_LABELS[plan]}
+              </span>
+            </div>
+          )}
           {/* Plan-aware upgrade nudge — adviser-path users see Adviser Pro,
               investors see Investor Pro, top-tier users see nothing. */}
           {upsell && (

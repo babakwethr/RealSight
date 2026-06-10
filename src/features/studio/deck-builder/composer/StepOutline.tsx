@@ -132,7 +132,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
   const handleAiError = (defaultTitle: string, err: unknown) => {
     const e = err as Error & { code?: string };
     if (e?.code === 'quota_exhausted') {
-      toast.error("Today's free Gemini quota is used up", {
+      toast.error("Today's free AI quota is used up", {
         description: e.message,
         duration: 10000,
         action: {
@@ -144,7 +144,7 @@ export function StepOutline({ draft, setDraft }: ComposerContext) {
       return;
     }
     if (e?.code === 'service_overloaded') {
-      toast.error('Gemini is busy right now', {
+      toast.error('The AI service is busy right now', {
         description: e.message,
         duration: 8000,
       });

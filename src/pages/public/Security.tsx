@@ -122,8 +122,8 @@ export default function Security() {
               Application data is stored in Supabase (Postgres) in EU-region data
               centres. Backups are encrypted and rotated within 90 days. Payments
               are processed by Stripe (PCI-DSS Level 1). Hosting is on Vercel. AI
-              processing uses Google Gemini under standard API terms — your
-              individual prompts are not used to train Google's models.
+              processing uses Google as our AI provider under standard API terms —
+              your individual prompts are not used to train Google's models.
             </p>
           </section>
 

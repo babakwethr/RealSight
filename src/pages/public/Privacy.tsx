@@ -37,7 +37,7 @@ export default function Privacy() {
               <li><strong className="text-foreground">Portfolio data you provide:</strong> properties, payment schedules, documents you upload.</li>
               <li><strong className="text-foreground">Usage data:</strong> pages visited, searches performed, features used, session duration, device/browser type.</li>
               <li><strong className="text-foreground">Billing data:</strong> processed by Stripe — we never see or store full card numbers. We store a Stripe customer ID and subscription status.</li>
-              <li><strong className="text-foreground">AI interactions:</strong> your prompts and generated outputs from AI Concierge and Deal Analyzer are stored to maintain conversation history. These may be processed by Google Gemini.</li>
+              <li><strong className="text-foreground">AI interactions:</strong> your prompts and generated outputs from AI Concierge and Deal Analyzer are stored to maintain conversation history. These may be processed by Google as our AI provider.</li>
               <li><strong className="text-foreground">OAuth data:</strong> if you sign up with Google, we receive your name, email, and profile picture.</li>
             </ul>
           </section>
@@ -66,7 +66,7 @@ export default function Privacy() {
               <li><strong className="text-foreground">Supabase</strong> — database, authentication, file storage (EU region available)</li>
               <li><strong className="text-foreground">Stripe</strong> — payment processing (PCI-DSS Level 1 certified)</li>
               <li><strong className="text-foreground">Vercel</strong> — web hosting</li>
-              <li><strong className="text-foreground">Google</strong> — Gemini AI (for Deal Analyzer + AI Concierge), Google OAuth</li>
+              <li><strong className="text-foreground">Google</strong> — AI processing (for Deal Analyzer + AI Concierge), Google OAuth</li>
               <li><strong className="text-foreground">Resend / similar</strong> — transactional email (if applicable)</li>
             </ul>
             <p className="mt-2">Each processor has their own privacy policy and implements appropriate security controls.</p>

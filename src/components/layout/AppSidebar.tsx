@@ -2,7 +2,7 @@ import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import { User, LogOut, Sparkles, ArrowRight, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersona } from '@/hooks/usePersona';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription, PLAN_LABELS } from '@/hooks/useSubscription';
 import { getUpsellTarget } from '@/lib/upsell';
 import { NAV_CONFIG } from '@/config/navConfig';
 import { cn } from '@/lib/utils';
@@ -224,6 +224,26 @@ export function AppSidebar() {
           The upsell variant comes from `getUpsellTarget()` so every surface
           across the app stays in sync. Top-tier users see no upsell. */}
       <div className="relative border-t border-white/[0.06] pt-1.5 pb-2 space-y-0.5 px-1.5 shrink-0">
+        {/* Current plan — so the user always knows which package they're on.
+            (Every menu item itself is free; paid capabilities are gated inside
+            specific features, not in the nav.) */}
+        {navReady && !planLoading && plan && (
+          <div className="flex items-center justify-between px-2.5 py-1 mb-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">Your plan</span>
+            <span
+              className="text-[11px] font-black"
+              style={{
+                color: plan === 'free'
+                  ? 'rgba(255,255,255,0.65)'
+                  : plan === 'investor_pro'
+                    ? '#2effc0'
+                    : '#FFB020',
+              }}
+            >
+              {PLAN_LABELS[plan]}
+            </span>
+          </div>
+        )}
         {/* Hide the upsell until both role + plan are known, otherwise
             the wrong-tier offer flashes for a frame on each page load. */}
         {navReady && !planLoading && upsell && (
