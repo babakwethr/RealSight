@@ -209,20 +209,25 @@ export default function SetupWizard() {
 
       if (updateError) throw updateError;
 
-      // 3. Update user metadata
+      // 3. Update user metadata. Also stamp signup_role='advisor' so an
+      //    adviser who signed up via Google (where signup_role was never set)
+      //    is repaired here and reads as an adviser everywhere afterwards.
       await supabase.auth.updateUser({
         data: {
           tenant_id: rpcResult.tenant_id,
           full_name: formData.broker_name,
+          signup_role: 'advisor',
         }
       });
 
       toast.success('Your workspace is ready!');
-      
-      // Delay before redirecting to let session updates propagate
+
+      // Delay before redirecting to let session updates propagate.
+      // Land in the adviser workspace (not the investor /dashboard) — they
+      // just became an admin via setup_advisor_platform.
       localStorage.removeItem(STORAGE_KEY);
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/admin/investors';
       }, 1500);
 
     } catch (err: any) {

@@ -1,14 +1,10 @@
 import { NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
-import {
-  LayoutDashboard, PieChart, BarChart3, Map, Building2, Search, Bot, Globe,
-  User, LogOut, Sparkles, ArrowRight, Shield,
-  CreditCard, FolderOpen, Bell, Eye, Scale, Crown,
-  Wand2,
-} from 'lucide-react';
+import { User, LogOut, Sparkles, ArrowRight, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePersona } from '@/hooks/usePersona';
 import { useSubscription } from '@/hooks/useSubscription';
-import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
+import { getUpsellTarget } from '@/lib/upsell';
+import { NAV_CONFIG } from '@/config/navConfig';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
@@ -140,22 +136,21 @@ function SectionLabel({ label, accent }: { label: string; accent: SectionAccent 
 
 // ─── Main sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar() {
-  const { signOut, user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { signOut } = useAuth();
+  const { isAdviserNav, isLoading: personaLoading } = usePersona();
   const { plan, loading: planLoading } = useSubscription();
 
-  // The role decides which entire nav section to render. If we render
-  // BEFORE the role resolves, the investor sidebar (default isAdmin =
-  // false) flashes briefly for admin users on every page load. Show a
-  // small skeleton placeholder until we know who the user is.
-  const navReady = !authLoading && !roleLoading;
+  // Menu comes from the SINGLE shared config (navConfig) — the mobile
+  // drawer renders the exact same list, so the two can never drift apart.
+  const sections = NAV_CONFIG[isAdviserNav ? 'adviser' : 'investor'];
+
+  // If we render BEFORE persona resolves, the investor menu flashes briefly
+  // for advisers on every page load. Show a skeleton until we know who they are.
+  const navReady = !personaLoading;
 
   // Single plan-aware upsell — same helper used by AppLayout, MarketHome,
   // Account, etc. so every surface offers the same next-tier plan.
-  const upsell = getUpsellTarget(
-    plan,
-    isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
-  );
+  const upsell = getUpsellTarget(plan, isAdviserNav);
 
   return (
     <aside
@@ -209,74 +204,19 @@ export function AppSidebar() {
               <div className="h-9 rounded-xl bg-white/[0.04]" />
             </div>
           </div>
-        ) : isAdmin ? (
-          /* ─────────────── ADVISER / ADMIN VIEW ───────────────
-             Their personal investor ledger doesn't live here — they access
-             their CLIENTS' ledgers from Admin → Investors. */
-          <>
-            <SectionLabel label="Workspace" accent="workspace" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/dashboard"     icon={LayoutDashboard} label="Home" />
-              <NavItem to="/deal-analyzer" icon={Search}          label="Deal Analyzer" />
-              {/* "New Launches" used to live here pointing at /projects;
-                  removed 20 May per Babak QA — Off-Plan (under Markets)
-                  is the same Reelly catalogue with filters, the two
-                  entries were duplicates. */}
-            </div>
-
-            <SectionLabel label="Markets" accent="markets" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/market-intelligence" icon={BarChart3} label="UAE Market" />
-              <NavItem to="/market/uk"           icon={Map}       label="UK Market" />
-              <NavItem to="/market/us"           icon={Map}       label="US Market" />
-              <NavItem to="/heatmap"             icon={Globe}     label="Global Heatmap" />
-              <NavItem to="/off-plan"            icon={Building2} label="Off-Plan" />
-              <NavItem to="/watchlist"           icon={Eye}       label="Watchlist" />
-              {/* Compare lives only in the investor view — it diff's holdings
-                  in the investor's own portfolio, not generic market data.
-                  Advisers compare a CLIENT's holdings via /admin/investors. */}
-            </div>
-
-            <SectionLabel label="Admin" accent="admin" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/studio" icon={Wand2}  label="Studio" />
-              <NavItem to="/admin"  icon={Shield} label="Workspace" />
-            </div>
-          </>
         ) : (
-          /* ─────────────── INVESTOR VIEW (free or Investor Pro) ───────────────
-             "My Investments" is one umbrella — Portfolio + Payments +
-             Documents + Updates + AI Concierge are all things tied to the
-             investor's personal portfolio. They're grouped together so the
-             investor reads them as ONE world (their dashboard).
-             "Markets" is the research / discovery half — generic to all
-             users, not personal. Home (the DXBinteract-style market data
-             landing) lives here too because it's market research. */
-          <>
-            <SectionLabel label="My Investments" accent="investments" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/portfolio"  icon={PieChart}    label="Portfolio" />
-              <NavItem to="/compare"    icon={Scale}       label="Compare Holdings" />
-              <NavItem to="/payments"   icon={CreditCard}  label="Payments" />
-              <NavItem to="/documents"  icon={FolderOpen}  label="Documents" />
-              <NavItem to="/updates"    icon={Bell}        label="Updates" />
-              <NavItem to="/concierge"  icon={Bot}         label="AI Concierge" />
+          /* Role-aware menu, rendered from the single shared NAV_CONFIG so
+             the desktop rail and the mobile drawer always match. */
+          sections.map((section) => (
+            <div key={section.id}>
+              <SectionLabel label={section.label} accent={section.accent} />
+              <div className="space-y-0.5 px-1.5">
+                {section.items.map((item) => (
+                  <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
+                ))}
+              </div>
             </div>
-
-            <SectionLabel label="Markets" accent="markets" />
-            <div className="space-y-0.5 px-1.5">
-              <NavItem to="/dashboard"           icon={LayoutDashboard} label="Home · UAE" />
-              <NavItem to="/market/uk"           icon={BarChart3}       label="UK Market" />
-              <NavItem to="/market/us"           icon={BarChart3}       label="US Market" />
-              <NavItem to="/off-plan"            icon={Building2}       label="Off-Plan · UAE · Bali · Phuket" />
-              <NavItem to="/market-intelligence" icon={BarChart3}       label="Market Intelligence" />
-              <NavItem to="/heatmap"             icon={Globe}           label="Global Heatmap" />
-              <NavItem to="/deal-analyzer"       icon={Search}          label="Deal Analyzer" />
-              {/* "New Launches" duplicate removed 20 May — same Reelly
-                  catalogue as Off-Plan above. */}
-              <NavItem to="/watchlist"           icon={Eye}             label="Watchlist" />
-            </div>
-          </>
+          ))
         )}
       </nav>
 

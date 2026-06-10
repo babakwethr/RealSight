@@ -1,12 +1,10 @@
 import { NavLink, Link } from 'react-router-dom';
-import {
-  LayoutDashboard, PieChart, CreditCard, FolderOpen,
-  BarChart3, Map, Building2, Search, Bookmark, Columns,
-  Bot, Bell, User, LogOut, X, Sparkles, ChevronRight, Shield,
-} from 'lucide-react';
+import { User, LogOut, X, Sparkles, ChevronRight, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePersona } from '@/hooks/usePersona';
 import { useSubscription } from '@/hooks/useSubscription';
+import { getUpsellTarget } from '@/lib/upsell';
+import { NAV_CONFIG } from '@/config/navConfig';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
 
@@ -15,88 +13,22 @@ interface MobileDrawerProps {
   onClose: () => void;
 }
 
-// MobileDrawer mirrors the desktop AppSidebar's role-aware navigation.
-// 28 Apr 2026 — aligned with the launch plan (LAUNCH_PLAN.md §2-5):
-//   • Investors get their personal ledger inline (Portfolio + Records).
-//   • Advisers get Markets tools + an Admin entry; their clients' ledgers
-//     are accessed via /admin/investors → drill into a client.
-//   • Deferred-from-launch items (Global Radar, Top Picks user view,
-//     Opportunity Signals as a standalone page) are not in the rail.
-
-// Adviser / Admin sections — Workspace + Studio + Markets + Admin
-const ADVISER_SECTIONS = [
-  {
-    label: 'Workspace',
-    items: [
-      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home' },
-      { to: '/deal-analyzer',       icon: Search,           label: 'Deal Analyzer' },
-      { to: '/off-plan',            icon: Building2,        label: 'Off-Plan' },
-    ],
-  },
-  {
-    label: 'Adviser Studio',
-    items: [
-      { to: '/studio',              icon: Sparkles,         label: 'Studio' },
-    ],
-  },
-  {
-    label: 'Markets',
-    items: [
-      { to: '/market-intelligence', icon: BarChart3,        label: 'Markets' },
-      { to: '/heatmap',             icon: Map,              label: 'Dubai Heatmap' },
-      { to: '/watchlist',           icon: Bookmark,         label: 'Watchlist' },
-    ],
-  },
-  {
-    label: 'Admin',
-    items: [
-      { to: '/admin',               icon: Shield,           label: 'Workspace' },
-    ],
-  },
-];
-
-// Investor sections (free or Investor Pro). "My Investments" wraps every
-// page tied to the investor's personal portfolio — that's their dashboard.
-// "Markets" is the research / discovery half (Home, Markets, Heatmap,
-// Deal Analyzer, New Launches, Watchlist, Compare).
-const INVESTOR_SECTIONS = [
-  {
-    label: 'My Investments',
-    items: [
-      { to: '/portfolio',           icon: PieChart,        label: 'Portfolio' },
-      { to: '/compare',             icon: Columns,         label: 'Compare Holdings' },
-      { to: '/payments',            icon: CreditCard,      label: 'Payments' },
-      { to: '/documents',           icon: FolderOpen,      label: 'Documents' },
-      { to: '/updates',             icon: Bell,            label: 'Updates' },
-      { to: '/concierge',           icon: Bot,             label: 'AI Concierge' },
-    ],
-  },
-  {
-    label: 'Markets',
-    items: [
-      { to: '/dashboard',           icon: LayoutDashboard, label: 'Home · UAE' },
-      { to: '/market-intelligence', icon: BarChart3,       label: 'UAE Market' },
-      { to: '/market/uk',           icon: BarChart3,       label: 'UK Market' },
-      { to: '/market/us',           icon: BarChart3,       label: 'US Market' },
-      { to: '/off-plan',            icon: Building2,       label: 'Off-Plan' },
-      { to: '/heatmap',             icon: Map,             label: 'Global Heatmap' },
-      { to: '/deal-analyzer',       icon: Search,          label: 'Deal Analyzer' },
-      { to: '/watchlist',           icon: Bookmark,        label: 'Watchlist' },
-    ],
-  },
-];
+// MobileDrawer renders the SAME NAV_CONFIG the desktop AppSidebar uses, so the
+// two menus can never drift apart (they used to: different labels, missing
+// Studio / UK+US Market / Compare on mobile). Persona comes from the shared
+// usePersona() hook so desktop and mobile always agree on who the user is.
 
 export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
-  const { signOut, user, loading: authLoading } = useAuth();
+  const { signOut, user } = useAuth();
   const { plan } = useSubscription();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdviserNav, isLoading: personaLoading } = usePersona();
 
-  const signupRole = user?.user_metadata?.signup_role;
-  const isAdviserNav = isAdmin || signupRole === 'advisor';
-  const SECTIONS = isAdviserNav ? ADVISER_SECTIONS : INVESTOR_SECTIONS;
-  // Avoid flashing the investor nav for admins while the role
-  // resolves on initial mount.
-  const navReady = !authLoading && !roleLoading;
+  const SECTIONS = NAV_CONFIG[isAdviserNav ? 'adviser' : 'investor'];
+  // Plan-aware upsell — same helper + persona the desktop rail uses, so the
+  // offered tier matches (advisers get Adviser Pro, investors Investor Pro).
+  const upsell = getUpsellTarget(plan, isAdviserNav);
+  // Avoid flashing the investor nav for advisers while persona resolves.
+  const navReady = !personaLoading;
 
   return (
     <>
@@ -209,24 +141,39 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Bottom — upgrade + account */}
         <div className="relative px-3 pt-3 pb-3 border-t border-white/[0.08] space-y-2">
-          {/* Upgrade nudge for free users */}
-          {plan === 'free' && (
+          {/* Plan-aware upgrade nudge — adviser-path users see Adviser Pro,
+              investors see Investor Pro, top-tier users see nothing. */}
+          {upsell && (
             <Link
               to="/billing"
               onClick={onClose}
               className="flex items-center gap-3 px-3 py-3 rounded-2xl overflow-hidden"
               style={{
                 background:
-                  'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
-                border: '1px solid rgba(24,214,164,0.35)',
+                  upsell.targetPlan === 'adviser_pro'
+                    ? 'linear-gradient(90deg, rgba(255,176,32,0.22), rgba(255,176,32,0.06))'
+                    : 'linear-gradient(90deg, rgba(24,214,164,0.22), rgba(24,214,164,0.06))',
+                border: `1px solid ${upsell.accent}59`,
               }}
             >
-              <div className="w-9 h-9 rounded-xl bg-[#18d6a4] text-black flex items-center justify-center shrink-0">
-                <Sparkles className="h-4 w-4" />
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: upsell.accent, color: '#0a0814' }}
+              >
+                {upsell.targetPlan === 'adviser_pro'
+                  ? <Crown className="h-4 w-4" />
+                  : <Sparkles className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-black text-white leading-none">Upgrade to Pro</p>
-                <p className="text-[11px] text-white/65 mt-1">$4/mo · 30-day free trial</p>
+                <p className="text-[13px] font-black text-white leading-none">
+                  {upsell.headline.replace('Upgrade to ', '')}
+                </p>
+                <p className="text-[11px] text-white/65 mt-1">
+                  {upsell.promoActive && (
+                    <span className="text-white/40 line-through mr-1">{upsell.regularPrice}</span>
+                  )}
+                  {upsell.price}
+                </p>
               </div>
               <ChevronRight className="h-4 w-4 text-white/60" />
             </Link>

@@ -20,8 +20,7 @@ import {
 } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePersona } from '@/hooks/usePersona';
 import { isCapacitorIos } from '@/lib/capacitor';
 import { LiquidGlassTabBar, type LiquidGlassTabBarItem } from '@/plugins/liquid-glass-tab-bar';
 
@@ -105,11 +104,9 @@ interface MobileNavProps {
 export function MobileNav({ onMenuClick }: MobileNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isAdmin } = useUserRole();
-
-  const signupRole = user?.user_metadata?.signup_role;
-  const isAdviserNav = isAdmin || signupRole === 'advisor';
+  // Persona from the one shared hook, so the bottom bar agrees with the
+  // sidebar + drawer about who the user is (it used to derive this inline).
+  const { isAdviserNav } = usePersona();
 
   // Punch-list item 8 — on Capacitor iOS we CAN replace the web tab bar
   // with a native Liquid Glass UIView overlay. But the native plugin is

@@ -6,9 +6,9 @@ import { MobileDrawer } from './MobileDrawer';
 import { MarketTickerSlot } from '@/components/ticker/MarketTickerSlot';
 import { AiConsentDialog } from '@/components/AiConsentDialog';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserRole } from '@/hooks/useUserRole';
+import { usePersona } from '@/hooks/usePersona';
 import { useSubscription } from '@/hooks/useSubscription';
-import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
+import { getUpsellTarget } from '@/lib/upsell';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
 
 /**
@@ -34,15 +34,11 @@ import { Sparkles, ArrowRight, X } from 'lucide-react';
 export function AppLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [stripDismissed, setStripDismissed] = useState(false);
-  const { user } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdviserNav } = usePersona();
   const { plan, loading } = useSubscription();
   // Plan-aware upsell (single source of truth across all surfaces).
   // Returns null for top-tier users → strip stays hidden for them.
-  const upsell = getUpsellTarget(
-    plan,
-    isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
-  );
+  const upsell = getUpsellTarget(plan, isAdviserNav);
   const showUpgradeBanner = !loading && upsell && !stripDismissed;
 
   return (

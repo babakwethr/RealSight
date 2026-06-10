@@ -11,8 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDldBuildingSearch } from '@/hooks/useDldData';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useUserRole } from '@/hooks/useUserRole';
-import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
+import { usePersona } from '@/hooks/usePersona';
+import { getUpsellTarget } from '@/lib/upsell';
 import { lightTap, mediumTap } from '@/lib/capacitor';
 import {
   Search, TrendingUp, TrendingDown, ChevronDown, X,
@@ -845,11 +845,8 @@ function RotatingCity() {
 export default function MarketHome({ isPublic = false }: { isPublic?: boolean }) {
   const { user } = useAuth();
   const { isPro, isAdviserPro, plan } = useSubscription();
-  const { isAdmin } = useUserRole();
-  const upsell = getUpsellTarget(
-    plan,
-    isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
-  );
+  const { isAdviserNav } = usePersona();
+  const upsell = getUpsellTarget(plan, isAdviserNav);
   const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState('');
   const [timePeriod, setTimePeriod] = useState('7D');

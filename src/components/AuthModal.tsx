@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { getPostLoginRoute } from '@/lib/authRouting';
 import { Logo } from '@/components/Logo';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,15 +65,13 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalP
     setIsLogin(defaultMode === 'login');
   }, [defaultMode]);
 
-  // Close on user login
+  // Close on user login. Route through the shared helper so a returning
+  // ADVISER lands on their workspace, not the investor dashboard (the old
+  // code always sent completed logins to /dashboard, ignoring isAdmin).
   useEffect(() => {
     if (user) {
       onClose();
-      if (needsOnboarding) {
-        navigate(isAdmin ? '/admin/setup' : '/onboarding');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate(getPostLoginRoute({ isAdmin, needsOnboarding }));
     }
   }, [user]);
 

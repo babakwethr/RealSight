@@ -6,8 +6,8 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useUserRole } from '@/hooks/useUserRole';
-import { getUpsellTarget, isAdviserUser } from '@/lib/upsell';
+import { usePersona } from '@/hooks/usePersona';
+import { getUpsellTarget } from '@/lib/upsell';
 import { User, Mail, Phone, Shield, Bell, LogOut, Globe, Languages, Loader2, CheckCircle2, ShieldCheck, ShieldOff, Copy, Eye, EyeOff, Zap, ArrowRight, CreditCard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ type MfaStatus = 'loading' | 'disabled' | 'enrolling' | 'verifying' | 'enabled';
 export default function Account() {
   const { user, signOut } = useAuth();
   const { planName, plan, isPro, isAdviser } = useSubscription();
-  const { isAdmin } = useUserRole();
+  const { isAdviserNav } = usePersona();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -571,10 +571,7 @@ export default function Account() {
             Investor Pro; free adviser-path sees Adviser Pro; top-tier sees no
             CTA. (28 Apr 2026 — was previously hardcoded "Portfolio Pro · $29".) */}
         {(() => {
-          const upsell = getUpsellTarget(
-            plan,
-            isAdviserUser({ isAdmin, signupRole: user?.user_metadata?.signup_role }),
-          );
+          const upsell = getUpsellTarget(plan, isAdviserNav);
           if (!upsell) return null;
           const isAdviserUpsell = upsell.targetPlan === 'adviser_pro';
           return (
