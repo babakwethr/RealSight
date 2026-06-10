@@ -70,7 +70,6 @@ const FEATURE_MIN_TIER: Record<string, PlanTier> = {
   'branded-reports':         'adviser_pro',
   'invite-clients':          'adviser_pro',
   'adviser-dashboard':       'adviser_pro',
-  'opportunity-signals':     'adviser_pro',
   'bulk-deal-analyzer':      'adviser_pro',
   'whatsapp-share':          'adviser_pro',
   'lead-gen-page':           'adviser_pro',
@@ -79,15 +78,19 @@ const FEATURE_MIN_TIER: Record<string, PlanTier> = {
   // Area Pricing Report PDF (per §15) is an adviser sales tool
   'area-pricing-report':     'adviser_pro',
 
-  // ── Legacy keys — collapsed to free (existing callers keep working) ──────
+  // ── Free tier — browse-only value, available to investors & agents ──────
   'market-intelligence':     'free',
-  'market-index':            'free',
   'heatmap':                 'free',
-  'watchlist':               'free',
   'compare':                 'free',
   'deal-analyzer-pdf':       'free',
   'concierge-unlimited':     'free',
-  'top-picks':               'free',
+
+  // ── Paid (Investor Pro+ — both investor & agent paid plans get these) ──
+  // Founder plan choice (10 Jun 2026): moved from free to paid.
+  'market-index':            'investor_pro',
+  'watchlist':               'investor_pro',
+  'top-picks':               'investor_pro',
+  'opportunity-signals':     'investor_pro',
 
   // Legacy adviser keys → now require Adviser Pro (collapsed from Starter+Pro)
   'global-radar':            'adviser_pro',
